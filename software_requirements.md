@@ -1,8 +1,7 @@
 # Software Requirements Specification — Voice Keyboard
 
 > **Project**: VoiceKey — Real-time Voice-to-Keyboard for Terminal & CLI  
-> **Version**: 1.0 MVP  
-> **Date**: 2026-02-17
+> **Version**: 1.0 MVP
 
 ---
 
