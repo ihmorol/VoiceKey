@@ -31,7 +31,7 @@ pip install -r requirements-dev.txt
 
 ### Prerequisites
 
-- Python 3.10+
+- Python 3.11+
 - PortAudio (for audio capture on Linux)
 - A working microphone
 
@@ -93,7 +93,10 @@ pytest tests/unit
 # Run integration tests
 pytest tests/integration
 
-# Run performance tests
+# Run performance guardrail check
+python scripts/ci/check_perf_guardrails.py --metrics-file tests/perf/metrics_baseline.json
+
+# Optional performance suite (when present)
 pytest tests/perf
 
 # Run a specific test file
@@ -110,6 +113,12 @@ pytest tests/unit/test_parser.py::test_unknown_command_literal_fallback
 - Performance tests are required for ASR/parser hot path changes
 - Tests must be deterministic and not depend on external services
 - Do not log raw microphone audio or transcripts in tests
+
+## Versioning and Changelog
+
+- VoiceKey uses semantic versioning (`MAJOR.MINOR.PATCH`).
+- User-facing changes must include a matching changelog entry in `CHANGELOG.md`.
+- Breaking changes must include explicit migration notes.
 
 ## Coding Standards
 

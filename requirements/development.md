@@ -44,6 +44,10 @@ pip install -r requirements-dev.txt
 pytest
 pytest tests/unit
 pytest tests/integration
+python scripts/ci/check_perf_guardrails.py --metrics-file tests/perf/metrics_baseline.json
+```
+Optional performance suite (when present):
+```bash
 pytest tests/perf
 ```
 
@@ -51,7 +55,7 @@ pytest tests/perf
 
 ## 5. Performance Regression Policy
 
-- every ASR or parser change should run perf tests
+- every ASR or parser change should run perf guardrail checks
 - fail build if p50 latency regresses > 15%
 - fail build if memory baseline regresses > 20%
 

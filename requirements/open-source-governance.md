@@ -13,7 +13,7 @@
 - `CODE_OF_CONDUCT.md`
 - `SECURITY.md`
 - `.github/ISSUE_TEMPLATE/*`
-- `.github/PULL_REQUEST_TEMPLATE.md`
+- `.github/pull_request_template.md`
 
 ---
 
