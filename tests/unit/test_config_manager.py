@@ -26,6 +26,14 @@ def test_resolve_config_path_uses_explicit_then_env_then_platform_defaults(tmp_p
     )
 
 
+def test_resolve_config_path_ignores_blank_env_override(tmp_path: Path) -> None:
+    env = {"VOICEKEY_CONFIG": "   "}
+
+    resolved = resolve_config_path(env=env, platform_name="linux", home_dir=tmp_path)
+
+    assert resolved == tmp_path / ".config" / "voicekey" / "config.yaml"
+
+
 def test_load_config_creates_default_file_when_missing(tmp_path: Path) -> None:
     config_path = tmp_path / "voicekey" / "config.yaml"
 
