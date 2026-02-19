@@ -208,12 +208,53 @@ jobs:
           python -c "import sys; print(f'Python {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}')"
 
   # =============================================================================
+  # PACKAGE SMOKE - Build and clean-environment install
+  # =============================================================================
+  package-smoke:
+    name: Package Smoke (wheel/sdist)
+    runs-on: ubuntu-24.04
+    needs: [lint]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+
+      - name: Set up Python
+        uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b  # v5.3.0
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Build wheel and sdist
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install build
+          python -m build
+
+      - name: Smoke install wheel in clean venv
+        run: |
+          python -m venv .venv-smoke-wheel
+          . .venv-smoke-wheel/bin/activate
+          python -m pip install --upgrade pip
+          python -m pip install --no-deps dist/*.whl
+          python -m pip show voicekey
+          python -c "import voicekey; print(voicekey.__version__)"
+
+      - name: Smoke install sdist in clean venv
+        run: |
+          python -m venv .venv-smoke-sdist
+          . .venv-smoke-sdist/bin/activate
+          python -m pip install --upgrade pip
+          python -m pip install --no-deps dist/*.tar.gz
+          python -m pip show voicekey
+          python -c "import voicekey; print(voicekey.__version__)"
+
+  # =============================================================================
   # TEST SUMMARY
   # =============================================================================
   test-summary:
     name: Test Summary
     runs-on: ubuntu-24.04
-    needs: [unit-tests, integration-smoke]
+    needs: [unit-tests, integration-smoke, package-smoke]
     if: always()
     steps:
       - name: Download all coverage artifacts
@@ -225,21 +266,27 @@ jobs:
         run: |
           echo "## Test Results Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          
+
           # Check unit test results
-          if ${{ needs.unit-tests.result == 'success' ]]; then
+          if [ "${{ needs.unit-tests.result }}" = "success" ]; then
             echo " Unit Tests: PASSED" >> $GITHUB_STEP_SUMMARY
           else
             echo " Unit Tests: ${{ needs.unit-tests.result }}" >> $GITHUB_STEP_SUMMARY
           fi
-          
+
           # Check integration test results
-          if ${{ needs.integration-smoke.result == 'success' ]]; then
+          if [ "${{ needs.integration-smoke.result }}" = "success" ]; then
             echo " Integration Smoke: PASSED" >> $GITHUB_STEP_SUMMARY
           else
             echo " Integration Smoke: ${{ needs.integration-smoke.result }}" >> $GITHUB_STEP_SUMMARY
           fi
-          
+
+          if [ "${{ needs.package-smoke.result }}" = "success" ]; then
+            echo " Package Smoke: PASSED" >> $GITHUB_STEP_SUMMARY
+          else
+            echo " Package Smoke: ${{ needs.package-smoke.result }}" >> $GITHUB_STEP_SUMMARY
+          fi
+
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Matrix Summary" >> $GITHUB_STEP_SUMMARY
           echo "- Ubuntu 22.04 + Python 3.11, 3.12" >> $GITHUB_STEP_SUMMARY
