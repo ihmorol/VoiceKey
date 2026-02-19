@@ -30,6 +30,7 @@ Priority legend:
 - E04-S01: complete (Linux/Windows keyboard adapters now share a typed contract with deterministic capability self-check and degraded-state reporting)
 - E04-S02: complete (hotkey register/unregister abstraction implemented with deterministic conflict alternatives)
 - E04-S03: complete (startup compatibility report now includes Wayland best-effort warnings, Windows admin guidance, and autostart adapter diagnostics)
+- E05-S01: complete (CLI now exposes required command surface with deterministic text/json output and stable usage error handling)
 
 ---
 

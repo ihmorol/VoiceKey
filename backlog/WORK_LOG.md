@@ -191,3 +191,13 @@
 
 - Post-integration verification refresh:
   - `.venv/bin/python -m pytest tests/unit` => PASS (254 passed)
+
+- E05-S01 completed:
+  - Implemented Click CLI contract in `voicekey/ui/cli.py` with required commands: `start`, `status`, `devices`, `commands`, `config`, `download`, `calibrate`, `diagnostics`.
+  - Added deterministic machine-readable output mode (`--output json`) and stable text output rendering.
+  - Added explicit CLI exit-code contract in `voicekey/ui/exit_codes.py`.
+  - Implemented `config` operation contract (`--get`, `--set`, `--reset`, `--edit`) with deterministic validation and usage-error behavior.
+  - Added CLI smoke and contract coverage in `tests/unit/test_cli.py`.
+- Verification commands/evidence:
+  - `.venv/bin/python -m pytest tests/unit/test_cli.py` => PASS (5 passed)
+  - `.venv/bin/python -m pytest tests/unit` => PASS (259 passed)
