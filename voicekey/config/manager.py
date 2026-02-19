@@ -11,6 +11,7 @@ from typing import Any, Mapping
 
 import yaml
 
+from voicekey.config.migration import ConfigMigrationError, MigrationRegistry, migrate_payload
 from voicekey.config.schema import VoiceKeyConfig, default_config, serialize_config, validate_with_fallback
 
 
@@ -75,6 +76,7 @@ def load_config(
     env: Mapping[str, str] | None = None,
     platform_name: str | None = None,
     home_dir: Path | None = None,
+    migration_registry: MigrationRegistry | None = None,
 ) -> ConfigLoadResult:
     """Load config from disk with schema fallback and backup safeguards."""
     config_path = resolve_config_path(
@@ -131,13 +133,39 @@ def load_config(
             backup_path=backup_path,
         )
 
-    config, validation_warnings = validate_with_fallback(parsed)
-    if not validation_warnings:
-        return ConfigLoadResult(config=config, path=config_path, created=False)
+    try:
+        migration_result = migrate_payload(parsed, registry=migration_registry)
+    except ConfigMigrationError as exc:
+        backup_path = backup_config(config_path)
+        config = default_config()
+        save_config(config, config_path)
+        warnings = (
+            f"Config migration failed: {exc}. Default config restored.",
+            f"Migration note: original config preserved at '{backup_path}'.",
+        )
+        return ConfigLoadResult(
+            config=config,
+            path=config_path,
+            created=False,
+            warnings=warnings,
+            backup_path=backup_path,
+        )
+
+    config, validation_warnings = validate_with_fallback(migration_result.payload)
+    requires_rewrite = migration_result.migrated or bool(validation_warnings)
+    combined_warnings = migration_result.warnings + validation_warnings
+
+    if not requires_rewrite:
+        return ConfigLoadResult(
+            config=config,
+            path=config_path,
+            created=False,
+            warnings=combined_warnings,
+        )
 
     backup_path = backup_config(config_path)
     save_config(config, config_path)
-    warnings = validation_warnings + (
+    warnings = combined_warnings + (
         f"Migration note: original config preserved at '{backup_path}'.",
     )
     return ConfigLoadResult(
