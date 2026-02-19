@@ -51,3 +51,6 @@ voicekey/models/*.pt
 
 # Project tooling caches
 .opencode/node_modules/
+
+.agent
+.opencode
