@@ -22,6 +22,13 @@ from voicekey.release.signing import (
     build_gpg_detached_sign_command,
     build_verify_tag_signature_command,
 )
+from voicekey.release.policy import (
+    ReleasePolicyReport,
+    validate_architecture_scope,
+    validate_artifact_naming,
+    validate_compatibility_policy_documents,
+    validate_release_policy,
+)
 
 __all__ = [
     "build_appimage_smoke_command",
@@ -38,4 +45,9 @@ __all__ = [
     "normalize_windows_version",
     "prepare_appimage_artifact",
     "prepare_installer_artifact",
+    "ReleasePolicyReport",
+    "validate_architecture_scope",
+    "validate_artifact_naming",
+    "validate_compatibility_policy_documents",
+    "validate_release_policy",
 ]
