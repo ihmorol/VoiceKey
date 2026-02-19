@@ -1,6 +1,6 @@
 # VoiceKey DevOps and CI/CD Specification
 
-> Version: 1.0
+> Version: 1.1
 > Date: 2026-02-19
 
 ---
@@ -22,6 +22,7 @@ Required jobs:
 - integration smoke tests
 - Linux + Windows matrix execution
 - dependency vulnerability scan
+- secret scan and license compliance scan
 
 Optional but recommended:
 
@@ -34,6 +35,7 @@ Optional but recommended:
 Trigger:
 
 - semantic version tag (`vX.Y.Z`)
+- release tags must be signed and created from protected branch
 
 Stages:
 
@@ -44,6 +46,12 @@ Stages:
 5. run install smoke tests from built artifacts
 6. publish artifacts and release notes
 
+Publishing and provenance rules:
+
+- PyPI publishing must use trusted publishing (OIDC), not long-lived API tokens.
+- Release provenance attestation must be emitted and attached to release artifacts.
+- Release fails hard if any artifact signing/checksum/SBOM step fails.
+
 ---
 
 ## 4. Branch Protection Rules
@@ -52,6 +60,7 @@ Stages:
 - no direct push to protected branches
 - at least one reviewed approval
 - signed tags for releases
+- required CODEOWNERS review for release pipeline changes
 
 ---
 
@@ -61,6 +70,17 @@ Stages:
 - secret scanning on PR and main branch
 - dependency audit and CVE triage policy
 - release provenance metadata attached
+- workflow permissions minimized per job
+- signing keys kept outside repository and rotated on schedule
+
+---
+
+## 7. Release Rollback Policy
+
+- if post-publish smoke tests fail, maintainers must halt promotion and issue rollback notice
+- PyPI: yank affected version
+- GitHub releases: mark as superseded and publish hotfix timeline
+- all rollback actions must be documented in release incident log
 
 ---
 
@@ -73,5 +93,5 @@ Stages:
 
 ---
 
-*Document Version: 1.0*  
+*Document Version: 1.1*  
 *Last Updated: 2026-02-19*

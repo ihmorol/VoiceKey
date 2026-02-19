@@ -25,6 +25,12 @@
 - Linux Wayland best-effort matrix
 - Windows standard/admin matrix
 
+Minimum CI matrix requirement:
+
+- Ubuntu 22.04 LTS x64 and Ubuntu 24.04 LTS x64 (X11 session tests where possible)
+- Windows 10 x64 and Windows 11 x64
+- Python 3.11 and 3.12
+
 ### Performance
 
 - latency percentiles
@@ -55,6 +61,7 @@
 - unknown command fallback to literal text
 - inactivity auto-pause trigger
 - pause phrase immediate output suppression
+- paused-state `resume voice key` phrase path (when enabled) and hotkey path
 
 ---
 

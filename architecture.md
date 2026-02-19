@@ -1,7 +1,7 @@
 # VoiceKey Architecture Specification
 ## World-class Offline Voice Keyboard Architecture
 
-> Version: 2.0 (Aligned)
+> Version: 2.1 (Aligned)
 > Last Updated: 2026-02-19
 
 ---
@@ -110,12 +110,17 @@ stateDiagram-v2
     INITIALIZING --> STANDBY
     INITIALIZING --> ERROR
 
-    STANDBY --> LISTENING : wake phrase
+    STANDBY --> LISTENING : wake phrase (wake_word mode)
+    STANDBY --> LISTENING : toggle hotkey on (toggle mode)
+    STANDBY --> LISTENING : start (continuous mode)
+
     LISTENING --> PROCESSING : speech frame
     PROCESSING --> LISTENING : partial/final handled
 
     LISTENING --> STANDBY : wake-session timeout
     LISTENING --> PAUSED : inactivity auto-pause
+    LISTENING --> SHUTTING_DOWN : stop phrase/signal
+    PROCESSING --> SHUTTING_DOWN : stop phrase/signal
 
     STANDBY --> PAUSED : pause phrase/hotkey
     PAUSED --> STANDBY : resume phrase/hotkey
@@ -131,6 +136,14 @@ stateDiagram-v2
 - `wake_window_timeout_seconds` (default 5)
 - `inactive_auto_pause_seconds` in toggle/continuous mode (default 30)
 - silence accounting driven by VAD + transcript inactivity
+
+### 5.2 Paused Control Plane
+
+- In `PAUSED`, full dictation ASR path stays disabled.
+- Only resume control channels remain active:
+  - configured resume hotkey
+  - optional low-power phrase detector for `resume voice key` (enabled by default)
+- `voice key stop` must remain active in paused mode.
 
 ---
 
@@ -211,7 +224,8 @@ class WindowBackend(ABC):
 
 ### 8.3 Daemon Mode
 
-- `voicekey start --daemon` starts headless with tray.
+- `voicekey start --daemon` starts without terminal UI; tray is enabled when a graphical desktop session exists.
+- if no graphical desktop session is available, daemon runs without tray and exposes CLI status only.
 - foreground dashboard remains optional.
 
 ---
@@ -309,8 +323,8 @@ Autostart settings are controlled from config and onboarding wizard.
 
 ### 14.4 Platform Compatibility
 
-- Linux X11/Wayland matrix
-- Windows standard/admin matrix
+- Ubuntu 22.04/24.04 x64 X11/Wayland matrix
+- Windows 10/11 x64 standard/admin matrix
 
 ---
 

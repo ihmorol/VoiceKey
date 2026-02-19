@@ -2,7 +2,7 @@
 ## Real-time Offline Voice-to-Keyboard for Linux and Windows
 
 > Project: VoiceKey  
-> Version: 3.0 (Aligned and Expanded)  
+> Version: 3.1 (Aligned and Expanded)  
 > Platforms: Linux and Windows (Primary), macOS (Out of Scope)  
 > Last Updated: 2026-02-19
 
@@ -104,6 +104,8 @@ This specification incorporates all prior analysis findings and decisions:
 - Window actions: `maximize window command`, `minimize window command`, `close window command`, `switch window command`
 - Clipboard aliases: `copy that command`, `paste that command`, `cut that command`
 
+Note: productivity window command group is feature-gated and disabled by default until P1 is delivered.
+
 ### 4.5 Listening Modes and Inactivity Safety
 
 | ID | Requirement | Priority |
@@ -113,7 +115,8 @@ This specification incorporates all prior analysis findings and decisions:
 | FR-M03 | `continuous` mode is supported and clearly marked as higher risk | P1 |
 | FR-M04 | In `toggle` and `continuous` modes, inactivity auto-pause is enabled by default | P0 |
 | FR-M05 | Default inactivity auto-pause timeout is 30s (configurable) | P0 |
-| FR-M06 | In paused state, text recognition and typing are fully disabled | P0 |
+| FR-M06 | In paused state, dictation and command execution are disabled | P0 |
+| FR-M07 | Paused state must keep only resume control channels active (`resume voice key` detector and configured hotkey, phrase channel enabled by default) | P0 |
 
 ### 4.6 System Integration
 
@@ -218,12 +221,14 @@ This specification incorporates all prior analysis findings and decisions:
 
 ### 7.1 Linux
 
+- Supported release targets: Ubuntu 22.04 LTS x64 and Ubuntu 24.04 LTS x64.
 - X11: full support target.
 - Wayland: best-effort support with explicit warnings.
 - If low-level input requires privileges, provide guided setup.
 
 ### 7.2 Windows
 
+- Supported release targets: Windows 10 x64 and Windows 11 x64.
 - Standard user mode supported for common applications.
 - Admin mode recommended for maximal compatibility.
 
@@ -261,6 +266,13 @@ This specification incorporates all prior analysis findings and decisions:
 
 - Survives microphone disconnect/reconnect without process crash.
 - Handles repeated mode toggles and hotkey changes without deadlock.
+
+### 9.4 Distribution and Governance Acceptance
+
+- Release artifacts are signed and checksummed.
+- SBOM and provenance are attached to each public release.
+- PyPI release path uses OIDC trusted publishing.
+- Repository includes MIT license and DCO-based contribution policy.
 
 ---
 
@@ -320,7 +332,7 @@ This specification incorporates all prior analysis findings and decisions:
 | ID | Requirement | Priority |
 |----|-------------|----------|
 | FR-D07 | Sign release artifacts (code signing on Windows, signed tags/releases) | P0 |
-| FR-D08 | Generate SBOM for each release artifact | P1 |
+| FR-D08 | Generate SBOM for each release artifact | P0 |
 | FR-D09 | Produce reproducible build metadata (commit hash, build date, toolchain) | P1 |
 
 ---
@@ -345,6 +357,7 @@ This specification incorporates all prior analysis findings and decisions:
 | FR-CI07 | Publish release notes from changelog and commit metadata | P0 |
 | FR-CI08 | Run post-publish install smoke tests on target platforms | P0 |
 | FR-CI09 | Automatic rollback guidance if smoke tests fail | P1 |
+| FR-CI10 | PyPI publishing must use trusted publishing (OIDC), not long-lived API tokens | P0 |
 
 ---
 
@@ -352,12 +365,13 @@ This specification incorporates all prior analysis findings and decisions:
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| FR-OSS01 | Repository includes LICENSE (MIT or Apache-2.0) | P0 |
+| FR-OSS01 | Repository includes LICENSE (MIT) | P0 |
 | FR-OSS02 | Repository includes CONTRIBUTING guide and code of conduct | P0 |
 | FR-OSS03 | Repository includes issue and PR templates | P0 |
 | FR-OSS04 | Semantic versioning policy and changelog process defined | P0 |
 | FR-OSS05 | Public compatibility matrix maintained per release | P1 |
 | FR-OSS06 | Security disclosure policy and contact method documented | P1 |
+| FR-OSS07 | Contribution legal model is DCO sign-off required, CLA not required | P0 |
 
 ---
 

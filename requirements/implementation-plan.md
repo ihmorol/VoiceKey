@@ -13,6 +13,7 @@
 4. Add release signing, checksums, and SBOM generation.
 5. Add install smoke tests per target artifact.
 6. Add OSS governance files (license, contributing, code of conduct, security policy).
+7. Implement legal/process baseline: MIT license, DCO sign-off policy, no CLA, vulnerability SLA in `SECURITY.md`.
 
 Exit criteria:
 

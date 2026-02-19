@@ -51,6 +51,7 @@ modes:
   default: "wake_word"           # wake_word | toggle | continuous
   inactivity_auto_pause_seconds: 30
   allow_continuous_mode: true
+  paused_resume_phrase_enabled: true
 
 hotkeys:
   toggle_listening: "ctrl+shift+`"
@@ -75,9 +76,9 @@ system:
   daemon_mode_default: true
 
 features:
-  text_expansion_enabled: true
+  text_expansion_enabled: false
   per_app_profiles_enabled: false
-  window_commands_enabled: true
+  window_commands_enabled: false
 
 privacy:
   telemetry_enabled: false
@@ -114,6 +115,7 @@ voicekey config --edit
 | `audio.chunk_ms` | `80..300` |
 | `wake_word.sensitivity` | `0.0..1.0` |
 | `modes.inactivity_auto_pause_seconds` | `5..300` |
+| `modes.paused_resume_phrase_enabled` | boolean |
 | `typing.char_delay_ms` | `0..50` |
 | `typing.confidence_threshold` | `0.0..1.0` |
 

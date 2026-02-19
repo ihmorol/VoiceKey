@@ -1,6 +1,6 @@
 # VoiceKey Security and Privacy Specification
 
-> Version: 1.0
+> Version: 1.1
 > Date: 2026-02-19
 
 ---
@@ -36,10 +36,18 @@
 
 ## 4. Security Controls
 
-- signed release artifacts (recommended)
+- signed release artifacts (required for public releases)
 - checksum file for model and package releases
 - local process lock to prevent duplicate service conflicts
 - bounded retry loops to prevent runaway states
+
+---
+
+## 4.1 Vulnerability Response SLA
+
+- acknowledge reports within 72 hours
+- provide triage update within 7 calendar days
+- target remediation within 30 days for high/critical issues, or publish exception rationale
 
 ---
 
@@ -61,5 +69,5 @@ If unexpected typing is observed:
 
 ---
 
-*Document Version: 1.0*  
+*Document Version: 1.1*  
 *Last Updated: 2026-02-19*

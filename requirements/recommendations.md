@@ -57,7 +57,7 @@ VoiceKey should position itself as:
 
 ## 6. Open-source Recommendations
 
-- adopt MIT or Apache-2.0 license
+- adopt MIT license
 - include contribution guide and issue templates
 - publish benchmark scripts and compatibility matrix
 

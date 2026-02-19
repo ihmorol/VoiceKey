@@ -1,6 +1,6 @@
 # VoiceKey Consistency and Gap-Closure Analysis
 
-> Version: 3.0 (Post-clarification)
+> Version: 3.1 (Post-clarification)
 > Date: 2026-02-19
 
 ---

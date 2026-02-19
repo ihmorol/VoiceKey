@@ -58,6 +58,8 @@ This folder contains the implementation-ready specification set for VoiceKey.
 - pause/resume phrases work without wake phrase
 - continuous mode kept with inactivity auto-pause safety
 - tray + autostart + onboarding included in core baseline
+- MIT license + DCO sign-off model (no CLA)
+- supported release targets: Windows 10/11 x64, Ubuntu 22.04/24.04 x64
 
 ---
 

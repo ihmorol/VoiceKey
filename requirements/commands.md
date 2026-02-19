@@ -5,6 +5,10 @@
 
 ---
 
+This document is the authoritative source for built-in command phrases.
+
+---
+
 ## 1. Parsing Rules (Authoritative)
 
 1. Wake phrase is `voice key` (configurable).
@@ -65,6 +69,8 @@
 
 ### 3.4 Window and Productivity Commands
 
+These commands are feature-gated and may be disabled in default config until P1 rollout.
+
 | Phrase | Action |
 |--------|--------|
 | `maximize window command` | Maximize active window |
@@ -82,6 +88,12 @@
 | `pause voice key` | Pause recognition |
 | `resume voice key` | Resume recognition |
 | `voice key stop` | Stop VoiceKey |
+
+Behavior in paused state:
+
+- `resume voice key` remains active.
+- `voice key stop` remains active.
+- all dictation and non-system command execution remain inactive.
 
 ---
 

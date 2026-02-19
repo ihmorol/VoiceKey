@@ -1,6 +1,6 @@
 # VoiceKey Distribution Specification
 
-> Version: 1.0
+> Version: 1.1
 > Date: 2026-02-19
 
 ---
@@ -21,13 +21,16 @@
 | Windows | signed installer + portable zip | installer wizard or unzip/run |
 | Linux | AppImage + pip | executable AppImage or pip |
 
+Supported architecture for public releases: x64 only.
+
 ---
 
 ## 3. Artifact Naming Convention
 
 Examples:
 
-- `voicekey-<version>-py3-none-any.whl`
+- `voicekey-<version>-cp311-cp311-win_amd64.whl` (if platform wheel required)
+- `voicekey-<version>-py3-none-any.whl` (only if truly pure-python)
 - `voicekey-<version>-windows-x64-installer.exe`
 - `voicekey-<version>-windows-x64-portable.zip`
 - `voicekey-<version>-linux-x86_64.AppImage`
@@ -39,9 +42,10 @@ Examples:
 Each release must include:
 
 1. checksums file (`SHA256SUMS`)
-2. signature metadata
-3. SBOM document
+2. detached signature for release artifact set (including `SHA256SUMS`)
+3. SBOM document (CycloneDX JSON)
 4. release notes with breaking changes and migration notes
+5. artifact manifest with commit hash and build environment metadata
 
 ---
 
@@ -51,6 +55,7 @@ Each release must include:
 - First run downloads required model profile.
 - `voicekey download` supports prefetch/offline preparation.
 - Every model archive must pass checksum before activation.
+- At least one fallback model mirror must be supported.
 
 ---
 
@@ -70,8 +75,9 @@ Each release must include:
 | corrupted releases | checksums + signature verification |
 | channel drift | single release pipeline and manifest |
 | missing runtime deps | post-build install smoke matrix |
+| model host outage | mirrored model source + retry strategy |
 
 ---
 
-*Document Version: 1.0*  
+*Document Version: 1.1*  
 *Last Updated: 2026-02-19*
