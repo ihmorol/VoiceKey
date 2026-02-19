@@ -114,7 +114,7 @@ Priority legend:
 
 ### Story E02-S01 - Wake phrase detector and window timer
 
-- Requirement IDs: FR-W01, FR-W02, FR-W03
+- Requirement IDs: FR-W01, FR-W02, FR-W03, FR-W04
 - Acceptance criteria:
   - default phrase is `voice key` and configurable.
   - wake event opens listening window only; no direct typing.
@@ -190,7 +190,7 @@ Priority legend:
 
 ### Story E03-S02 - Inactivity watchdog and timers
 
-- Requirement IDs: FR-M04, FR-M05
+- Requirement IDs: FR-W03, FR-M03, FR-M04, FR-M05
 - Acceptance criteria:
   - inactivity auto-pause default 30s in toggle/continuous.
   - wake window timeout default 5s in wake mode.
@@ -201,7 +201,7 @@ Priority legend:
 
 ### Story E03-S03 - Paused control plane behavior
 
-- Requirement IDs: FR-M06, FR-M07
+- Requirement IDs: FR-C05, FR-M06, FR-M07
 - Behavior rules:
   - dictation and non-system command execution disabled while paused.
   - only resume hotkey + optional phrase detector (enabled by default) remain active.
@@ -222,6 +222,17 @@ Priority legend:
   - E03-S04-T01 Implement structured runtime error taxonomy.
   - E03-S04-T02 Add bounded retry strategies.
   - E03-S04-T03 Add fallback-to-paused policy when safety cannot be guaranteed.
+
+### Story E03-S05 - Single-instance and shutdown safety
+
+- Requirement IDs: Section 5.3 reliability (single-instance, crash-safe shutdown and queue drain)
+- Acceptance criteria:
+  - startup fails fast with actionable error when another VoiceKey process already owns the runtime lock.
+  - shutdown drains or safely discards pending dispatch queue without partial output corruption.
+- Tasks:
+  - E03-S05-T01 Implement single-instance process lock with cross-platform adapters.
+  - E03-S05-T02 Implement shutdown queue-drain policy and timeout guard.
+  - E03-S05-T03 Add duplicate-start and shutdown-race tests.
 
 ---
 
@@ -254,13 +265,15 @@ Priority legend:
 
 ### Story E04-S03 - Wayland/X11 and Windows compatibility matrix behavior
 
-- Requirement IDs: Section 7.1, 7.2
+- Requirement IDs: FR-S04, Section 7.1, 7.2
 - Acceptance criteria:
   - Wayland explicitly warns and exposes reduced capability message.
   - Windows standard/admin behavior documented by self-check.
+  - Linux/Windows autostart adapters are validated at startup with clear remediation on failure.
 - Tasks:
   - E04-S03-T01 Implement display-session detection and warnings.
   - E04-S03-T02 Implement startup compatibility self-test report.
+  - E04-S03-T03 Implement autostart adapter validation and diagnostics.
 
 ### Story E04-S04 - Window command backend (P1 gated)
 
@@ -304,7 +317,7 @@ Priority legend:
 
 ### Story E05-S03 - Tray runtime and daemon mode
 
-- Requirement IDs: FR-S01, FR-S03, FR-S05
+- Requirement IDs: FR-S01, FR-S02, FR-S03, FR-S05
 - Acceptance criteria:
   - tray state maps to runtime state.
   - daemon starts without terminal UI; tray active only in graphical session.
@@ -391,6 +404,30 @@ Priority legend:
   - E06-S07-T01 Implement path strategy for portable runtime.
   - E06-S07-T02 Package portable artifact and smoke test.
 
+### Story E06-S08 - Config path overrides and runtime reload contract
+
+- Requirement IDs: FR-G01, FR-G02, `requirements/configuration.md` sections 1 and 6, `architecture.md` section 10.2
+- Acceptance criteria:
+  - config resolution precedence is deterministic across default path, ENV override, and CLI override.
+  - supported environment variables are parsed and validated at startup with actionable errors on invalid values.
+  - safe-to-reload keys apply without restart; restart-required keys emit explicit restart-needed signal.
+- Tasks:
+  - E06-S08-T01 Implement config path resolver with precedence tests.
+  - E06-S08-T02 Implement env-var adapters (`VOICEKEY_CONFIG`, `VOICEKEY_MODEL_DIR`, `VOICEKEY_LOG_LEVEL`, `VOICEKEY_DISABLE_TRAY`).
+  - E06-S08-T03 Implement hot-reload policy engine and restart-required notifications.
+
+### Story E06-S09 - Onboarding accessibility and skip-default safety
+
+- Requirement IDs: FR-O01, FR-O02, FR-O03, FR-O04, FR-O05, `requirements/onboarding.md` section 5
+- Acceptance criteria:
+  - onboarding flow is fully keyboard navigable with no mandatory mouse actions.
+  - onboarding skip path writes safe defaults and records explicit skipped-step status.
+  - onboarding timing evidence includes both completion and skip flows.
+- Tasks:
+  - E06-S09-T01 Implement keyboard-only interaction map for all wizard screens.
+  - E06-S09-T02 Implement skip-flow safe-default writer and audit marker.
+  - E06-S09-T03 Add accessibility and skip-path e2e tests.
+
 ---
 
 ## Epic E07 - Distribution and Packaging (P0/P1)
@@ -447,6 +484,18 @@ Priority legend:
   - E07-S05-T01 Implement model downloader and checksum verifier.
   - E07-S05-T02 Implement fallback mirror strategy.
 
+### Story E07-S06 - Distribution compatibility and artifact policy enforcement
+
+- Requirement IDs: `requirements/distribution.md` sections 2, 3, and 6
+- Acceptance criteria:
+  - release artifacts strictly follow naming convention for each channel.
+  - public release matrix enforces x64-only channel scope unless requirements are updated.
+  - backward-compatibility policy includes migration path support for one previous major version.
+- Tasks:
+  - E07-S06-T01 Implement artifact naming validator in release pipeline.
+  - E07-S06-T02 Implement release-channel architecture gate checks.
+  - E07-S06-T03 Add compatibility/migration policy validation in release checklist automation.
+
 ---
 
 ## Epic E08 - CI/CD and Release Operations (P0/P1)
@@ -486,6 +535,19 @@ Priority legend:
   - E08-S03-T01 Implement post-publish smoke jobs.
   - E08-S03-T02 Implement rollback decision and runbook automation hooks.
 
+### Story E08-S04 - CI security hardening and governance controls
+
+- Requirement IDs: `requirements/devops-cicd.md` sections 2, 4, 5, and 6
+- Acceptance criteria:
+  - PR pipeline runs secret scan and license compliance scan as required checks.
+  - branch protection and CODEOWNERS review requirements are enforced for release workflow changes.
+  - workflows pin external action dependencies and use least-privilege permissions per job.
+  - CI observability metrics (duration, flaky rate, failure rate, smoke pass rate) are published per run.
+- Tasks:
+  - E08-S04-T01 Add secret/license scan jobs with merge-blocking policy.
+  - E08-S04-T02 Add branch-protection and CODEOWNERS policy checks.
+  - E08-S04-T03 Add workflow hardening checks (pinned actions, permissions) and CI metrics export.
+
 ---
 
 ## Epic E09 - Security and Privacy Runtime Controls (P0)
@@ -496,6 +558,7 @@ Priority legend:
 
 ### Story E09-S01 - Data minimization controls
 
+- Requirement IDs: Section 5.4 privacy, `requirements/security.md` section 2
 - Acceptance criteria:
   - raw audio not persisted by default.
   - transcript logging off by default.
@@ -506,12 +569,25 @@ Priority legend:
 
 ### Story E09-S02 - Secure diagnostics and incident handling
 
+- Requirement IDs: `requirements/security.md` sections 4.1 and 6
 - Acceptance criteria:
   - diagnostics export is redacted by default.
   - incident response flow matches security docs.
 - Tasks:
   - E09-S02-T01 Implement diagnostics export schema.
   - E09-S02-T02 Add security incident runbook checks.
+
+### Story E09-S03 - Runtime network and telemetry guardrails
+
+- Requirement IDs: Section 5.4 privacy, `architecture.md` section 12, `requirements/configuration.md` privacy defaults
+- Acceptance criteria:
+  - no outbound network calls occur during normal runtime after model download/install.
+  - telemetry remains disabled by default and cannot be enabled implicitly by upgrade/migration.
+  - privacy guardrail tests fail build on runtime egress regression.
+- Tasks:
+  - E09-S03-T01 Implement runtime egress guard for non-download pipeline.
+  - E09-S03-T02 Add startup assertions for privacy default flags and migration safety.
+  - E09-S03-T03 Add offline-runtime and telemetry-default regression tests.
 
 ---
 
@@ -523,6 +599,7 @@ Priority legend:
 
 ### Story E10-S01 - Unit test baseline
 
+- Requirement IDs: `requirements/testing-strategy.md` unit and safety layers
 - Acceptance criteria:
   - parser, FSM, config migration, backend capability checks covered.
 - Tasks:
@@ -531,6 +608,7 @@ Priority legend:
 
 ### Story E10-S02 - Integration suite
 
+- Requirement IDs: `requirements/testing-strategy.md` integration layer
 - Acceptance criteria:
   - end-to-end mic->ASR->router->inject path tested.
   - tray/autostart integration tested.
@@ -540,6 +618,7 @@ Priority legend:
 
 ### Story E10-S03 - Performance benchmark harness
 
+- Requirement IDs: Section 5.1/5.2 performance and resource budgets
 - Acceptance criteria:
   - p50 <= 200ms and p95 <= 350ms measured on reference machines.
   - idle/active resource budgets measured and reported.
@@ -549,6 +628,7 @@ Priority legend:
 
 ### Story E10-S04 - Distribution verification tests
 
+- Requirement IDs: FR-CI08, `requirements/testing-strategy.md` section 5
 - Acceptance criteria:
   - pip, installer, portable, AppImage install/launch smoke all pass.
   - artifact checksum/signature verification path tested.
@@ -558,11 +638,22 @@ Priority legend:
 
 ### Story E10-S05 - Reliability and soak testing
 
+- Requirement IDs: Section 5.3 reliability, `requirements/testing-strategy.md` section 3
 - Acceptance criteria:
   - reconnect, rapid toggles, paused-resume phrase path, and long-run stability are validated.
 - Tasks:
   - E10-S05-T01 Add reconnect and mode-race test cases.
   - E10-S05-T02 Add long-duration soak tests with memory leak monitoring.
+
+### Story E10-S06 - Compatibility matrix and test-runtime governance
+
+- Requirement IDs: `requirements/testing-strategy.md` CI matrix requirements
+- Acceptance criteria:
+  - CI evidence includes Ubuntu 22.04/24.04, Windows 10/11, and Python 3.11/3.12 coverage or documented waivers.
+  - matrix drift fails the quality gate before release tagging.
+- Tasks:
+  - E10-S06-T01 Implement matrix coverage assertion checks in CI.
+  - E10-S06-T02 Publish matrix coverage report artifact per release candidate.
 
 ---
 
@@ -574,6 +665,7 @@ Priority legend:
 
 ### Story E11-S01 - User docs completeness
 
+- Requirement IDs: Section 11 and Section 15 required implementation artifacts
 - Acceptance criteria:
   - installation, onboarding, troubleshooting, command docs are current and release-linked.
 - Tasks:
@@ -582,19 +674,63 @@ Priority legend:
 
 ### Story E11-S02 - Developer docs completeness
 
+- Requirement IDs: FR-OSS05, `requirements/development.md`, `requirements/devops-cicd.md`
 - Acceptance criteria:
   - development/testing/devops docs align with actual workflow.
+  - compatibility matrix is published and updated per release.
 - Tasks:
   - E11-S02-T01 Update development guide with exact toolchain and gates.
   - E11-S02-T02 Maintain compatibility matrix and architecture deltas.
 
 ### Story E11-S03 - Backlog and traceability maintenance
 
+- Requirement IDs: backlog execution and traceability maintenance rules
 - Acceptance criteria:
   - every requirement maps to implemented stories and test evidence.
 - Tasks:
   - E11-S03-T01 Update `TRACEABILITY_MATRIX.md` each release.
   - E11-S03-T02 Block release if any requirement has missing coverage.
+
+---
+
+## Epic E12 - Ecosystem Expansion (P2)
+
+- Objective: deliver extensibility and internationalization features planned for roadmap expansion.
+- Requirement IDs: Section 10 P2 roadmap, `requirements/implementation-plan.md` phase 3
+- Dependencies: E10, E11
+
+### Story E12-S01 - Plugin SDK contract and safety model
+
+- Requirement IDs: P2 plugin SDK requirement
+- Acceptance criteria:
+  - plugin API contract includes lifecycle hooks, permission model, and compatibility versioning.
+  - plugin execution sandbox rules are documented and test-covered.
+- Tasks:
+  - E12-S01-T01 Define plugin manifest and runtime interface contracts.
+  - E12-S01-T02 Implement plugin capability gating and safety checks.
+  - E12-S01-T03 Add SDK reference plugin and validation tests.
+
+### Story E12-S02 - Language pack workflow
+
+- Requirement IDs: P2 multi-language pack requirement
+- Acceptance criteria:
+  - language pack packaging and activation workflow is deterministic.
+  - fallback language behavior is explicit and test-covered.
+- Tasks:
+  - E12-S02-T01 Define language pack manifest and install flow.
+  - E12-S02-T02 Implement language fallback and conflict resolution logic.
+  - E12-S02-T03 Add integration tests for language-pack activation lifecycle.
+
+### Story E12-S03 - Advanced automation command plugins
+
+- Requirement IDs: P2 advanced automation command plugin requirement
+- Acceptance criteria:
+  - automation command plugins run through same parser safety contracts as built-ins.
+  - plugin-driven commands remain feature-gated by default.
+- Tasks:
+  - E12-S03-T01 Define automation plugin action contract and guardrails.
+  - E12-S03-T02 Implement registry integration for plugin command packs.
+  - E12-S03-T03 Add negative and abuse-case tests for plugin command execution.
 
 ---
 

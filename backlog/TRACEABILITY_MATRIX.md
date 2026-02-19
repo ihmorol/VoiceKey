@@ -33,7 +33,7 @@ This matrix provides 100% requirement coverage from specification to backlog and
 | FR-S01 | E05-S03 | tray-daemon startup tests |
 | FR-S02 | E05-S02, E05-S03 | indicator state mapping tests |
 | FR-S03 | E05-S03 | tray action integration tests |
-| FR-S04 | E05-S03, E04-S03 | autostart platform tests |
+| FR-S04 | E04-S03 | autostart platform tests |
 | FR-S05 | E05-S03 | start-minimized tests |
 | FR-O01 | E06-S03 | onboarding e2e step validation |
 | FR-O02 | E06-S03 | wake test step checks |
@@ -81,15 +81,24 @@ This matrix provides 100% requirement coverage from specification to backlog and
 |----------------------------------------|------------------|--------------|
 | Built-in command sets in section 4.4 | E02-S05, E04-S04 | command registry and parser tests |
 | Productivity commands feature-gated until P1 | E02-S05, E04-S04, E06-S05 | default-config + feature-flag tests |
+| Config path defaults and override channels (`--config`, `VOICEKEY_CONFIG`) | E06-S08 | config resolution precedence tests |
+| Environment variable runtime controls (`VOICEKEY_MODEL_DIR`, `VOICEKEY_LOG_LEVEL`, `VOICEKEY_DISABLE_TRAY`) | E06-S08 | startup env parsing tests |
+| Hot reload semantics (safe-to-reload vs restart-required keys) | E06-S08 | reload contract tests |
+| Onboarding accessibility and keyboard-only operation | E06-S09 | onboarding accessibility e2e tests |
+| Onboarding skip flow writes safe defaults | E06-S09 | skip-path config safety tests |
 | Performance targets (wake, ASR, parse, p50/p95) | E10-S03 | benchmark reports |
 | Resource budgets (CPU/memory/disk) | E10-S03 | profiling reports |
-| Reliability bullets (single-instance, reconnect, crash-safe shutdown, bounded retries) | E03-S04, E10-S05 | resilience tests |
-| Privacy bullets (offline runtime, no telemetry, no raw audio persistence, no transcript logs by default) | E09-S01 | privacy regression tests |
+| Reliability bullets (single-instance, reconnect, crash-safe shutdown, bounded retries) | E03-S04, E03-S05, E10-S05 | resilience tests |
+| Privacy bullets (offline runtime, no telemetry, no raw audio persistence, no transcript logs by default) | E09-S01, E09-S03 | privacy regression tests |
 | Usability targets (first setup <=5 min, first sentence <=2 min) | E06-S03, E10-S02 | onboarding timing tests |
 | Linux support target (Ubuntu 22.04/24.04 x64, X11 full, Wayland best-effort) | E04-S03, E10-S04 | compatibility matrix |
 | Windows support target (10/11 x64, standard/admin behavior) | E04-S03, E10-S04 | compatibility matrix |
+| Distribution policy (x64 public scope, artifact naming convention, one-major migration path) | E07-S06 | release policy validator checks |
+| CI hardening controls (secret scan, license scan, branch protection, CODEOWNERS, pinned actions, least-privilege permissions, CI observability) | E08-S04 | CI governance checks |
 | Error and edge scenarios table (no mic, disconnect, unknown command, hotkey conflict, checksum fail, keyboard block) | E03-S04, E04-S02, E07-S05 | integration/error-path tests |
-| Acceptance criteria section 9 | E10-S01..E10-S05 | release gate checks |
+| Test matrix governance (Ubuntu/Windows + Python version matrix coverage) | E10-S06 | matrix coverage reports |
+| P2 ecosystem roadmap (plugin SDK, language packs, advanced automation plugins) | E12-S01..E12-S03 | roadmap feature test suites |
+| Acceptance criteria section 9 | E10-S01..E10-S06 | release gate checks |
 | Required implementation artifacts in sections 11 and 15 | E11-S01..E11-S03 | documentation audit gate |
 
 ---
