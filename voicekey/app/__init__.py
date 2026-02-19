@@ -9,6 +9,14 @@ from voicekey.app.state_machine import (
     TransitionResult,
     VoiceKeyStateMachine,
 )
+from voicekey.app.main import RuntimeCoordinator, RuntimeUpdate
+from voicekey.app.watchdog import (
+    InactivityWatchdog,
+    WatchdogTelemetryCounters,
+    WatchdogTimerConfig,
+    WatchdogTimeoutEvent,
+    WatchdogTimeoutType,
+)
 
 __all__ = [
     "AppEvent",
@@ -18,4 +26,11 @@ __all__ = [
     "ModeHooks",
     "TransitionResult",
     "VoiceKeyStateMachine",
+    "RuntimeCoordinator",
+    "RuntimeUpdate",
+    "InactivityWatchdog",
+    "WatchdogTelemetryCounters",
+    "WatchdogTimerConfig",
+    "WatchdogTimeoutEvent",
+    "WatchdogTimeoutType",
 ]
