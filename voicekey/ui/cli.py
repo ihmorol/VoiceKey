@@ -8,9 +8,11 @@ from typing import Any
 
 import click
 
+from voicekey.ui.onboarding import run_onboarding
 from voicekey.ui.exit_codes import ExitCode
 
 REQUIRED_COMMANDS: tuple[str, ...] = (
+    "setup",
     "start",
     "status",
     "devices",
@@ -97,6 +99,58 @@ def start_command(ctx: click.Context, daemon: bool, config_path: str | None) -> 
             "daemon": daemon,
             "config_path": config_path,
             "runtime": "not_implemented",
+        },
+    )
+
+
+@cli.command("setup")
+@click.option("--config", "config_path", type=click.Path(), default=None)
+@click.option("--skip", is_flag=True, help="Skip onboarding and write safe defaults.")
+@click.option("--device-id", type=int, default=None, help="Selected microphone device id.")
+@click.option(
+    "--wake-test-success/--wake-test-fail",
+    "wake_test_success",
+    default=True,
+    help="Result of wake phrase verification step.",
+)
+@click.option("--hotkey", default="ctrl+shift+`", show_default=True)
+@click.option("--autostart/--no-autostart", "autostart_enabled", default=False, show_default=True)
+@click.pass_context
+def setup_command(
+    ctx: click.Context,
+    config_path: str | None,
+    skip: bool,
+    device_id: int | None,
+    wake_test_success: bool,
+    hotkey: str,
+    autostart_enabled: bool,
+) -> None:
+    """Run onboarding setup flow and persist selected values."""
+    result = run_onboarding(
+        config_path=config_path,
+        skip=skip,
+        selected_device_id=device_id,
+        wake_phrase_verified=wake_test_success,
+        toggle_hotkey=hotkey,
+        autostart_enabled=autostart_enabled,
+    )
+    _emit_output(
+        ctx,
+        command="setup",
+        result={
+            "completed": result.completed,
+            "skipped": result.skipped,
+            "persisted": result.persisted,
+            "config_path": str(result.config_path),
+            "selected_device_id": result.selected_device_id,
+            "wake_phrase_verified": result.wake_phrase_verified,
+            "toggle_hotkey": result.toggle_hotkey,
+            "autostart_enabled": result.autostart_enabled,
+            "completed_steps": list(result.completed_steps),
+            "tutorial_script": list(result.tutorial_script),
+            "duration_seconds": result.duration_seconds,
+            "within_target": result.within_target,
+            "errors": list(result.errors),
         },
     )
 

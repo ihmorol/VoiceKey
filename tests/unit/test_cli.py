@@ -17,6 +17,7 @@ def test_help_includes_required_commands() -> None:
 
     assert result.exit_code == ExitCode.SUCCESS
     for command_name in [
+        "setup",
         "start",
         "status",
         "devices",
@@ -29,10 +30,13 @@ def test_help_includes_required_commands() -> None:
         assert command_name in result.output
 
 
-def test_required_commands_smoke() -> None:
+def test_required_commands_smoke(tmp_path) -> None:
     runner = CliRunner()
 
+    setup_config = tmp_path / "voicekey-test-config.yaml"
+
     command_args = [
+        ["setup", "--skip", "--config", str(setup_config)],
         ["start"],
         ["status"],
         ["devices"],
@@ -80,3 +84,31 @@ def test_invalid_arguments_return_deterministic_usage_error_exit_code() -> None:
     result = runner.invoke(cli, ["config", "--set", "missing_equals_sign"])
 
     assert result.exit_code == ExitCode.USAGE_ERROR
+
+
+def test_setup_json_output_includes_required_onboarding_fields(tmp_path) -> None:
+    runner = CliRunner()
+    config_path = tmp_path / "voicekey" / "config.yaml"
+
+    result = runner.invoke(
+        cli,
+        [
+            "--output",
+            "json",
+            "setup",
+            "--config",
+            str(config_path),
+            "--device-id",
+            "3",
+            "--wake-test-success",
+            "--autostart",
+        ],
+    )
+
+    assert result.exit_code == ExitCode.SUCCESS
+    payload = json.loads(result.output)
+    assert payload["ok"] is True
+    assert payload["command"] == "setup"
+    assert payload["result"]["completed"] is True
+    assert payload["result"]["persisted"] is True
+    assert payload["result"]["selected_device_id"] == 3
