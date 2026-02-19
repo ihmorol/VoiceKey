@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from enum import StrEnum
+from typing import Any
 
 from voicekey.commands.builtins import SPECIAL_PHRASES, create_builtin_registry
+from voicekey.commands.custom import load_custom_command_actions
 from voicekey.commands.fuzzy import FuzzyMatchConfig, FuzzyMatcher
 from voicekey.commands.registry import (
     CommandChannel,
@@ -111,11 +113,16 @@ def create_parser(
     window_commands_enabled: bool = False,
     enabled_features: Iterable[FeatureGate] | None = None,
     fuzzy: FuzzyMatchConfig | None = None,
+    custom_commands: Mapping[str, Any] | None = None,
 ) -> CommandParser:
     """Create parser with explicit feature-gate routing configuration."""
 
     features = set(enabled_features or ())
     if window_commands_enabled:
         features.add(FeatureGate.WINDOW_COMMANDS)
-    registry = create_builtin_registry(enabled_features=features)
+    custom_actions = load_custom_command_actions(custom_commands)
+    registry = create_builtin_registry(
+        enabled_features=features,
+        custom_commands=(action.to_command_definition() for action in custom_actions),
+    )
     return CommandParser(registry=registry, fuzzy=fuzzy)

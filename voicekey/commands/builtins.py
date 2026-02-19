@@ -102,6 +102,10 @@ def builtin_commands() -> tuple[CommandDefinition, ...]:
 
 def create_builtin_registry(
     enabled_features: Iterable[FeatureGate] | None = None,
+    custom_commands: Iterable[CommandDefinition] | None = None,
 ) -> CommandRegistry:
     """Create registry with built-ins and optional feature gates enabled."""
-    return CommandRegistry(commands=builtin_commands(), enabled_features=enabled_features)
+    registry = CommandRegistry(commands=builtin_commands(), enabled_features=enabled_features)
+    for command in custom_commands or ():
+        registry.register(command)
+    return registry
