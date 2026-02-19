@@ -188,3 +188,6 @@
 - Verification commands/evidence:
   - `.venv/bin/python -m pytest tests/unit/test_compatibility_report.py tests/unit/test_autostart_adapters.py` => PASS (13 passed)
   - `.venv/bin/python -m pytest tests/unit` => PASS (241 passed)
+
+- Post-integration verification refresh:
+  - `.venv/bin/python -m pytest tests/unit` => PASS (254 passed)
