@@ -249,12 +249,63 @@ jobs:
           python -c "import voicekey; print(voicekey.__version__)"
 
   # =============================================================================
+  # LINUX APPIMAGE SMOKE
+  # =============================================================================
+  appimage-smoke:
+    name: AppImage Smoke (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    needs: [lint]
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, ubuntu-24.04]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+
+      - name: Set up Python
+        uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b  # v5.3.0
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Build canonical AppImage artifact via script
+        run: |
+          mkdir -p artifacts/input
+          cat <<'EOF' > artifacts/input/voicekey-unsigned.AppImage
+          #!/usr/bin/env sh
+          if [ "$1" = "--help" ]; then
+            echo "voicekey appimage smoke"
+            exit 0
+          fi
+          exit 0
+          EOF
+          chmod +x artifacts/input/voicekey-unsigned.AppImage
+          python scripts/linux/build_appimage.py \
+            --version 0.1.0 \
+            --unsigned-appimage-path artifacts/input/voicekey-unsigned.AppImage \
+            --output-dir artifacts/dist
+
+      - name: Launch smoke canonical AppImage artifact
+        run: |
+          python scripts/linux/smoke_launch_appimage.py \
+            --appimage-path artifacts/dist/voicekey-0.1.0-linux-x86_64.AppImage \
+            --timeout-seconds 10
+
+      - name: Upload AppImage artifact
+        uses: actions/upload-artifact@5d5d22a31266ced268874388b981cf7d8a2f934  # v4.3.1
+        with:
+          name: appimage-${{ matrix.os }}
+          path: artifacts/dist/voicekey-0.1.0-linux-x86_64.AppImage
+          retention-days: 7
+
+  # =============================================================================
   # TEST SUMMARY
   # =============================================================================
   test-summary:
     name: Test Summary
     runs-on: ubuntu-24.04
-    needs: [unit-tests, integration-smoke, package-smoke]
+    needs: [unit-tests, integration-smoke, package-smoke, appimage-smoke]
     if: always()
     steps:
       - name: Download all coverage artifacts
@@ -287,11 +338,18 @@ jobs:
             echo " Package Smoke: ${{ needs.package-smoke.result }}" >> $GITHUB_STEP_SUMMARY
           fi
 
+          if [ "${{ needs.appimage-smoke.result }}" = "success" ]; then
+            echo " Linux AppImage Smoke: PASSED" >> $GITHUB_STEP_SUMMARY
+          else
+            echo " Linux AppImage Smoke: ${{ needs.appimage-smoke.result }}" >> $GITHUB_STEP_SUMMARY
+          fi
+
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Matrix Summary" >> $GITHUB_STEP_SUMMARY
           echo "- Ubuntu 22.04 + Python 3.11, 3.12" >> $GITHUB_STEP_SUMMARY
           echo "- Ubuntu 24.04 + Python 3.11, 3.12" >> $GITHUB_STEP_SUMMARY
           echo "- Windows 2022 + Python 3.12" >> $GITHUB_STEP_SUMMARY
+          echo "- Linux AppImage launch smoke: Ubuntu 22.04 and 24.04" >> $GITHUB_STEP_SUMMARY
 
   # =============================================================================
   # SECURITY SCANS SUMMARY
