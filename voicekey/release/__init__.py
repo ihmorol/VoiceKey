@@ -29,6 +29,7 @@ from voicekey.release.policy import (
     validate_compatibility_policy_documents,
     validate_release_policy,
 )
+from voicekey.release.changelog import extract_release_notes
 
 __all__ = [
     "build_appimage_smoke_command",
@@ -46,6 +47,7 @@ __all__ = [
     "prepare_appimage_artifact",
     "prepare_installer_artifact",
     "ReleasePolicyReport",
+    "extract_release_notes",
     "validate_architecture_scope",
     "validate_artifact_naming",
     "validate_compatibility_policy_documents",
