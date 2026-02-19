@@ -23,7 +23,10 @@ Priority legend:
 - E02-S04: complete (special phrase channel wired in runtime for paused resume/stop; parser exact-match suffix bypass verified)
 - E02-S05: complete (catalog aligned to `requirements/commands.md` section 3; full built-in phrase/alias parser coverage with window command feature-gate tests)
 - E03-S01: complete (table-driven FSM transitions and invalid-transition guards verified)
+- E03-S02: complete (mode-aware inactivity watchdog with required defaults, activity resets, and timeout telemetry verified)
 - E03-S03: complete (paused routing policy enforces suppression with resume/stop-only paused phrase channel; race sequencing covered)
+- E03-S04: complete (runtime error taxonomy, bounded retry helpers, and safety fallback-to-paused policy verified)
+- E03-S05: complete (single-instance runtime lock and shutdown queue-drain timeout/discard safeguards verified)
 
 ---
 

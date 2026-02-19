@@ -152,3 +152,15 @@
   - Updated backlog live execution status in `backlog/BACKLOG_MASTER.md` to mark E02-S05 complete.
 - Verification commands/evidence:
   - `.venv/bin/python -m pytest tests/unit/test_builtins_catalog.py tests/unit/test_parser.py` => PASS (49 passed)
+
+- E03-S04 completed:
+  - Added structured runtime error taxonomy in `voicekey/app/runtime_errors.py` for required edge scenarios (`no_microphone`, `hotkey_conflict`, `model_checksum_failed`, `keyboard_blocked`, and microphone disconnect recovery path).
+  - Added bounded retry and safety-fallback helpers in `voicekey/app/resilience.py`, including deterministic retry policy and explicit fallback-to-paused decisions when safety cannot be guaranteed.
+  - Added unit coverage in `tests/unit/test_runtime_resilience.py` for actionable remediation text, bounded retries, and pause fallback policy decisions.
+- E03-S05 completed:
+  - Added cross-platform single-instance guard in `voicekey/app/single_instance.py` with POSIX/Windows lock adapters and actionable duplicate-start errors.
+  - Added shutdown-safe queue drain policy in `voicekey/app/shutdown.py` with timeout guard and safe discard behavior for pending work.
+  - Added unit coverage in `tests/unit/test_single_instance.py` and `tests/unit/test_shutdown.py` for duplicate-start, release/reacquire, shutdown timeout, and enqueue race paths.
+- Verification commands/evidence:
+  - `.venv/bin/python -m pytest tests/unit/test_runtime_resilience.py tests/unit/test_single_instance.py tests/unit/test_shutdown.py` => PASS (18 passed)
+  - `.venv/bin/python -m pytest tests/unit` => PASS (223 passed)
