@@ -1,34 +1,4 @@
-# Documentation requirements for mkdocs
-
-# Core mkdocs
-mkdocs>=1.5.0
-mkdocs-material>=9.0.0
-
-# Plugins
-mkdocs-minify-plugin>=0.8.0
-mkdocs-git-revision-date-localized-plugin>=3.0.0
-mkdocs-glightbox>=0.3.0
-mkdocs-tags>=0.3.0
-mkdx>=0.4.0
-
-# Extensions
-pymdown-extensions>=10.0
-pygments>=2.16.0
-
-# Markdown
-markdown>=3.5.0
-pymdownx-highlight>=3.9.0
-pymdownx-tabbed>=1.1.0
-pymdownx-superfences>=4.0.0
-pymdownx-details>=1.0.0
-pymdownx-mark>=1.0.0
-pymdownx.critic>=1.7.0
-pymdownx.case>=1.0.0
-pymdownx.pathify>=0.2.0
-pymdownx.extraclasses>=1.0.0
-pymdownx.tilde>=1.0.0
-
-# Build
-Jinja2>=3.1.0
-PyYAML>=6.0
-click>=8.1.0
+mkdocs>=1.6,<2.0
+mkdocs-material>=9.6,<10.0
+mkdocs-minify-plugin>=0.8,<1.0
+pymdown-extensions>=10.14,<11.0
