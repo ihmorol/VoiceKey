@@ -37,6 +37,7 @@ Priority legend:
 - E05-S03: complete (tray action contract and daemon session behavior implemented with runtime-state indicator mapping)
 - E06-S01: complete (typed YAML config schema, safe fallback validation, path resolution, persistence, backup, and warning-based migration reporting)
 - E06-S02: complete (forward-only migration registry added with idempotent version chaining, failure-safe default regeneration, and legacy/corrupt coverage)
+- E06-S03: complete (onboarding wizard state flow implemented with required steps, skip-safe defaults, config persistence, and CLI setup command contract)
 
 ---
 

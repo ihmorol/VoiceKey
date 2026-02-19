@@ -252,3 +252,15 @@
 - Verification commands/evidence:
   - `.venv/bin/python -m pytest tests/unit/test_config_migration.py tests/unit/test_config_manager.py` => PASS (13 passed)
   - `.venv/bin/python -m pytest tests/unit` => PASS (301 passed)
+
+- E06-S03 completed:
+  - Implemented onboarding wizard flow state machine and deterministic run contract in `voicekey/ui/onboarding.py` with required ordered steps: welcome/privacy, microphone selection, wake test, hotkey confirmation, autostart preference, and tutorial script.
+  - Added onboarding completion constraints aligned to requirements: completion requires valid microphone selection and wake phrase verification; failure path is non-persisting and returns explicit errors.
+  - Implemented skip-safe behavior: `skip` path writes safe default config values.
+  - Added CLI onboarding entry command `setup` in `voicekey/ui/cli.py` with deterministic text/json outputs and persisted config path reporting.
+  - Added onboarding unit coverage in `tests/unit/test_onboarding.py` for step ordering, success persistence, skip-safe defaults, and required-check failure behavior.
+  - Expanded CLI coverage in `tests/unit/test_cli.py` to include `setup` in required commands/smoke tests and validate onboarding JSON output fields.
+- Updated backlog live execution status in `backlog/BACKLOG_MASTER.md` to mark E06-S03 complete.
+- Verification commands/evidence:
+  - `.venv/bin/python -m pytest tests/unit/test_onboarding.py tests/unit/test_cli.py` => PASS (10 passed)
+  - `.venv/bin/python -m pytest tests/unit` => PASS (306 passed)
