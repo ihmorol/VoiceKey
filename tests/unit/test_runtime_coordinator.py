@@ -137,3 +137,35 @@ def test_default_wake_window_timeout_is_five_seconds() -> None:
     )
 
     assert coordinator.wake_window_timeout_seconds == 5.0
+
+
+def test_paused_resume_phrase_transitions_to_standby() -> None:
+    coordinator = RuntimeCoordinator(
+        state_machine=VoiceKeyStateMachine(
+            mode=ListeningMode.WAKE_WORD,
+            initial_state=AppState.PAUSED,
+        ),
+    )
+
+    update = coordinator.on_transcript("resume voice key")
+
+    assert update.transition is not None
+    assert update.transition.from_state is AppState.PAUSED
+    assert update.transition.to_state is AppState.STANDBY
+    assert coordinator.state is AppState.STANDBY
+
+
+def test_paused_stop_phrase_transitions_to_shutting_down() -> None:
+    coordinator = RuntimeCoordinator(
+        state_machine=VoiceKeyStateMachine(
+            mode=ListeningMode.WAKE_WORD,
+            initial_state=AppState.PAUSED,
+        ),
+    )
+
+    update = coordinator.on_transcript("voice key stop")
+
+    assert update.transition is not None
+    assert update.transition.from_state is AppState.PAUSED
+    assert update.transition.to_state is AppState.SHUTTING_DOWN
+    assert coordinator.state is AppState.SHUTTING_DOWN

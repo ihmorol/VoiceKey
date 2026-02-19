@@ -107,3 +107,13 @@ def test_special_phrase_match_is_exact_not_prefix() -> None:
     assert result.kind is ParseKind.TEXT
     assert result.literal_text == "pause voice key command"
     assert result.command is None
+
+
+def test_resume_special_phrase_match_is_exact_not_command_suffix_variant() -> None:
+    parser = CommandParser(registry=create_builtin_registry())
+
+    result = parser.parse("resume voice key command")
+
+    assert result.kind is ParseKind.TEXT
+    assert result.literal_text == "resume voice key command"
+    assert result.command is None
