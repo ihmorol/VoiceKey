@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import platform
+from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -30,6 +31,47 @@ class ConfigLoadResult:
     backup_path: Path | None = None
 
 
+@dataclass(frozen=True)
+class StartupEnvOverrides:
+    """Validated startup environment overrides."""
+
+    config_path: Path | None = None
+    model_dir: Path | None = None
+    log_level: str | None = None
+    disable_tray: bool | None = None
+
+
+@dataclass(frozen=True)
+class ReloadDecision:
+    """Deterministic config hot-reload decision output."""
+
+    safe_to_apply: tuple[str, ...]
+    restart_required: tuple[str, ...]
+
+    @property
+    def restart_needed(self) -> bool:
+        return bool(self.restart_required)
+
+
+_SAFE_RELOAD_KEYS: tuple[str, ...] = (
+    "typing.confidence_threshold",
+    "wake_word.sensitivity",
+    "vad.speech_threshold",
+    "wake_word.wake_window_timeout_seconds",
+    "modes.inactivity_auto_pause_seconds",
+    "ui.audio_feedback",
+)
+
+_SAFE_RELOAD_PREFIXES: tuple[str, ...] = ("hotkeys.",)
+
+_RESTART_REQUIRED_KEYS: tuple[str, ...] = (
+    "engine.model_profile",
+    "engine.asr_backend",
+)
+
+_VALID_LOG_LEVELS: tuple[str, ...] = ("debug", "info", "warning", "error", "critical")
+
+
 def resolve_config_path(
     *,
     explicit_path: str | Path | None = None,
@@ -43,8 +85,8 @@ def resolve_config_path(
 
     env_map = env if env is not None else os.environ
     env_path = env_map.get("VOICEKEY_CONFIG")
-    if env_path:
-        return Path(env_path).expanduser()
+    if env_path is not None and env_path.strip():
+        return Path(env_path.strip()).expanduser()
 
     system_name = (platform_name or platform.system()).lower()
     home = home_dir or Path.home()
@@ -177,11 +219,111 @@ def load_config(
     )
 
 
+def parse_startup_env_overrides(env: Mapping[str, str] | None = None) -> StartupEnvOverrides:
+    """Parse supported startup env vars with actionable validation errors."""
+    env_map = env if env is not None else os.environ
+
+    config_path_value = _clean_optional_env_value(env_map.get("VOICEKEY_CONFIG"))
+    model_dir_value = _clean_optional_env_value(env_map.get("VOICEKEY_MODEL_DIR"))
+    log_level_value = _clean_optional_env_value(env_map.get("VOICEKEY_LOG_LEVEL"))
+    disable_tray_value = _clean_optional_env_value(env_map.get("VOICEKEY_DISABLE_TRAY"))
+
+    config_path = Path(config_path_value).expanduser() if config_path_value is not None else None
+    model_dir = None
+    if model_dir_value is not None:
+        model_dir = Path(model_dir_value).expanduser()
+        if model_dir.exists() and not model_dir.is_dir():
+            raise ConfigError(
+                "Invalid VOICEKEY_MODEL_DIR: expected a directory path; "
+                f"got non-directory '{model_dir}'."
+            )
+
+    log_level = None
+    if log_level_value is not None:
+        normalized = log_level_value.lower()
+        if normalized not in _VALID_LOG_LEVELS:
+            allowed = ", ".join(_VALID_LOG_LEVELS)
+            raise ConfigError(
+                "Invalid VOICEKEY_LOG_LEVEL: "
+                f"'{log_level_value}'. Allowed values: {allowed}."
+            )
+        log_level = normalized
+
+    disable_tray = None
+    if disable_tray_value is not None:
+        disable_tray = _parse_bool_env_value(
+            variable_name="VOICEKEY_DISABLE_TRAY",
+            raw_value=disable_tray_value,
+        )
+
+    return StartupEnvOverrides(
+        config_path=config_path,
+        model_dir=model_dir,
+        log_level=log_level,
+        disable_tray=disable_tray,
+    )
+
+
+def evaluate_reload_decision(changed_keys: Iterable[str]) -> ReloadDecision:
+    """Classify changed config keys into hot-reload-safe vs restart-required buckets."""
+    safe_to_apply: set[str] = set()
+    restart_required: set[str] = set()
+
+    for raw_key in changed_keys:
+        key = raw_key.strip()
+        if not key:
+            continue
+
+        if _is_safe_reload_key(key):
+            safe_to_apply.add(key)
+            continue
+
+        if key in _RESTART_REQUIRED_KEYS:
+            restart_required.add(key)
+            continue
+
+        restart_required.add(key)
+
+    return ReloadDecision(
+        safe_to_apply=tuple(sorted(safe_to_apply)),
+        restart_required=tuple(sorted(restart_required)),
+    )
+
+
+def _is_safe_reload_key(key: str) -> bool:
+    if key in _SAFE_RELOAD_KEYS:
+        return True
+    return any(key.startswith(prefix) for prefix in _SAFE_RELOAD_PREFIXES)
+
+
+def _clean_optional_env_value(raw_value: str | None) -> str | None:
+    if raw_value is None:
+        return None
+    cleaned = raw_value.strip()
+    return cleaned or None
+
+
+def _parse_bool_env_value(*, variable_name: str, raw_value: str) -> bool:
+    lowered = raw_value.lower()
+    if lowered in {"1", "true", "yes", "on"}:
+        return True
+    if lowered in {"0", "false", "no", "off"}:
+        return False
+    raise ConfigError(
+        f"Invalid {variable_name}: '{raw_value}'. Allowed boolean values: "
+        "1/0, true/false, yes/no, on/off."
+    )
+
+
 __all__ = [
     "ConfigError",
     "ConfigLoadResult",
+    "ReloadDecision",
+    "StartupEnvOverrides",
     "backup_config",
+    "evaluate_reload_decision",
     "load_config",
+    "parse_startup_env_overrides",
     "resolve_config_path",
     "save_config",
 ]
