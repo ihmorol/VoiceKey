@@ -28,13 +28,14 @@
 Minimum CI matrix requirement:
 
 - Ubuntu 22.04 LTS x64 and Ubuntu 24.04 LTS x64 (X11 session tests where possible)
-- Windows 10 x64 and Windows 11 x64
+- Windows coverage via `windows-2022` CI runner (release validation remains aligned to Windows 10/11 support targets)
 - Python 3.11 and 3.12
 
 ### Performance
 
 - latency percentiles
 - CPU and memory under sustained dictation
+- CI perf guardrail uses `tests/perf/metrics_baseline.json` via `scripts/ci/check_perf_guardrails.py`
 
 ---
 

@@ -2,8 +2,8 @@
 Repository instructions for agentic coding contributors.
 
 ## 1) Repository State
-- This repository is currently requirements-first.
-- Core implementation source files are planned; docs are authoritative now.
+- This repository is requirements-driven with active implementation in progress.
+- Core source files and CI workflows are implemented; requirements docs remain authoritative.
 - Do not invent behavior beyond documented requirements.
 
 ## 2) Source of Truth (Strict Order)
@@ -50,6 +50,10 @@ Run suites:
 ```bash
 pytest tests/unit
 pytest tests/integration
+python scripts/ci/check_perf_guardrails.py --metrics-file tests/perf/metrics_baseline.json
+```
+Optional (when perf suites are present):
+```bash
 pytest tests/perf
 ```
 Run a single test file:
@@ -121,7 +125,7 @@ pytest -x
 ## 8) Verification and Quality Rules
 - Each story/task change must include tests and acceptance evidence.
 - Map implemented behavior to requirement IDs in PR/task notes.
-- Run perf tests when changing ASR/parser/hot path behavior.
+- Run perf guardrail checks when changing ASR/parser/hot path behavior (and `tests/perf` when present).
 - Release-related changes must pass full release checklist.
 
 ## 9) Backlog Update Rule (Mandatory)
