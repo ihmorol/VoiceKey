@@ -76,6 +76,16 @@
     - E01-S03: complete and verified
     - E01-S04: complete and verified
 
+- E02-S01 implementation progress:
+  - Implemented `voicekey/audio/wake.py` with `WakePhraseDetector` and `WakeWindowController`.
+  - Added configurable wake phrase support (default `voice key`) and wake-window timeout logic (default 5 seconds).
+  - Added unit coverage in `tests/unit/test_wake.py` for phrase matching, case-insensitivity, timeout expiry, and activity-based timer reset rules.
+  - Exported wake components via `voicekey/audio/__init__.py`.
+  - Verification command:
+    - `.venv/bin/python -m pytest tests/unit/test_wake.py tests/unit/test_capture.py tests/unit/test_vad.py tests/unit/test_asr.py tests/unit/test_threshold.py` => PASS (106 passed)
+  - Remaining task for E02-S01:
+    - Bind wake detection/window events to FSM transitions after E03 state machine implementation.
+
 ## 2026-02-20
 
 - Completed comprehensive MkDocs documentation set under `docs/` covering installation, user guide, architecture, API reference, development, FAQ, troubleshooting, and roadmap.

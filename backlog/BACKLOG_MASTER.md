@@ -18,6 +18,7 @@ Priority legend:
 - E01-S02: complete (VAD unit verification passed)
 - E01-S03: complete (ASR unit verification passed)
 - E01-S04: complete (final-transcript confidence filtering verified)
+- E02-S01: in progress (wake detector and timeout controller implemented; FSM transition binding pending)
 
 ---
 

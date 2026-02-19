@@ -18,6 +18,7 @@ from voicekey.audio.vad import (
     VADResult,
     create_vad_from_config,
 )
+from voicekey.audio.wake import WakePhraseDetector, WakeWindowController
 
 __all__ = [
     # ASR
@@ -37,4 +38,7 @@ __all__ = [
     "StreamingVAD",
     "VADCalibrator",
     "create_vad_from_config",
+    # Wake
+    "WakePhraseDetector",
+    "WakeWindowController",
 ]
