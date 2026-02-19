@@ -407,3 +407,17 @@
   - `.venv/bin/python -m pytest tests/unit/test_release_integrity.py tests/unit/test_release_signing.py tests/integration/test_generate_integrity_bundle_script.py tests/integration/test_sign_release_bundle_script.py` => PASS (9 passed)
   - `.venv/bin/python -m pytest tests/unit tests/integration` => PASS (371 passed)
   - `.venv/bin/python - <<'PY' ... yaml.safe_load('.github/workflows/ci.yml') ...` => PASS (`ci_yaml_parse=ok`)
+
+- E07-S05 completed:
+  - Implemented model distribution modules under `voicekey/models/`:
+    - `voicekey/models/catalog.py` adds typed `ModelCatalogEntry` contract, required profile catalog (`tiny`, `base`, `small`), and validated profile lookup.
+    - `voicekey/models/checksum.py` adds deterministic SHA-256 file hashing and verification helpers.
+    - `voicekey/models/downloader.py` adds model downloader with checksum-first local cache reuse, mirror fallback retries, checksum mismatch rejection, and typed success/error result models.
+    - `voicekey/models/__init__.py` now exports catalog/checksum/downloader API surface.
+  - Added unit coverage:
+    - `tests/unit/test_model_catalog.py`
+    - `tests/unit/test_model_checksum.py`
+    - `tests/unit/test_model_downloader.py`
+- Verification commands/evidence:
+  - `.venv/bin/python -m pytest tests/unit/test_model_checksum.py tests/unit/test_model_catalog.py tests/unit/test_model_downloader.py` => PASS (8 passed)
+  - `.venv/bin/python -m pytest tests/unit` => PASS (384 passed)
