@@ -452,3 +452,20 @@
   - `.venv/bin/python -m pytest tests/integration/test_check_perf_guardrails_script.py` => PASS (3 passed)
   - `.venv/bin/python -c "import yaml, pathlib; yaml.safe_load(pathlib.Path('.github/workflows/ci.yml').read_text(encoding='utf-8')); print('ci_yaml_parse=ok')"` => PASS (`ci_yaml_parse=ok`)
   - `.venv/bin/python -m pytest tests/unit tests/integration` => PASS (396 passed)
+
+- E08-S02 completed:
+  - Added changelog parser helper `voicekey/release/changelog.py` and export in `voicekey/release/__init__.py`.
+  - Added release notes generator script `scripts/release/generate_release_notes.py` and baseline `CHANGELOG.md` metadata file.
+  - Added coverage:
+    - unit: `tests/unit/test_release_changelog.py`
+    - integration: `tests/integration/test_generate_release_notes_script.py`
+  - Added tag-triggered release workflow `.github/workflows/release.yml` with:
+    - semantic tag trigger (`vX.Y.Z`) and signed-tag verification,
+    - isolated build-and-test stage,
+    - changelog-driven release notes generation,
+    - PyPI trusted publishing path via OIDC,
+    - GitHub release publication using generated notes.
+- Verification commands/evidence:
+  - `.venv/bin/python -m pytest tests/unit/test_release_changelog.py tests/integration/test_generate_release_notes_script.py` => PASS (5 passed)
+  - `.venv/bin/python -c "import yaml, pathlib; yaml.safe_load(pathlib.Path('.github/workflows/ci.yml').read_text(encoding='utf-8')); yaml.safe_load(pathlib.Path('.github/workflows/release.yml').read_text(encoding='utf-8')); print('workflow_yaml_parse=ok')"` => PASS (`workflow_yaml_parse=ok`)
+  - `.venv/bin/python -m pytest tests/unit tests/integration` => PASS (401 passed)

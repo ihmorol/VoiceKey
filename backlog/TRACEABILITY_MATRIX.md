@@ -59,12 +59,12 @@ This matrix provides 100% requirement coverage from specification to backlog and
 | FR-CI02 | E08-S01 | full Linux/Windows Python matrix execution in unit/integration jobs (`.github/workflows/ci.yml`) |
 | FR-CI03 | E08-S01 | strict dependency vulnerability scan gate (`pip-audit -r requirements-dev.txt` in `.github/workflows/ci.yml`) |
 | FR-CI04 | E08-S01 | performance guardrail job + enforcement toggle (`scripts/ci/check_perf_guardrails.py`, `test_check_perf_guardrails_script.py`) |
-| FR-CI05 | E08-S02 | tag-trigger workflow tests |
-| FR-CI06 | E08-S02 | isolated build environment checks |
-| FR-CI07 | E08-S02 | release note generation tests |
+| FR-CI05 | E08-S02 | semantic tag trigger + signed-tag verification in release workflow (`.github/workflows/release.yml`) |
+| FR-CI06 | E08-S02 | isolated tag build job in release workflow (`.github/workflows/release.yml`) |
+| FR-CI07 | E08-S02 | changelog metadata release-note generation (`scripts/release/generate_release_notes.py`, `test_generate_release_notes_script.py`) |
 | FR-CI08 | E08-S03, E10-S04 | post-publish smoke matrix |
 | FR-CI09 | E08-S03 | rollback/yank runbook tests |
-| FR-CI10 | E08-S02 | OIDC trusted publishing checks |
+| FR-CI10 | E08-S02 | PyPI trusted publishing via OIDC (`pypa/gh-action-pypi-publish` in `.github/workflows/release.yml`) |
 | FR-OSS01 | E00-S01 | repository policy audit |
 | FR-OSS02 | E00-S01 | governance file audit |
 | FR-OSS03 | E00-S01 | template presence check |

@@ -51,6 +51,7 @@ Priority legend:
 - E07-S05: complete (model catalog/checksum/downloader modules implemented with checksum-first cache reuse, mirror fallback retry path, and deterministic failure handling)
 - E07-S06: complete (release policy validator added for artifact naming, x64 channel scope, and compatibility checklist/distribution policy checks with CI smoke coverage)
 - E08-S01: complete (PR pipeline now includes strict vulnerability/license scan behavior, full Linux/Windows Python matrix execution, and performance guardrail job with enforcement toggle)
+- E08-S02: complete (tag-triggered release workflow added with semantic tag/signature verification, OIDC PyPI publish path, and changelog-driven release notes generation)
 
 ---
 
