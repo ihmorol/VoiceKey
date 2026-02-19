@@ -77,6 +77,14 @@ def test_onboarding_skip_writes_safe_defaults(tmp_path) -> None:
     assert result.skipped is True
     assert result.persisted is True
     assert result.toggle_hotkey == DEFAULT_TOGGLE_HOTKEY
+    assert result.skipped_steps == (
+        "welcome_privacy",
+        "microphone_selection",
+        "wake_phrase_test",
+        "hotkey_confirmation",
+        "autostart_preference",
+        "quick_tutorial",
+    )
 
     persisted = yaml.safe_load(config_path.read_text(encoding="utf-8"))
     assert persisted["system"]["autostart_enabled"] is False
@@ -84,6 +92,37 @@ def test_onboarding_skip_writes_safe_defaults(tmp_path) -> None:
     assert persisted["features"]["text_expansion_enabled"] is False
     assert persisted["privacy"]["telemetry_enabled"] is False
     assert persisted["privacy"]["transcript_logging"] is False
+
+
+def test_onboarding_keyboard_interaction_map_is_keyboard_only() -> None:
+    result = run_onboarding(skip=True)
+
+    assert "welcome_privacy" in result.keyboard_interaction_map
+    assert "autostart_preference" in result.keyboard_interaction_map
+    for shortcuts in result.keyboard_interaction_map.values():
+        assert all("mouse" not in shortcut for shortcut in shortcuts)
+
+
+def test_onboarding_timing_evidence_includes_skip_and_complete_flows(tmp_path) -> None:
+    complete_clock = FakeClock(0.0, 120.0)
+    skip_clock = FakeClock(10.0, 20.0)
+
+    complete = run_onboarding(
+        config_path=tmp_path / "complete" / "config.yaml",
+        selected_device_id=1,
+        wake_phrase_verified=True,
+        clock=complete_clock,
+    )
+    skipped = run_onboarding(
+        config_path=tmp_path / "skip" / "config.yaml",
+        skip=True,
+        clock=skip_clock,
+    )
+
+    assert complete.duration_seconds == 120.0
+    assert complete.within_target is True
+    assert skipped.duration_seconds == 10.0
+    assert skipped.within_target is True
 
 
 def test_onboarding_reports_failure_when_required_checks_fail(tmp_path) -> None:

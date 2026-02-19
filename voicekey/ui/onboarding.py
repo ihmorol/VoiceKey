@@ -21,6 +21,15 @@ TUTORIAL_SCRIPT: tuple[str, ...] = (
     "say resume voice key",
 )
 
+KEYBOARD_INTERACTION_MAP: dict[str, tuple[str, ...]] = {
+    "welcome_privacy": ("enter", "tab", "shift+tab"),
+    "microphone_selection": ("up", "down", "enter", "tab", "shift+tab"),
+    "wake_phrase_test": ("enter", "tab", "shift+tab"),
+    "hotkey_confirmation": ("enter", "tab", "shift+tab"),
+    "autostart_preference": ("left", "right", "enter", "tab", "shift+tab"),
+    "quick_tutorial": ("enter", "tab", "shift+tab"),
+}
+
 
 class OnboardingStep(StrEnum):
     """Canonical onboarding step identifiers in required order."""
@@ -76,7 +85,9 @@ class OnboardingResult:
     toggle_hotkey: str
     autostart_enabled: bool
     completed_steps: tuple[str, ...]
+    skipped_steps: tuple[str, ...]
     tutorial_script: tuple[str, ...]
+    keyboard_interaction_map: dict[str, tuple[str, ...]]
     errors: tuple[str, ...] = ()
     duration_seconds: float = 0.0
     within_target: bool = True
@@ -110,7 +121,9 @@ def run_onboarding(
             toggle_hotkey=config.hotkeys.toggle_listening,
             autostart_enabled=config.system.autostart_enabled,
             completed_steps=(),
+            skipped_steps=tuple(step.value for step in flow_steps()),
             tutorial_script=TUTORIAL_SCRIPT,
+            keyboard_interaction_map=KEYBOARD_INTERACTION_MAP,
             duration_seconds=duration,
             within_target=duration <= MAX_ONBOARDING_SECONDS,
         )
@@ -159,7 +172,9 @@ def run_onboarding(
         toggle_hotkey=hotkey_value,
         autostart_enabled=autostart_enabled,
         completed_steps=tuple(step.value for step in flow.completed_steps),
+        skipped_steps=(),
         tutorial_script=TUTORIAL_SCRIPT,
+        keyboard_interaction_map=KEYBOARD_INTERACTION_MAP,
         errors=tuple(errors),
         duration_seconds=duration,
         within_target=duration <= MAX_ONBOARDING_SECONDS,
@@ -170,12 +185,26 @@ def _duration_seconds(started_at: float, clock: Callable[[], float]) -> float:
     return max(0.0, clock() - started_at)
 
 
+def flow_steps() -> tuple[OnboardingStep, ...]:
+    """Return canonical onboarding step order."""
+    return (
+        OnboardingStep.WELCOME,
+        OnboardingStep.MICROPHONE,
+        OnboardingStep.WAKE_TEST,
+        OnboardingStep.HOTKEY,
+        OnboardingStep.AUTOSTART,
+        OnboardingStep.TUTORIAL,
+    )
+
+
 __all__ = [
     "DEFAULT_TOGGLE_HOTKEY",
+    "KEYBOARD_INTERACTION_MAP",
     "MAX_ONBOARDING_SECONDS",
     "OnboardingResult",
     "OnboardingStateMachine",
     "OnboardingStep",
     "TUTORIAL_SCRIPT",
+    "flow_steps",
     "run_onboarding",
 ]
