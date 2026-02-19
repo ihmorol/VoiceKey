@@ -39,6 +39,7 @@ Priority legend:
 - E06-S02: complete (forward-only migration registry added with idempotent version chaining, failure-safe default regeneration, and legacy/corrupt coverage)
 - E06-S03: complete (onboarding wizard state flow implemented with required steps, skip-safe defaults, config persistence, and CLI setup command contract)
 - E06-S04: complete (custom command loader/validator and parser integration added; command ids now route to key-combo/text execution paths)
+- E06-S08: complete (config override precedence hardened; startup env adapters validated with actionable errors; hot-reload policy emits restart-needed decisions)
 
 ---
 

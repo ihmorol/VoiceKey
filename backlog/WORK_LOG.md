@@ -276,3 +276,17 @@
 - Verification commands/evidence:
   - `.venv/bin/python -m pytest tests/unit/test_custom_commands.py tests/unit/test_custom_parser.py tests/unit/test_keyboard_dispatch.py tests/unit/test_action_router.py` => PASS (16 passed)
   - `.venv/bin/python -m pytest tests/unit` => PASS (322 passed)
+
+- E06-S08 completed:
+  - Hardened config path resolution in `voicekey/config/manager.py` to ignore blank `VOICEKEY_CONFIG` values while preserving precedence (`--config` override, then env, then platform default).
+  - Implemented startup env adapters in `voicekey/config/manager.py` for `VOICEKEY_CONFIG`, `VOICEKEY_MODEL_DIR`, `VOICEKEY_LOG_LEVEL`, and `VOICEKEY_DISABLE_TRAY` with actionable validation errors.
+  - Implemented deterministic hot-reload policy evaluation in `voicekey/config/manager.py` via `evaluate_reload_decision()` to classify safe-to-apply keys vs restart-required keys per architecture hot-reload semantics.
+  - Exported new config env/reload contracts in `voicekey/config/__init__.py`.
+  - Wired startup env validation in CLI `start` contract (`voicekey/ui/cli.py`) so invalid startup env values produce deterministic command errors.
+  - Added env adapter coverage in `tests/unit/test_env_adapters.py`.
+  - Added hot-reload policy coverage in `tests/unit/test_config_reload_policy.py`.
+  - Expanded existing tests in `tests/unit/test_config_manager.py` and `tests/unit/test_cli.py` for blank env override behavior and startup invalid-env error handling.
+- Updated backlog live execution status in `backlog/BACKLOG_MASTER.md` to mark E06-S08 complete.
+- Verification commands/evidence:
+  - `.venv/bin/python -m pytest tests/unit/test_env_adapters.py tests/unit/test_config_reload_policy.py tests/unit/test_config_manager.py tests/unit/test_cli.py` => PASS (23 passed)
+  - `.venv/bin/python -m pytest tests/unit` => PASS (332 passed)
