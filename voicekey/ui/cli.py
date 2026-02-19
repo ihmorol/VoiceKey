@@ -163,7 +163,11 @@ def setup_command(
             "toggle_hotkey": result.toggle_hotkey,
             "autostart_enabled": result.autostart_enabled,
             "completed_steps": list(result.completed_steps),
+            "skipped_steps": list(result.skipped_steps),
             "tutorial_script": list(result.tutorial_script),
+            "keyboard_interaction_map": {
+                key: list(value) for key, value in result.keyboard_interaction_map.items()
+            },
             "duration_seconds": result.duration_seconds,
             "within_target": result.within_target,
             "errors": list(result.errors),

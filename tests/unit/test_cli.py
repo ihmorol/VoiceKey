@@ -112,6 +112,8 @@ def test_setup_json_output_includes_required_onboarding_fields(tmp_path) -> None
     assert payload["result"]["completed"] is True
     assert payload["result"]["persisted"] is True
     assert payload["result"]["selected_device_id"] == 3
+    assert payload["result"]["skipped_steps"] == []
+    assert "welcome_privacy" in payload["result"]["keyboard_interaction_map"]
 
 
 def test_start_command_returns_command_error_for_invalid_env_override() -> None:
