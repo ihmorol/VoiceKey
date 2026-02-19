@@ -421,3 +421,19 @@
 - Verification commands/evidence:
   - `.venv/bin/python -m pytest tests/unit/test_model_checksum.py tests/unit/test_model_catalog.py tests/unit/test_model_downloader.py` => PASS (8 passed)
   - `.venv/bin/python -m pytest tests/unit` => PASS (384 passed)
+
+- E07-S06 completed:
+  - Added release policy validator module `voicekey/release/policy.py` for:
+    - artifact naming convention validation by release version,
+    - x64-only architecture channel scope enforcement,
+    - compatibility/migration policy marker checks across release checklist and distribution spec.
+  - Updated `voicekey/release/__init__.py` exports with release policy validator APIs.
+  - Added release policy validation CLI script `scripts/release/validate_distribution_policy.py`.
+  - Added coverage:
+    - unit: `tests/unit/test_release_policy.py`
+    - integration: `tests/integration/test_validate_distribution_policy_script.py`
+  - Extended CI workflow `.github/workflows/ci.yml` with `distribution-policy-smoke` job and test-summary aggregation.
+- Verification commands/evidence:
+  - `.venv/bin/python -m pytest tests/unit/test_release_policy.py tests/integration/test_validate_distribution_policy_script.py` => PASS (6 passed)
+  - `.venv/bin/python -c "import yaml, pathlib; yaml.safe_load(pathlib.Path('.github/workflows/ci.yml').read_text(encoding='utf-8')); print('ci_yaml_parse=ok')"` => PASS (`ci_yaml_parse=ok`)
+  - `.venv/bin/python -m pytest tests/unit tests/integration` => PASS (393 passed)
