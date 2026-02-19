@@ -1,0 +1,53 @@
+# Python cache and bytecode
+__pycache__/
+*.py[cod]
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Build and packaging artifacts
+build/
+dist/
+*.egg-info/
+*.egg
+pip-wheel-metadata/
+
+# Test and coverage artifacts
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.hypothesis/
+
+# Type checking and lint caches
+.mypy_cache/
+.ruff_cache/
+.pyright/
+
+# Local environment files
+.env
+.env.*
+.python-version
+
+# Logs and temp files
+*.log
+*.tmp
+*.temp
+
+# Editor and OS files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# VoiceKey model artifacts (downloaded at runtime)
+voicekey/models/*.bin
+voicekey/models/*.onnx
+voicekey/models/*.pt
+
+# Project tooling caches
+.opencode/node_modules/

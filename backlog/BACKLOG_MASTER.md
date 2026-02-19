@@ -8,6 +8,17 @@ Priority legend:
 - P1: high-value next phase
 - P2: expansion
 
+## Execution Status (Live)
+
+- Last updated: 2026-02-20
+- E00-S01: complete (governance files and templates committed)
+- E00-S02: complete (semver/changelog policy documented in contribution flow)
+- E00-S03: complete (security disclosure SLA documented)
+- E01-S01: complete (unit verification passed)
+- E01-S02: implemented, verification failing (unit test failures require fixes)
+- E01-S03: implemented, verification failing (dependency-mocking and test contract fixes required)
+- E01-S04: in progress (confidence threshold behavior implemented, boundary integration pending)
+
 ---
 
 ## Epic E00 - Governance and Delivery Foundation (P0)

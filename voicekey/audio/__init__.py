@@ -10,6 +10,7 @@ from voicekey.audio.asr_faster_whisper import (
     get_available_models,
     get_model_size_info,
 )
+from voicekey.audio.threshold import ConfidenceFilter
 from voicekey.audio.vad import (
     StreamingVAD,
     VADCalibrator,
@@ -28,6 +29,8 @@ __all__ = [
     "get_model_size_info",
     "get_all_model_info",
     "create_asr_from_config",
+    # Threshold
+    "ConfidenceFilter",
     # VAD
     "VADProcessor",
     "VADResult",
