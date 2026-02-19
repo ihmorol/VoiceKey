@@ -208,6 +208,6 @@ rm -rf ~/.cache/voicekey
 
 ## Next Steps
 
-- [Development Setup](development/setup.md)
-- [Testing](development/testing.md)
-- [Contributing](development/contributing.md)
+- [Development Setup](../development/setup.md)
+- [Testing](../development/testing.md)
+- [Contributing](../development/contributing.md)

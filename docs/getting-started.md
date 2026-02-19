@@ -195,7 +195,7 @@ voicekey download-models --force
 - Read the [Commands Reference](guide/commands.md) for all available commands
 - Configure [Listening Modes](guide/listening-modes.md) to suit your needs
 - Explore [Configuration Options](guide/configuration.md) for fine-tuning
-- Set up [Auto-start](installation/linux.md#auto-start) for seamless operation
+- Set up [Auto-start](installation/linux.md#auto-start-configuration) for seamless operation
 
 ---
 
