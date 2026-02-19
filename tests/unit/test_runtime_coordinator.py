@@ -2,8 +2,17 @@
 
 from __future__ import annotations
 
+import pytest
+
 from voicekey.app.main import RuntimeCoordinator
-from voicekey.app.state_machine import AppState, ListeningMode, VoiceKeyStateMachine
+from voicekey.app.routing_policy import RuntimeRoutingPolicy
+from voicekey.app.state_machine import (
+    AppEvent,
+    AppState,
+    InvalidTransitionError,
+    ListeningMode,
+    VoiceKeyStateMachine,
+)
 from voicekey.audio.wake import WakeWindowController
 
 
@@ -169,3 +178,95 @@ def test_paused_stop_phrase_transitions_to_shutting_down() -> None:
     assert update.transition.from_state is AppState.PAUSED
     assert update.transition.to_state is AppState.SHUTTING_DOWN
     assert coordinator.state is AppState.SHUTTING_DOWN
+
+
+def test_paused_text_and_non_system_command_are_suppressed() -> None:
+    coordinator = RuntimeCoordinator(
+        state_machine=VoiceKeyStateMachine(
+            mode=ListeningMode.WAKE_WORD,
+            initial_state=AppState.PAUSED,
+        ),
+    )
+
+    text_update = coordinator.on_transcript("hello from paused")
+    command_update = coordinator.on_transcript("new line command")
+
+    assert text_update.transition is None
+    assert command_update.transition is None
+    assert coordinator.state is AppState.PAUSED
+
+
+def test_paused_resume_phrase_channel_can_be_disabled() -> None:
+    coordinator = RuntimeCoordinator(
+        state_machine=VoiceKeyStateMachine(
+            mode=ListeningMode.WAKE_WORD,
+            initial_state=AppState.PAUSED,
+        ),
+        routing_policy=RuntimeRoutingPolicy(paused_resume_phrase_enabled=False),
+    )
+
+    resume_update = coordinator.on_transcript("resume voice key")
+    stop_update = coordinator.on_transcript("voice key stop")
+
+    assert resume_update.transition is None
+    assert stop_update.transition is not None
+    assert stop_update.transition.to_state is AppState.SHUTTING_DOWN
+
+
+def test_rapid_pause_resume_sequence_remains_deterministic() -> None:
+    machine = VoiceKeyStateMachine(
+        mode=ListeningMode.WAKE_WORD,
+        initial_state=AppState.STANDBY,
+    )
+    coordinator = RuntimeCoordinator(state_machine=machine)
+
+    machine.transition(AppEvent.PAUSE_REQUESTED)
+    resume_update = coordinator.on_transcript("resume voice key")
+    pause_transition = machine.transition(AppEvent.PAUSE_REQUESTED)
+    stop_update = coordinator.on_transcript("voice key stop")
+
+    assert resume_update.transition is not None
+    assert resume_update.transition.from_state is AppState.PAUSED
+    assert resume_update.transition.to_state is AppState.STANDBY
+    assert pause_transition.from_state is AppState.STANDBY
+    assert pause_transition.to_state is AppState.PAUSED
+    assert stop_update.transition is not None
+    assert stop_update.transition.from_state is AppState.PAUSED
+    assert stop_update.transition.to_state is AppState.SHUTTING_DOWN
+
+
+def test_race_style_resume_phrase_disabled_still_allows_hotkey_resume() -> None:
+    machine = VoiceKeyStateMachine(
+        mode=ListeningMode.WAKE_WORD,
+        initial_state=AppState.PAUSED,
+    )
+    coordinator = RuntimeCoordinator(
+        state_machine=machine,
+        routing_policy=RuntimeRoutingPolicy(paused_resume_phrase_enabled=False),
+    )
+
+    phrase_resume = coordinator.on_transcript("resume voice key")
+    hotkey_resume = machine.transition(AppEvent.RESUME_REQUESTED)
+    repause = machine.transition(AppEvent.PAUSE_REQUESTED)
+    stop_update = coordinator.on_transcript("voice key stop")
+
+    assert phrase_resume.transition is None
+    assert hotkey_resume.from_state is AppState.PAUSED
+    assert hotkey_resume.to_state is AppState.STANDBY
+    assert repause.from_state is AppState.STANDBY
+    assert repause.to_state is AppState.PAUSED
+    assert stop_update.transition is not None
+    assert stop_update.transition.to_state is AppState.SHUTTING_DOWN
+
+
+def test_race_style_invalid_interleaving_is_state_machine_guarded() -> None:
+    machine = VoiceKeyStateMachine(
+        mode=ListeningMode.WAKE_WORD,
+        initial_state=AppState.PAUSED,
+    )
+    coordinator = RuntimeCoordinator(state_machine=machine)
+
+    coordinator.on_transcript("resume voice key")
+
+    with pytest.raises(InvalidTransitionError):
+        machine.transition(AppEvent.RESUME_REQUESTED)

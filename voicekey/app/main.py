@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from voicekey.app.routing_policy import RuntimeRoutingPolicy
 from voicekey.app.state_machine import (
     AppEvent,
     AppState,
@@ -33,11 +34,13 @@ class RuntimeCoordinator:
         wake_detector: WakePhraseDetector | None = None,
         wake_window: WakeWindowController | None = None,
         parser: CommandParser | None = None,
+        routing_policy: RuntimeRoutingPolicy | None = None,
     ) -> None:
         self._state_machine = state_machine
         self._wake_detector = wake_detector or WakePhraseDetector()
         self._wake_window = wake_window or WakeWindowController()
         self._parser = parser or CommandParser()
+        self._routing_policy = routing_policy or RuntimeRoutingPolicy()
 
     @property
     def state(self) -> AppState:
@@ -57,9 +60,7 @@ class RuntimeCoordinator:
     def on_transcript(self, transcript: str) -> RuntimeUpdate:
         """Handle transcript as wake detection input/activity signal."""
         if self.state is AppState.PAUSED:
-            paused_update = self._handle_paused_system_phrase(transcript)
-            if paused_update is not None:
-                return paused_update
+            return self._handle_paused_transcript(transcript)
 
         if self._state_machine.mode is not ListeningMode.WAKE_WORD:
             return RuntimeUpdate()
@@ -101,10 +102,14 @@ class RuntimeCoordinator:
         transition = self._state_machine.transition(AppEvent.WAKE_WINDOW_TIMEOUT)
         return RuntimeUpdate(transition=transition)
 
-    def _handle_paused_system_phrase(self, transcript: str) -> RuntimeUpdate | None:
+    def _handle_paused_transcript(self, transcript: str) -> RuntimeUpdate:
         parsed = self._parser.parse(transcript)
+        policy = self._routing_policy.evaluate(self.state, parsed)
+        if not policy.allowed:
+            return RuntimeUpdate()
+
         if parsed.kind is not ParseKind.SYSTEM or parsed.command is None:
-            return None
+            return RuntimeUpdate()
 
         if parsed.command.command_id == "resume_voice_key":
             transition = self._state_machine.transition(AppEvent.RESUME_REQUESTED)
@@ -114,7 +119,7 @@ class RuntimeCoordinator:
             transition = self._state_machine.transition(AppEvent.STOP_REQUESTED)
             return RuntimeUpdate(transition=transition)
 
-        return None
+        return RuntimeUpdate()
 
 
 __all__ = ["RuntimeCoordinator", "RuntimeUpdate"]

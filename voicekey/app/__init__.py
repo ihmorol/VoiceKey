@@ -10,6 +10,7 @@ from voicekey.app.state_machine import (
     VoiceKeyStateMachine,
 )
 from voicekey.app.main import RuntimeCoordinator, RuntimeUpdate
+from voicekey.app.routing_policy import RoutingDecision, RoutingPolicyResult, RuntimeRoutingPolicy
 from voicekey.app.watchdog import (
     InactivityWatchdog,
     WatchdogTelemetryCounters,
@@ -28,6 +29,9 @@ __all__ = [
     "VoiceKeyStateMachine",
     "RuntimeCoordinator",
     "RuntimeUpdate",
+    "RoutingDecision",
+    "RoutingPolicyResult",
+    "RuntimeRoutingPolicy",
     "InactivityWatchdog",
     "WatchdogTelemetryCounters",
     "WatchdogTimerConfig",
