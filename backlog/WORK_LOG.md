@@ -368,3 +368,20 @@
 - Verification commands/evidence:
   - `.venv/bin/python -m pytest tests/unit/test_windows_artifacts.py` => PASS (6 passed)
   - `mkdir -p /tmp/voicekey-script-test && printf 'exe' > /tmp/voicekey-script-test/unsigned.exe && mkdir -p /tmp/voicekey-script-test/portable && printf 'run' > /tmp/voicekey-script-test/portable/voicekey.exe && .venv/bin/python scripts/windows/build_installer.py --version 1.2.3 --unsigned-installer-path /tmp/voicekey-script-test/unsigned.exe --output-dir /tmp/voicekey-script-test/dist && .venv/bin/python scripts/windows/build_portable.py --version 1.2.3 --source-dir /tmp/voicekey-script-test/portable --output-dir /tmp/voicekey-script-test/dist` => PASS
+
+- E07-S03 completed:
+  - Added Linux artifact helper module `voicekey/release/linux_artifacts.py` with deterministic semver normalization, canonical AppImage naming (`voicekey-<version>-linux-x86_64.AppImage`), artifact preparation, and launch-smoke command builder.
+  - Updated `voicekey/release/__init__.py` exports to include Linux release helper APIs.
+  - Added Linux packaging scripts:
+    - `scripts/linux/build_appimage.py`
+    - `scripts/linux/smoke_launch_appimage.py`
+    Scripts build canonical artifact output and run deterministic launch smoke command.
+  - Added unit coverage:
+    - `tests/unit/test_linux_artifacts.py`
+    - `tests/unit/test_linux_appimage_scripts.py`
+  - Extended CI in `.github/workflows/ci.yml` with `appimage-smoke` matrix job on Ubuntu 22.04/24.04 to build canonical AppImage artifact via script and run launch smoke.
+  - Updated CI test-summary aggregation to include Linux AppImage smoke result.
+- Verification commands/evidence:
+  - `.venv/bin/python -m pytest tests/unit/test_linux_artifacts.py tests/unit/test_linux_appimage_scripts.py tests/unit/test_windows_artifacts.py` => PASS (12 passed)
+  - `.venv/bin/python -m pytest tests/unit tests/integration` => PASS (364 passed)
+  - `.venv/bin/python - <<'PY' ... yaml.safe_load('.github/workflows/ci.yml') ...` => PASS (`ci_yaml_parse=ok`)
