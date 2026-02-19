@@ -86,6 +86,18 @@
   - Remaining task for E02-S01:
     - Bind wake detection/window events to FSM transitions after E03 state machine implementation.
 
+- E02-S02 completed:
+  - Implemented deterministic command parsing contract in `voicekey/commands/parser.py`.
+  - Implemented command registry + alias/case-insensitive matching in `voicekey/commands/registry.py`.
+  - Implemented built-in command catalog + feature-gated productivity commands in `voicekey/commands/builtins.py`.
+  - Added parser unit coverage in `tests/unit/test_parser.py` for suffix handling, unknown-command literal fallback, special phrase precedence, alias-aware matching, and feature gates.
+- E03-S01 completed:
+  - Implemented table-driven runtime FSM in `voicekey/app/state_machine.py` with mode-specific transitions, common transitions, and invalid-transition guard errors.
+  - Added unit coverage in `tests/unit/test_state_machine.py` for wake_word/toggle/continuous transitions and terminal shutdown marker handling.
+- Verification commands/evidence:
+  - `.venv/bin/python -m pytest tests/unit/test_parser.py tests/unit/test_state_machine.py` => PASS (33 passed)
+  - `.venv/bin/python -m pytest tests/unit` => PASS (139 passed)
+
 ## 2026-02-20
 
 - Completed comprehensive MkDocs documentation set under `docs/` covering installation, user guide, architecture, API reference, development, FAQ, troubleshooting, and roadmap.
