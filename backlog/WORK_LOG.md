@@ -290,3 +290,14 @@
 - Verification commands/evidence:
   - `.venv/bin/python -m pytest tests/unit/test_env_adapters.py tests/unit/test_config_reload_policy.py tests/unit/test_config_manager.py tests/unit/test_cli.py` => PASS (23 passed)
   - `.venv/bin/python -m pytest tests/unit` => PASS (332 passed)
+
+- E06-S09 completed:
+  - Added explicit keyboard-only onboarding interaction map in `voicekey/ui/onboarding.py` and exposed it through onboarding result metadata.
+  - Added explicit skip-step status markers for skip flows in `voicekey/ui/onboarding.py` (`skipped_steps` now records every skipped onboarding step in canonical order).
+  - Extended onboarding result contract with keyboard map and skip markers and surfaced these in CLI setup output (`voicekey/ui/cli.py`).
+  - Added onboarding accessibility/timing coverage in `tests/unit/test_onboarding.py` for keyboard-only map, explicit skip-step markers, and timing evidence across both complete and skip flows.
+  - Expanded CLI setup output coverage in `tests/unit/test_cli.py` for onboarding accessibility metadata fields.
+- Updated backlog live execution status in `backlog/BACKLOG_MASTER.md` to mark E06-S09 complete.
+- Verification commands/evidence:
+  - `.venv/bin/python -m pytest tests/unit/test_onboarding.py tests/unit/test_cli.py` => PASS (13 passed)
+  - `.venv/bin/python -m pytest tests/unit` => PASS (334 passed)
