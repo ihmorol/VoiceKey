@@ -43,6 +43,7 @@ Priority legend:
 - E06-S09: complete (onboarding keyboard-only interaction map, explicit skip-step status markers, and timing evidence for complete/skip flows added)
 - E06-S05: complete (snippet expansion engine added with default-off parser behavior and deterministic recursion/loop guards)
 - E06-S06: complete (active app profile resolver and deterministic fallback merge strategy implemented with feature-gated application)
+- E06-S07: complete (portable runtime path resolver added for local config/data/model directories with CLI portable-mode contract and smoke coverage)
 
 ---
 

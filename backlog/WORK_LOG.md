@@ -329,3 +329,18 @@
 - Verification commands/evidence:
   - `.venv/bin/python -m pytest tests/unit/test_profile_resolution.py tests/unit/test_config_schema.py` => PASS (10 passed)
   - `.venv/bin/python -m pytest tests/unit` => PASS (350 passed)
+
+- E06-S07 completed:
+  - Implemented deterministic runtime path strategy in `voicekey/config/manager.py` via `RuntimePaths` and `resolve_runtime_paths(...)`.
+  - Added portable mode resolution contract:
+    - portable paths use local root (`<portable_root>/config/config.yaml`, `<portable_root>/data`, `<portable_root>/data/models`),
+    - explicit config and model directory overrides remain supported,
+    - non-portable mode keeps existing precedence behavior and derives data/model paths from effective config path.
+  - Exported runtime path contract in `voicekey/config/__init__.py`.
+  - Extended CLI `start` command contract in `voicekey/ui/cli.py` with `--portable` and `--portable-root`, plus deterministic `runtime_paths` output.
+  - Added unit coverage in `tests/unit/test_portable_paths.py` for portable and non-portable resolution, env-config override behavior, and model-dir override behavior.
+  - Expanded CLI coverage in `tests/unit/test_cli.py` for portable-mode start output and env-config precedence in runtime path output.
+  - Added integration smoke coverage in `tests/integration/test_portable_mode_smoke.py` for portable startup contract.
+- Verification commands/evidence:
+  - `.venv/bin/python -m pytest tests/unit/test_portable_paths.py tests/unit/test_cli.py::test_start_command_supports_portable_mode_runtime_paths tests/unit/test_cli.py::test_start_command_uses_env_config_override_for_runtime_paths tests/integration/test_portable_mode_smoke.py` => PASS (8 passed)
+  - `.venv/bin/python -m pytest tests/unit tests/integration` => PASS (358 passed)
