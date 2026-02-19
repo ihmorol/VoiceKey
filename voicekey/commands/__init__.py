@@ -1,6 +1,7 @@
 """Command parsing and registry."""
 
 from voicekey.commands.builtins import create_builtin_registry
+from voicekey.commands.fuzzy import FuzzyMatchConfig, FuzzyMatcher
 from voicekey.commands.parser import CommandParser, ParseKind, ParseResult
 from voicekey.commands.registry import (
     CommandChannel,
@@ -16,6 +17,8 @@ __all__ = [
     "CommandParser",
     "CommandRegistry",
     "FeatureGate",
+    "FuzzyMatchConfig",
+    "FuzzyMatcher",
     "ParseKind",
     "ParseResult",
     "create_builtin_registry",
