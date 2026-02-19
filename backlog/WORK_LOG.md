@@ -17,3 +17,6 @@
   - `python3` FR coverage check across SRS/backlog/traceability => 64/64 FR IDs present in both backlog and traceability.
   - `python3` story contract check => every story has `Requirement IDs`.
   - `python3` traceability linkage check => 0 mismatches between FR mapping and story requirement fields.
+- Updated `requirements/implementation-plan.md` to v2.1 with backlog-aligned phase sequencing (E00/E08 bootstrap, core runtime, distribution+security hardening, quality gates, then P1/P2 expansion).
+- Verification evidence:
+  - Cross-checked phase-to-epic alignment against `backlog/BACKLOG_MASTER.md` (E00..E12 dependency order).
