@@ -55,10 +55,10 @@ This matrix provides 100% requirement coverage from specification to backlog and
 | FR-D07 | E07-S04 | detached-sign command + signing script smoke (`test_release_signing.py`, `test_sign_release_bundle_script.py`) |
 | FR-D08 | E07-S04 | CycloneDX SBOM structure checks (`test_release_integrity.py`) |
 | FR-D09 | E07-S04 | provenance metadata content checks (`test_release_integrity.py`) |
-| FR-CI01 | E08-S01 | CI workflow required checks |
-| FR-CI02 | E08-S01 | Linux/Windows matrix enforcement |
-| FR-CI03 | E08-S01 | vulnerability scan gates |
-| FR-CI04 | E08-S01 | performance guardrail job |
+| FR-CI01 | E08-S01 | CI workflow required checks (`.github/workflows/ci.yml`) + integration guardrail script coverage (`test_check_perf_guardrails_script.py`) |
+| FR-CI02 | E08-S01 | full Linux/Windows Python matrix execution in unit/integration jobs (`.github/workflows/ci.yml`) |
+| FR-CI03 | E08-S01 | strict dependency vulnerability scan gate (`pip-audit -r requirements-dev.txt` in `.github/workflows/ci.yml`) |
+| FR-CI04 | E08-S01 | performance guardrail job + enforcement toggle (`scripts/ci/check_perf_guardrails.py`, `test_check_perf_guardrails_script.py`) |
 | FR-CI05 | E08-S02 | tag-trigger workflow tests |
 | FR-CI06 | E08-S02 | isolated build environment checks |
 | FR-CI07 | E08-S02 | release note generation tests |

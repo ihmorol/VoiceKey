@@ -437,3 +437,18 @@
   - `.venv/bin/python -m pytest tests/unit/test_release_policy.py tests/integration/test_validate_distribution_policy_script.py` => PASS (6 passed)
   - `.venv/bin/python -c "import yaml, pathlib; yaml.safe_load(pathlib.Path('.github/workflows/ci.yml').read_text(encoding='utf-8')); print('ci_yaml_parse=ok')"` => PASS (`ci_yaml_parse=ok`)
   - `.venv/bin/python -m pytest tests/unit tests/integration` => PASS (393 passed)
+
+- E08-S01 completed:
+  - Added CI performance guardrail script `scripts/ci/check_perf_guardrails.py` with optional strict enforcement toggle (`--enforce`) for P1 gate activation.
+  - Added baseline perf metrics fixture `tests/perf/metrics_baseline.json`.
+  - Added integration coverage `tests/integration/test_check_perf_guardrails_script.py` for pass, soft-fail (toggle off), and hard-fail (toggle on) behavior.
+  - Extended PR workflow `.github/workflows/ci.yml`:
+    - added `performance-guardrail` job,
+    - upgraded vulnerability scan to strict `pip-audit -r requirements-dev.txt` behavior,
+    - upgraded license scan to strict `pip-licenses` behavior,
+    - removed Windows 3.11 matrix exclusion so Linux/Windows Python matrix executes fully,
+    - updated test-summary aggregation for performance guardrail and full matrix reporting.
+- Verification commands/evidence:
+  - `.venv/bin/python -m pytest tests/integration/test_check_perf_guardrails_script.py` => PASS (3 passed)
+  - `.venv/bin/python -c "import yaml, pathlib; yaml.safe_load(pathlib.Path('.github/workflows/ci.yml').read_text(encoding='utf-8')); print('ci_yaml_parse=ok')"` => PASS (`ci_yaml_parse=ok`)
+  - `.venv/bin/python -m pytest tests/unit tests/integration` => PASS (396 passed)
