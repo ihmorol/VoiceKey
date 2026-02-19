@@ -10,6 +10,7 @@ from typing import Any
 from voicekey.commands.builtins import SPECIAL_PHRASES, create_builtin_registry
 from voicekey.commands.custom import load_custom_command_actions
 from voicekey.commands.fuzzy import FuzzyMatchConfig, FuzzyMatcher
+from voicekey.commands.snippets import SnippetExpander
 from voicekey.commands.registry import (
     CommandChannel,
     CommandDefinition,
@@ -46,10 +47,12 @@ class CommandParser:
         self,
         registry: CommandRegistry | None = None,
         fuzzy: FuzzyMatchConfig | None = None,
+        snippet_expander: SnippetExpander | None = None,
     ) -> None:
         self._registry = registry or create_builtin_registry()
         self._fuzzy = fuzzy or FuzzyMatchConfig()
         self._fuzzy_matcher = FuzzyMatcher() if self._fuzzy.enabled else None
+        self._snippet_expander = snippet_expander
 
     def parse(self, transcript: str) -> ParseResult:
         """Parse transcript using command suffix and special phrase precedence."""
@@ -87,8 +90,13 @@ class CommandParser:
         return ParseResult(
             kind=ParseKind.TEXT,
             normalized_transcript=normalized,
-            literal_text=normalized,
+            literal_text=self._apply_text_expansion(normalized),
         )
+
+    def _apply_text_expansion(self, normalized_text: str) -> str:
+        if self._snippet_expander is None:
+            return normalized_text
+        return self._snippet_expander.expand(normalized_text)
 
     @staticmethod
     def _ends_with_command_suffix(normalized_transcript: str) -> bool:
@@ -114,15 +122,25 @@ def create_parser(
     enabled_features: Iterable[FeatureGate] | None = None,
     fuzzy: FuzzyMatchConfig | None = None,
     custom_commands: Mapping[str, Any] | None = None,
+    snippets: Mapping[str, str] | None = None,
+    text_expansion_enabled: bool = False,
 ) -> CommandParser:
     """Create parser with explicit feature-gate routing configuration."""
 
     features = set(enabled_features or ())
     if window_commands_enabled:
         features.add(FeatureGate.WINDOW_COMMANDS)
+    if text_expansion_enabled:
+        features.add(FeatureGate.TEXT_EXPANSION)
+
     custom_actions = load_custom_command_actions(custom_commands)
     registry = create_builtin_registry(
         enabled_features=features,
         custom_commands=(action.to_command_definition() for action in custom_actions),
     )
-    return CommandParser(registry=registry, fuzzy=fuzzy)
+
+    snippet_expander = None
+    if FeatureGate.TEXT_EXPANSION in features:
+        snippet_expander = SnippetExpander(snippets)
+
+    return CommandParser(registry=registry, fuzzy=fuzzy, snippet_expander=snippet_expander)

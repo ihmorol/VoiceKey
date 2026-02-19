@@ -137,3 +137,33 @@ def test_resume_special_phrase_match_is_exact_not_command_suffix_variant() -> No
     assert result.kind is ParseKind.TEXT
     assert result.literal_text == "resume voice key command"
     assert result.command is None
+
+
+def test_text_expansion_snippets_are_disabled_by_default() -> None:
+    parser = create_parser(snippets={"ty": "thank you"})
+
+    result = parser.parse("ty")
+
+    assert result.kind is ParseKind.TEXT
+    assert result.literal_text == "ty"
+    assert result.command is None
+
+
+def test_text_expansion_snippets_can_be_enabled_explicitly() -> None:
+    parser = create_parser(text_expansion_enabled=True, snippets={"ty": "thank you"})
+
+    result = parser.parse("ty")
+
+    assert result.kind is ParseKind.TEXT
+    assert result.literal_text == "thank you"
+    assert result.command is None
+
+
+def test_unknown_command_literal_fallback_is_preserved_when_text_expansion_enabled() -> None:
+    parser = create_parser(text_expansion_enabled=True, snippets={"ty": "thank you"})
+
+    result = parser.parse("hello world command")
+
+    assert result.kind is ParseKind.TEXT
+    assert result.literal_text == "hello world command"
+    assert result.command is None
