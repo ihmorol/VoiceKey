@@ -12,6 +12,12 @@ from voicekey.config.manager import (
     resolve_config_path,
     save_config,
 )
+from voicekey.config.profiles import (
+    ActiveAppIdentity,
+    AppProfileResolver,
+    ProfileResolutionResult,
+    resolve_effective_profile,
+)
 from voicekey.config.schema import (
     CONFIG_VERSION,
     VoiceKeyConfig,
@@ -26,12 +32,16 @@ __all__ = [
     "ConfigLoadResult",
     "ReloadDecision",
     "StartupEnvOverrides",
+    "ActiveAppIdentity",
+    "AppProfileResolver",
+    "ProfileResolutionResult",
     "VoiceKeyConfig",
     "backup_config",
     "default_config",
     "evaluate_reload_decision",
     "load_config",
     "parse_startup_env_overrides",
+    "resolve_effective_profile",
     "resolve_config_path",
     "save_config",
     "serialize_config",
