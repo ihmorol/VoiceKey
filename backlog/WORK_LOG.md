@@ -66,6 +66,16 @@
   - E01-S02 and E01-S03 moved to "implemented, verification failing" until failing tests are corrected.
   - E01-S04 is in progress; threshold module behavior is now aligned with backlog rule and pending integration at transcript-to-action boundary.
 
+- Follow-up verification and fixes completed:
+  - Updated `voicekey/audio/vad.py` to resolve runtime Silero loader lookup and strict `bool` return semantics.
+  - Updated `voicekey/audio/asr_faster_whisper.py` to resolve faster-whisper model class at runtime for deterministic test/runtime behavior.
+  - Re-ran verification: `.venv/bin/python -m pytest tests/unit/test_capture.py tests/unit/test_vad.py tests/unit/test_asr.py tests/unit/test_threshold.py` => PASS (98 passed)
+  - Story status update:
+    - E01-S01: complete and verified
+    - E01-S02: complete and verified
+    - E01-S03: complete and verified
+    - E01-S04: complete and verified
+
 ## 2026-02-20
 
 - Completed comprehensive MkDocs documentation set under `docs/` covering installation, user guide, architecture, API reference, development, FAQ, troubleshooting, and roadmap.

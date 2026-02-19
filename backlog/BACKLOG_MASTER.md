@@ -15,9 +15,9 @@ Priority legend:
 - E00-S02: complete (semver/changelog policy documented in contribution flow)
 - E00-S03: complete (security disclosure SLA documented)
 - E01-S01: complete (unit verification passed)
-- E01-S02: implemented, verification failing (unit test failures require fixes)
-- E01-S03: implemented, verification failing (dependency-mocking and test contract fixes required)
-- E01-S04: in progress (confidence threshold behavior implemented, boundary integration pending)
+- E01-S02: complete (VAD unit verification passed)
+- E01-S03: complete (ASR unit verification passed)
+- E01-S04: complete (final-transcript confidence filtering verified)
 
 ---
 

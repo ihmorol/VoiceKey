@@ -23,7 +23,8 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 
-# Try to import faster-whisper, provide graceful fallback
+# Try to import faster-whisper, provide graceful fallback.
+# Keep class binding mutable so runtime/test environments can patch availability.
 try:
     from faster_whisper import WhisperModel
 
@@ -237,7 +238,8 @@ class ASREngine:
             logger.debug("Model already loaded")
             return
 
-        if not FASTER_WHISPER_AVAILABLE:
+        model_cls = self._resolve_model_class()
+        if model_cls is None:
             raise ModelLoadError(
                 "faster-whisper is not installed. "
                 "Install with: pip install faster-whisper"
@@ -252,7 +254,7 @@ class ASREngine:
                 f"on {actual_device} with {self._compute_type}"
             )
 
-            self._model = WhisperModel(
+            self._model = model_cls(
                 self._model_size,
                 device=actual_device,
                 compute_type=self._compute_type,
@@ -264,6 +266,27 @@ class ASREngine:
         except Exception as e:
             logger.error(f"Failed to load model: {e}")
             raise ModelLoadError(f"Failed to load model {self._model_size}: {e}")
+
+    def _resolve_model_class(self):
+        """Resolve faster-whisper model class at runtime.
+
+        Returns:
+            Whisper model class when available, otherwise None.
+        """
+        global WhisperModel, FASTER_WHISPER_AVAILABLE
+
+        if WhisperModel is not None:
+            return WhisperModel
+
+        try:
+            from faster_whisper import WhisperModel as runtime_model_class
+
+            WhisperModel = runtime_model_class
+            FASTER_WHISPER_AVAILABLE = True
+            return runtime_model_class
+        except ImportError:
+            FASTER_WHISPER_AVAILABLE = False
+            return None
 
     def unload_model(self) -> None:
         """Unload the model from memory.

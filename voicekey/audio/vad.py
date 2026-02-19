@@ -16,11 +16,14 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 
-# Try to import silero-vad, provide graceful fallback
+# Try to import silero-vad, provide graceful fallback.
+# Keep the loader in a mutable name so tests/runtime can patch availability.
 try:
-    from silero import vad
+    from silero import vad as silero_vad_loader
+
     SILERO_VAD_AVAILABLE = True
 except ImportError:
+    silero_vad_loader = None
     SILERO_VAD_AVAILABLE = False
     logger.warning("silero-vad not available, VAD functionality will be limited")
 
@@ -82,12 +85,27 @@ class VADProcessor:
 
     def _load_model(self) -> None:
         """Load Silero VAD model."""
-        if not SILERO_VAD_AVAILABLE:
+        global silero_vad_loader
+
+        loader = silero_vad_loader
+        if loader is None:
+            try:
+                from silero import vad as runtime_loader
+
+                loader = runtime_loader
+                silero_vad_loader = runtime_loader
+                # Runtime refresh in case module availability changed after import.
+                globals()["SILERO_VAD_AVAILABLE"] = True
+            except ImportError:
+                loader = None
+
+        if loader is None:
             logger.warning("Silero VAD not available, using fallback")
+            self._model_loaded = False
             return
 
         try:
-            self._model, _ = vad()
+            self._model, _ = loader()
             self._model_loaded = True
             logger.info("Silero VAD model loaded successfully")
         except Exception as e:
@@ -160,7 +178,7 @@ class VADProcessor:
 
             # If we have any speech timestamps, speech is detected
             # The threshold controls sensitivity internally in Silero
-            return len(speech_timestamps) > 0
+            return bool(len(speech_timestamps) > 0)
 
         except Exception as e:
             logger.warning(f"Silero VAD processing error: {e}, using fallback")
@@ -176,13 +194,13 @@ class VADProcessor:
             True if speech detected based on energy threshold
         """
         # Calculate RMS energy
-        rms = np.sqrt(np.mean(audio ** 2))
+        rms = float(np.sqrt(np.mean(audio ** 2)))
 
         # Simple threshold - adjust based on typical speech levels
         # Speech typically has RMS > 0.01
         energy_threshold = 0.01 + (1.0 - self._threshold) * 0.04
 
-        return rms > energy_threshold
+        return bool(rms > energy_threshold)
 
     def reset(self) -> None:
         """Reset VAD state.
@@ -240,12 +258,26 @@ class StreamingVAD:
 
     def _load_model(self) -> None:
         """Load Silero VAD model."""
-        if not SILERO_VAD_AVAILABLE:
+        global silero_vad_loader
+
+        loader = silero_vad_loader
+        if loader is None:
+            try:
+                from silero import vad as runtime_loader
+
+                loader = runtime_loader
+                silero_vad_loader = runtime_loader
+                globals()["SILERO_VAD_AVAILABLE"] = True
+            except ImportError:
+                loader = None
+
+        if loader is None:
             logger.warning("Silero VAD not available for streaming VAD")
+            self._model_loaded = False
             return
 
         try:
-            self._model, _ = vad()
+            self._model, _ = loader()
             self._model_loaded = True
             logger.info("Streaming VAD model loaded")
         except Exception as e:
