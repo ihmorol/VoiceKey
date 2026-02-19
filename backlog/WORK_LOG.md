@@ -385,3 +385,25 @@
   - `.venv/bin/python -m pytest tests/unit/test_linux_artifacts.py tests/unit/test_linux_appimage_scripts.py tests/unit/test_windows_artifacts.py` => PASS (12 passed)
   - `.venv/bin/python -m pytest tests/unit tests/integration` => PASS (364 passed)
   - `.venv/bin/python - <<'PY' ... yaml.safe_load('.github/workflows/ci.yml') ...` => PASS (`ci_yaml_parse=ok`)
+
+- E07-S04 completed:
+  - Added release integrity helper module `voicekey/release/integrity.py`:
+    - deterministic `SHA256SUMS` generation,
+    - CycloneDX SBOM payload generation,
+    - provenance manifest generation with artifact hash metadata.
+  - Added release signing helper module `voicekey/release/signing.py` with deterministic detached-sign and signed-tag verification command builders.
+  - Extended `voicekey/release/__init__.py` exports for integrity/signing APIs.
+  - Added unit coverage:
+    - `tests/unit/test_release_integrity.py`
+    - `tests/unit/test_release_signing.py`
+  - Added release scripts:
+    - `scripts/release/generate_integrity_bundle.py` (writes `SHA256SUMS`, `sbom.cyclonedx.json`, `provenance.json`)
+    - `scripts/release/sign_release_bundle.py` (creates detached signature for checksum bundle with configurable signer path)
+  - Added script integration coverage:
+    - `tests/integration/test_generate_integrity_bundle_script.py`
+    - `tests/integration/test_sign_release_bundle_script.py`
+  - Extended CI workflow `.github/workflows/ci.yml` with `integrity-bundle-smoke` job to validate integrity bundle generation and detached signature path in CI.
+- Verification commands/evidence:
+  - `.venv/bin/python -m pytest tests/unit/test_release_integrity.py tests/unit/test_release_signing.py tests/integration/test_generate_integrity_bundle_script.py tests/integration/test_sign_release_bundle_script.py` => PASS (9 passed)
+  - `.venv/bin/python -m pytest tests/unit tests/integration` => PASS (371 passed)
+  - `.venv/bin/python - <<'PY' ... yaml.safe_load('.github/workflows/ci.yml') ...` => PASS (`ci_yaml_parse=ok`)

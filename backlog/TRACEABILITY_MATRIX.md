@@ -49,12 +49,12 @@ This matrix provides 100% requirement coverage from specification to backlog and
 | FR-D01 | E07-S01 | PyPI install smoke |
 | FR-D02 | E07-S02 | installer/portable smoke |
 | FR-D03 | E07-S03 | AppImage + pip smoke |
-| FR-D04 | E07-S04 | checksum verification tests |
+| FR-D04 | E07-S04 | release integrity helper + generation script tests (`test_release_integrity.py`, `test_generate_integrity_bundle_script.py`) |
 | FR-D05 | E07-S05 | model externalization and download tests |
 | FR-D06 | E06-S07 | portable artifact validation |
-| FR-D07 | E07-S04 | signing validation checks |
-| FR-D08 | E07-S04 | SBOM presence and format checks |
-| FR-D09 | E07-S04 | provenance metadata checks |
+| FR-D07 | E07-S04 | detached-sign command + signing script smoke (`test_release_signing.py`, `test_sign_release_bundle_script.py`) |
+| FR-D08 | E07-S04 | CycloneDX SBOM structure checks (`test_release_integrity.py`) |
+| FR-D09 | E07-S04 | provenance metadata content checks (`test_release_integrity.py`) |
 | FR-CI01 | E08-S01 | CI workflow required checks |
 | FR-CI02 | E08-S01 | Linux/Windows matrix enforcement |
 | FR-CI03 | E08-S01 | vulnerability scan gates |
