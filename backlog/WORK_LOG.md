@@ -314,3 +314,18 @@
 - Verification commands/evidence:
   - `.venv/bin/python -m pytest tests/unit/test_snippets.py tests/unit/test_parser.py tests/unit/test_config_schema.py` => PASS (25 passed)
   - `.venv/bin/python -m pytest tests/unit` => PASS (343 passed)
+
+- E06-S06 completed:
+  - Implemented per-app profile resolution and merge utilities in `voicekey/config/profiles.py`, including:
+    - active app identity contract,
+    - deterministic direct/category profile-key resolution,
+    - fallback profile application when no app-specific match exists,
+    - deep-merge override strategy with non-mutating behavior.
+  - Extended config schema in `voicekey/config/schema.py` to include `app_profiles` payload support with safe default `{}`.
+  - Exported profile resolution contracts in `voicekey/config/__init__.py`.
+  - Added profile resolution coverage in `tests/unit/test_profile_resolution.py` for identity matching, fallback behavior, merge precedence, feature-gate-off behavior, and non-mutation guarantees.
+  - Expanded config baseline assertions in `tests/unit/test_config_schema.py` for default `app_profiles` safety value.
+- Updated backlog live execution status in `backlog/BACKLOG_MASTER.md` to mark E06-S06 complete.
+- Verification commands/evidence:
+  - `.venv/bin/python -m pytest tests/unit/test_profile_resolution.py tests/unit/test_config_schema.py` => PASS (10 passed)
+  - `.venv/bin/python -m pytest tests/unit` => PASS (350 passed)

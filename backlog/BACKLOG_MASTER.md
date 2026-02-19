@@ -42,6 +42,7 @@ Priority legend:
 - E06-S08: complete (config override precedence hardened; startup env adapters validated with actionable errors; hot-reload policy emits restart-needed decisions)
 - E06-S09: complete (onboarding keyboard-only interaction map, explicit skip-step status markers, and timing evidence for complete/skip flows added)
 - E06-S05: complete (snippet expansion engine added with default-off parser behavior and deterministic recursion/loop guards)
+- E06-S06: complete (active app profile resolver and deterministic fallback merge strategy implemented with feature-gated application)
 
 ---
 
