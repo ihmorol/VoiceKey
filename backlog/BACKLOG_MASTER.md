@@ -41,6 +41,7 @@ Priority legend:
 - E06-S04: complete (custom command loader/validator and parser integration added; command ids now route to key-combo/text execution paths)
 - E06-S08: complete (config override precedence hardened; startup env adapters validated with actionable errors; hot-reload policy emits restart-needed decisions)
 - E06-S09: complete (onboarding keyboard-only interaction map, explicit skip-step status markers, and timing evidence for complete/skip flows added)
+- E06-S05: complete (snippet expansion engine added with default-off parser behavior and deterministic recursion/loop guards)
 
 ---
 

@@ -301,3 +301,16 @@
 - Verification commands/evidence:
   - `.venv/bin/python -m pytest tests/unit/test_onboarding.py tests/unit/test_cli.py` => PASS (13 passed)
   - `.venv/bin/python -m pytest tests/unit` => PASS (334 passed)
+
+- E06-S05 completed:
+  - Implemented deterministic snippet expansion engine with recursion/loop guards in `voicekey/commands/snippets.py`.
+  - Integrated optional text expansion into parser text path in `voicekey/commands/parser.py` with default-disabled behavior (`text_expansion_enabled=False`) and explicit enablement controls.
+  - Preserved unknown-command literal fallback invariant under text expansion mode.
+  - Exported snippet engine in `voicekey/commands/__init__.py`.
+  - Added snippet engine coverage in `tests/unit/test_snippets.py` (deterministic behavior, non-match passthrough, self/mutual recursion guard, max-depth guard).
+  - Expanded parser coverage in `tests/unit/test_parser.py` for text-expansion disabled-by-default, enabled expansion behavior, and fallback invariants.
+  - Expanded config baseline assertions in `tests/unit/test_config_schema.py` for default `features.text_expansion_enabled` safety value.
+- Updated backlog live execution status in `backlog/BACKLOG_MASTER.md` to mark E06-S05 complete.
+- Verification commands/evidence:
+  - `.venv/bin/python -m pytest tests/unit/test_snippets.py tests/unit/test_parser.py tests/unit/test_config_schema.py` => PASS (25 passed)
+  - `.venv/bin/python -m pytest tests/unit` => PASS (343 passed)
