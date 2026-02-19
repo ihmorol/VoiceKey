@@ -13,7 +13,7 @@ from voicekey.app.state_machine import (
     VoiceKeyStateMachine,
 )
 from voicekey.audio.wake import WakePhraseDetector, WakeWindowController
-from voicekey.commands.parser import CommandParser, ParseKind
+from voicekey.commands.parser import CommandParser, ParseKind, create_parser
 
 
 @dataclass(frozen=True)
@@ -39,7 +39,7 @@ class RuntimeCoordinator:
         self._state_machine = state_machine
         self._wake_detector = wake_detector or WakePhraseDetector()
         self._wake_window = wake_window or WakeWindowController()
-        self._parser = parser or CommandParser()
+        self._parser = parser or create_parser()
         self._routing_policy = routing_policy or RuntimeRoutingPolicy()
 
     @property

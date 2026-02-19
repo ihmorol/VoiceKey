@@ -2,14 +2,17 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
 from enum import StrEnum
 
 from voicekey.commands.builtins import SPECIAL_PHRASES, create_builtin_registry
+from voicekey.commands.fuzzy import FuzzyMatchConfig, FuzzyMatcher
 from voicekey.commands.registry import (
     CommandChannel,
     CommandDefinition,
     CommandRegistry,
+    FeatureGate,
     normalize_phrase,
 )
 
@@ -37,8 +40,14 @@ class ParseResult:
 class CommandParser:
     """Parses transcript text into command/system/text outcomes."""
 
-    def __init__(self, registry: CommandRegistry | None = None) -> None:
+    def __init__(
+        self,
+        registry: CommandRegistry | None = None,
+        fuzzy: FuzzyMatchConfig | None = None,
+    ) -> None:
         self._registry = registry or create_builtin_registry()
+        self._fuzzy = fuzzy or FuzzyMatchConfig()
+        self._fuzzy_matcher = FuzzyMatcher() if self._fuzzy.enabled else None
 
     def parse(self, transcript: str) -> ParseResult:
         """Parse transcript using command suffix and special phrase precedence."""
@@ -54,6 +63,16 @@ class CommandParser:
         if self._ends_with_command_suffix(normalized):
             candidate = normalized[: -len(COMMAND_SUFFIX)].strip()
             matched = self._registry.match(candidate)
+
+            if matched is None and self._fuzzy_matcher is not None:
+                fuzzy_candidate = self._fuzzy_matcher.best_match(
+                    phrase=candidate,
+                    candidates=self._registry.enabled_phrases(),
+                    threshold=self._fuzzy.threshold,
+                )
+                if fuzzy_candidate is not None:
+                    matched = self._registry.match(fuzzy_candidate)
+
             if matched is not None and matched.channel is CommandChannel.COMMAND:
                 return self._to_command_result(matched, normalized)
 
@@ -85,3 +104,18 @@ class CommandParser:
             command=command,
             literal_text=None,
         )
+
+
+def create_parser(
+    *,
+    window_commands_enabled: bool = False,
+    enabled_features: Iterable[FeatureGate] | None = None,
+    fuzzy: FuzzyMatchConfig | None = None,
+) -> CommandParser:
+    """Create parser with explicit feature-gate routing configuration."""
+
+    features = set(enabled_features or ())
+    if window_commands_enabled:
+        features.add(FeatureGate.WINDOW_COMMANDS)
+    registry = create_builtin_registry(enabled_features=features)
+    return CommandParser(registry=registry, fuzzy=fuzzy)
