@@ -240,3 +240,15 @@
 - Verification commands/evidence:
   - `.venv/bin/python -m pytest tests/unit/test_config_schema.py tests/unit/test_config_manager.py` => PASS (7 passed)
   - `.venv/bin/python -m pytest tests/unit` => PASS (292 passed)
+
+- E06-S02 completed:
+  - Implemented versioned migration engine in `voicekey/config/migration.py` with explicit forward-only registry, deterministic step ordering, and idempotent behavior for already-current configs.
+  - Added migration error taxonomy (`ConfigMigrationError`) and safe guards for unsupported future versions, invalid version fields, and missing migration steps.
+  - Integrated migration execution into `voicekey/config/manager.py` before schema fallback validation so legacy payloads migrate first, then validate/sanitize.
+  - Added rollback-safe failure path in config manager: migration failure now preserves backup and regenerates safe defaults with migration-note warnings.
+  - Added unit coverage in `tests/unit/test_config_migration.py` for migration chain behavior, idempotency, duplicate registration guard, unsupported-version safety, and missing-step failures.
+  - Expanded `tests/unit/test_config_manager.py` with legacy-version rewrite, migration failure fallback, and future-version fallback scenarios.
+- Updated backlog live execution status in `backlog/BACKLOG_MASTER.md` to mark E06-S02 complete.
+- Verification commands/evidence:
+  - `.venv/bin/python -m pytest tests/unit/test_config_migration.py tests/unit/test_config_manager.py` => PASS (13 passed)
+  - `.venv/bin/python -m pytest tests/unit` => PASS (301 passed)
