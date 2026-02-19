@@ -4,16 +4,21 @@ from __future__ import annotations
 
 import os
 import platform
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any
 
 import yaml
 
 from voicekey.config.migration import ConfigMigrationError, MigrationRegistry, migrate_payload
-from voicekey.config.schema import VoiceKeyConfig, default_config, serialize_config, validate_with_fallback
+from voicekey.config.schema import (
+    VoiceKeyConfig,
+    default_config,
+    serialize_config,
+    validate_with_fallback,
+)
 
 
 class ConfigError(RuntimeError):
@@ -51,6 +56,16 @@ class ReloadDecision:
     @property
     def restart_needed(self) -> bool:
         return bool(self.restart_required)
+
+
+@dataclass(frozen=True)
+class RuntimePaths:
+    """Resolved runtime paths for config/data/model storage."""
+
+    config_path: Path
+    data_dir: Path
+    model_dir: Path
+    portable_mode: bool = False
 
 
 _SAFE_RELOAD_KEYS: tuple[str, ...] = (
@@ -98,6 +113,55 @@ def resolve_config_path(
     return home / ".config" / "voicekey" / "config.yaml"
 
 
+def resolve_runtime_paths(
+    *,
+    explicit_config_path: str | Path | None = None,
+    model_dir_override: str | Path | None = None,
+    env: Mapping[str, str] | None = None,
+    platform_name: str | None = None,
+    home_dir: Path | None = None,
+    portable_mode: bool = False,
+    portable_root: str | Path | None = None,
+) -> RuntimePaths:
+    """Resolve deterministic runtime paths for standard and portable modes."""
+    if portable_mode:
+        root = Path(portable_root).expanduser() if portable_root is not None else Path.cwd()
+        config_path = (
+            Path(explicit_config_path).expanduser()
+            if explicit_config_path is not None
+            else root / "config" / "config.yaml"
+        )
+        data_dir = root / "data"
+        model_dir = (
+            Path(model_dir_override).expanduser()
+            if model_dir_override is not None
+            else data_dir / "models"
+        )
+        return RuntimePaths(
+            config_path=config_path,
+            data_dir=data_dir,
+            model_dir=model_dir,
+            portable_mode=True,
+        )
+
+    config_path = resolve_config_path(
+        explicit_path=explicit_config_path,
+        env=env,
+        platform_name=platform_name,
+        home_dir=home_dir,
+    )
+    data_dir = config_path.parent
+    model_dir = (
+        Path(model_dir_override).expanduser() if model_dir_override is not None else data_dir / "models"
+    )
+    return RuntimePaths(
+        config_path=config_path,
+        data_dir=data_dir,
+        model_dir=model_dir,
+        portable_mode=False,
+    )
+
+
 def backup_config(path: Path) -> Path:
     """Create timestamped backup and return new path."""
     timestamp = datetime.now(tz=UTC).strftime("%Y%m%d%H%M%S")
@@ -140,7 +204,7 @@ def load_config(
 
     try:
         parsed: Any = yaml.safe_load(raw_text)
-    except yaml.YAMLError as exc:
+    except yaml.YAMLError:
         backup_path = backup_config(config_path)
         config = default_config()
         save_config(config, config_path)
@@ -319,11 +383,13 @@ __all__ = [
     "ConfigError",
     "ConfigLoadResult",
     "ReloadDecision",
+    "RuntimePaths",
     "StartupEnvOverrides",
     "backup_config",
     "evaluate_reload_decision",
     "load_config",
     "parse_startup_env_overrides",
     "resolve_config_path",
+    "resolve_runtime_paths",
     "save_config",
 ]
