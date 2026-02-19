@@ -122,3 +122,46 @@ def test_start_command_returns_command_error_for_invalid_env_override() -> None:
     result = runner.invoke(cli, ["start"], env={"VOICEKEY_LOG_LEVEL": "verbose"})
 
     assert result.exit_code == ExitCode.COMMAND_ERROR
+
+
+def test_start_command_supports_portable_mode_runtime_paths(tmp_path) -> None:
+    runner = CliRunner()
+    portable_root = tmp_path / "portable-root"
+
+    result = runner.invoke(
+        cli,
+        [
+            "--output",
+            "json",
+            "start",
+            "--portable",
+            "--portable-root",
+            str(portable_root),
+        ],
+    )
+
+    assert result.exit_code == ExitCode.SUCCESS
+    payload = json.loads(result.output)
+    runtime_paths = payload["result"]["runtime_paths"]
+    assert runtime_paths["portable_mode"] is True
+    assert runtime_paths["config_path"] == str(portable_root / "config" / "config.yaml")
+    assert runtime_paths["data_dir"] == str(portable_root / "data")
+    assert runtime_paths["model_dir"] == str(portable_root / "data" / "models")
+
+
+def test_start_command_uses_env_config_override_for_runtime_paths(tmp_path) -> None:
+    runner = CliRunner()
+    env_config = tmp_path / "env" / "config.yaml"
+
+    result = runner.invoke(
+        cli,
+        ["--output", "json", "start"],
+        env={"VOICEKEY_CONFIG": str(env_config)},
+    )
+
+    assert result.exit_code == ExitCode.SUCCESS
+    payload = json.loads(result.output)
+    runtime_paths = payload["result"]["runtime_paths"]
+    assert runtime_paths["portable_mode"] is False
+    assert runtime_paths["config_path"] == str(env_config)
+    assert runtime_paths["data_dir"] == str(env_config.parent)

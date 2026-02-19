@@ -4,13 +4,18 @@ from __future__ import annotations
 
 import json
 from collections.abc import Sequence
+from pathlib import Path
 from typing import Any
 
 import click
 
-from voicekey.config.manager import ConfigError, parse_startup_env_overrides
-from voicekey.ui.onboarding import run_onboarding
+from voicekey.config.manager import (
+    ConfigError,
+    parse_startup_env_overrides,
+    resolve_runtime_paths,
+)
 from voicekey.ui.exit_codes import ExitCode
+from voicekey.ui.onboarding import run_onboarding
 
 REQUIRED_COMMANDS: tuple[str, ...] = (
     "setup",
@@ -89,13 +94,34 @@ def cli(ctx: click.Context, output: str) -> None:
 @cli.command("start")
 @click.option("--daemon", is_flag=True, help="Start without terminal dashboard.")
 @click.option("--config", "config_path", type=click.Path(), default=None)
+@click.option("--portable", is_flag=True, help="Use local portable config/data paths.")
+@click.option(
+    "--portable-root",
+    type=click.Path(file_okay=False),
+    default=None,
+    help="Root directory used by portable mode.",
+)
 @click.pass_context
-def start_command(ctx: click.Context, daemon: bool, config_path: str | None) -> None:
+def start_command(
+    ctx: click.Context,
+    daemon: bool,
+    config_path: str | None,
+    portable: bool,
+    portable_root: str | None,
+) -> None:
     """Start VoiceKey runtime contract (stub)."""
     try:
         startup_overrides = parse_startup_env_overrides()
     except ConfigError as exc:
         raise click.ClickException(str(exc)) from exc
+
+    effective_config_path = config_path or startup_overrides.config_path
+    runtime_paths = resolve_runtime_paths(
+        explicit_config_path=effective_config_path,
+        model_dir_override=startup_overrides.model_dir,
+        portable_mode=portable,
+        portable_root=Path(portable_root).expanduser() if portable_root is not None else None,
+    )
 
     _emit_output(
         ctx,
@@ -104,6 +130,12 @@ def start_command(ctx: click.Context, daemon: bool, config_path: str | None) -> 
             "accepted": True,
             "daemon": daemon,
             "config_path": config_path,
+            "runtime_paths": {
+                "config_path": str(runtime_paths.config_path),
+                "data_dir": str(runtime_paths.data_dir),
+                "model_dir": str(runtime_paths.model_dir),
+                "portable_mode": runtime_paths.portable_mode,
+            },
             "env_overrides": {
                 "config_path": str(startup_overrides.config_path)
                 if startup_overrides.config_path is not None
