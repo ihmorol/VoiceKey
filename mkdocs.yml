@@ -1,0 +1,113 @@
+site_name: VoiceKey Documentation
+site_description: Privacy-first offline voice-to-keyboard for Linux and Windows
+site_author: VoiceKey Team
+site_url: https://voicekey.app
+
+repo_url: https://github.com/voicekey/voice-key
+repo_name: voicekey/voice-key
+
+copyright: Copyright (c) 2024-2026 VoiceKey Team
+
+docs_dir: docs
+
+theme:
+  name: material
+  language: en
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.top
+    - content.code.copy
+    - search.highlight
+    - search.suggest
+  palette:
+    - scheme: default
+      primary: blue grey
+      accent: teal
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - scheme: slate
+      primary: blue grey
+      accent: teal
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  font:
+    text: Roboto
+    code: Roboto Mono
+  icon:
+    repo: fontawesome/brands/github
+
+plugins:
+  - search
+  - minify:
+      minify_html: true
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+
+nav:
+  - Home:
+      - Overview: index.md
+      - Features: features.md
+      - Quick Start: getting-started.md
+  - Installation:
+      - installation/index.md
+      - Linux: installation/linux.md
+      - Windows: installation/windows.md
+      - From Source: installation/source.md
+  - User Guide:
+      - guide/index.md
+      - Basic Usage: guide/basic-usage.md
+      - Commands Reference: guide/commands.md
+      - Configuration: guide/configuration.md
+      - Listening Modes: guide/listening-modes.md
+  - Architecture:
+      - architecture/overview.md
+      - Design Decisions: architecture/design-decisions.md
+      - State Machine: architecture/state-machine.md
+      - Audio Pipeline: architecture/audio-pipeline.md
+  - API Reference:
+      - reference/index.md
+      - Audio Module: reference/audio.md
+      - Commands Module: reference/commands.md
+      - Platform Module: reference/platform.md
+      - Configuration Schema: reference/config.md
+  - Development:
+      - development/index.md
+      - Setup: development/setup.md
+      - Testing: development/testing.md
+      - Contributing: development/contributing.md
+  - Resources:
+      - resources/index.md
+      - FAQ: resources/faq.md
+      - Troubleshooting: resources/troubleshooting.md
+      - Roadmap: resources/roadmap.md
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/voicekey/voice-key
+    - icon: fontawesome/brands/python
+      link: https://pypi.org/project/voicekey/
+
+strict: true
