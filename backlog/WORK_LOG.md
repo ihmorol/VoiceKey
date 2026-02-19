@@ -177,3 +177,14 @@
 - Verification commands/evidence:
   - `.venv/bin/python -m pytest tests/unit/test_keyboard_backends.py tests/unit/test_hotkey_backends.py` => PASS (18 passed)
   - `.venv/bin/python -m pytest tests/unit` => PASS (241 passed)
+
+- E04-S03 completed:
+  - Added startup compatibility report framework in `voicekey/platform/compatibility.py` with display-session detection (`x11`, `wayland`, `windows`, `unknown`) and component rollup diagnostics.
+  - Updated Linux keyboard session detection fallback in `voicekey/platform/keyboard_linux.py` to use shared display-session detection logic.
+  - Added shared autostart diagnostics model in `voicekey/platform/autostart_base.py`.
+  - Implemented Linux autostart validation in `voicekey/platform/autostart_linux.py` with directory presence/writability checks and remediation guidance.
+  - Implemented Windows autostart validation in `voicekey/platform/autostart_windows.py` with startup-folder/registry checks and remediation guidance.
+  - Added coverage in `tests/unit/test_compatibility_report.py` and `tests/unit/test_autostart_adapters.py` for Wayland reduced-capability warnings, Windows admin recommendation propagation, and autostart degraded/unavailable diagnostics.
+- Verification commands/evidence:
+  - `.venv/bin/python -m pytest tests/unit/test_compatibility_report.py tests/unit/test_autostart_adapters.py` => PASS (13 passed)
+  - `.venv/bin/python -m pytest tests/unit` => PASS (241 passed)
