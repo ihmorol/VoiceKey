@@ -13,11 +13,25 @@ from voicekey.release.linux_artifacts import (
     normalize_version as normalize_linux_version,
     prepare_appimage_artifact,
 )
+from voicekey.release.integrity import (
+    build_cyclonedx_sbom,
+    build_provenance_manifest,
+    build_sha256sums,
+)
+from voicekey.release.signing import (
+    build_gpg_detached_sign_command,
+    build_verify_tag_signature_command,
+)
 
 __all__ = [
     "build_appimage_smoke_command",
+    "build_cyclonedx_sbom",
+    "build_gpg_detached_sign_command",
     "build_linux_artifact_name",
+    "build_provenance_manifest",
     "build_signtool_command",
+    "build_sha256sums",
+    "build_verify_tag_signature_command",
     "build_windows_artifact_name",
     "create_portable_zip",
     "normalize_linux_version",
