@@ -112,3 +112,14 @@
 - Verification commands/evidence:
   - `python -m pip install -r docs/requirements.txt` completed successfully with all dependencies resolved.
   - `python -m mkdocs build` completed successfully with strict mode enabled and no unresolved doc-link warnings.
+
+- E02-S01 binding completed:
+  - Implemented wake/FSM orchestration in `voicekey/app/main.py` via `RuntimeCoordinator` and deterministic `RuntimeUpdate` outputs.
+  - Bound wake phrase detection to wake_word `STANDBY -> LISTENING` transition and wake-window open behavior.
+  - Bound wake timeout polling to `LISTENING -> STANDBY` transition and preserved no-typing behavior for wake phrase events.
+  - Added activity hooks (`on_transcript`, `on_activity`) to reset wake timeout while listening.
+  - Added focused unit coverage in `tests/unit/test_runtime_coordinator.py`.
+  - Updated backlog status: `backlog/BACKLOG_MASTER.md` marks E02-S01 complete.
+- Verification commands/evidence:
+  - `.venv/bin/python -m pytest tests/unit/test_runtime_coordinator.py` => PASS (6 passed)
+  - `.venv/bin/python -m pytest tests/unit/test_wake.py tests/unit/test_state_machine.py tests/unit/test_runtime_coordinator.py` => PASS (37 passed)

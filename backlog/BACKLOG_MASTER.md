@@ -18,7 +18,7 @@ Priority legend:
 - E01-S02: complete (VAD unit verification passed)
 - E01-S03: complete (ASR unit verification passed)
 - E01-S04: complete (final-transcript confidence filtering verified)
-- E02-S01: in progress (wake detector and timeout controller implemented; FSM transition binding pending)
+- E02-S01: complete (wake detector bound to FSM wake_word transitions; timeout/reset coordinator verified)
 - E02-S02: complete (parser command-suffix + unknown-literal fallback + alias matching verified)
 - E03-S01: complete (table-driven FSM transitions and invalid-transition guards verified)
 
