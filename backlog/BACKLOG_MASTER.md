@@ -45,6 +45,7 @@ Priority legend:
 - E06-S06: complete (active app profile resolver and deterministic fallback merge strategy implemented with feature-gated application)
 - E06-S07: complete (portable runtime path resolver added for local config/data/model directories with CLI portable-mode contract and smoke coverage)
 - E07-S01: complete (PyPI packaging metadata finalized with root README and SPDX license; CI package-smoke job now builds wheel/sdist and validates clean-environment installs)
+- E07-S02: complete (Windows installer/portable artifact scripts added with canonical naming, optional Authenticode signing hooks, and local smoke generation evidence)
 
 ---
 

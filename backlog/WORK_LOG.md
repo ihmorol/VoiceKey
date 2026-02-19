@@ -356,3 +356,15 @@
   - `.venv/bin/python -m build` => PASS (wheel + sdist generated successfully)
   - `python3 -m venv /tmp/voicekey-smoke-wheel-nodeps2 && /tmp/voicekey-smoke-wheel-nodeps2/bin/python -m pip install --upgrade pip && /tmp/voicekey-smoke-wheel-nodeps2/bin/python -m pip install --no-deps dist/*.whl && /tmp/voicekey-smoke-wheel-nodeps2/bin/python -m pip show voicekey && /tmp/voicekey-smoke-wheel-nodeps2/bin/python -c "import voicekey; print(voicekey.__version__)"` => PASS
   - `python3 -m venv /tmp/voicekey-smoke-sdist-nodeps && /tmp/voicekey-smoke-sdist-nodeps/bin/python -m pip install --upgrade pip && /tmp/voicekey-smoke-sdist-nodeps/bin/python -m pip install --no-deps dist/*.tar.gz && /tmp/voicekey-smoke-sdist-nodeps/bin/python -m pip show voicekey && /tmp/voicekey-smoke-sdist-nodeps/bin/python -c "import voicekey; print(voicekey.__version__)"` => PASS
+
+- E07-S02 completed:
+  - Added Windows artifact helper module `voicekey/release/windows_artifacts.py` with deterministic semver normalization, canonical file naming, installer artifact preparation, portable zip creation, and signtool command generation.
+  - Added exports in `voicekey/release/__init__.py` for release helper APIs.
+  - Added Windows packaging scripts:
+    - `scripts/windows/build_installer.py`
+    - `scripts/windows/build_portable.py`
+    Both scripts support optional Authenticode signing through `signtool.exe` with certificate thumbprint and timestamp URL inputs.
+  - Added unit coverage in `tests/unit/test_windows_artifacts.py` for naming contract, version validation, installer copy behavior, portable zip contents, and signtool command contract.
+- Verification commands/evidence:
+  - `.venv/bin/python -m pytest tests/unit/test_windows_artifacts.py` => PASS (6 passed)
+  - `mkdir -p /tmp/voicekey-script-test && printf 'exe' > /tmp/voicekey-script-test/unsigned.exe && mkdir -p /tmp/voicekey-script-test/portable && printf 'run' > /tmp/voicekey-script-test/portable/voicekey.exe && .venv/bin/python scripts/windows/build_installer.py --version 1.2.3 --unsigned-installer-path /tmp/voicekey-script-test/unsigned.exe --output-dir /tmp/voicekey-script-test/dist && .venv/bin/python scripts/windows/build_portable.py --version 1.2.3 --source-dir /tmp/voicekey-script-test/portable --output-dir /tmp/voicekey-script-test/dist` => PASS
