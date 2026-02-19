@@ -92,5 +92,11 @@ class CommandRegistry:
         """Return read-only phrase mapping for diagnostics/tests."""
         return self._phrase_map
 
+    def enabled_phrases(self) -> tuple[str, ...]:
+        """Return normalized phrases currently eligible for matching."""
+        return tuple(
+            phrase for phrase, command in self._phrase_map.items() if self._is_enabled(command)
+        )
+
     def _is_enabled(self, command: CommandDefinition) -> bool:
         return command.feature_gate is None or command.feature_gate in self._enabled_features
