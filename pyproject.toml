@@ -7,7 +7,7 @@ name = "voicekey"
 version = "0.1.0"
 description = "Privacy-first offline voice-to-keyboard for Linux and Windows"
 readme = "README.md"
-license = { text = "MIT" }
+license = "MIT"
 authors = [
     { name = "VoiceKey Team", email = "team@voicekey.app" }
 ]
@@ -15,7 +15,6 @@ requires-python = ">=3.11"
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: End Users/Desktop",
-    "License :: OSI Approved :: MIT License",
     "Operating System :: POSIX :: Linux",
     "Operating System :: Microsoft :: Windows",
     "Programming Language :: Python :: 3",
