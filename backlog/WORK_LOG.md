@@ -201,3 +201,15 @@
 - Verification commands/evidence:
   - `.venv/bin/python -m pytest tests/unit/test_cli.py` => PASS (5 passed)
   - `.venv/bin/python -m pytest tests/unit` => PASS (259 passed)
+
+- E05-S02 completed:
+  - Implemented deterministic terminal dashboard renderer in `voicekey/ui/dashboard.py` with explicit state indicator, latency display, and last-action display.
+  - Added `DashboardController` throttling and non-blocking latest-snapshot update behavior.
+  - Added unit coverage in `tests/unit/test_dashboard.py` for state clarity and throttled refresh semantics.
+- E05-S03 completed:
+  - Implemented tray runtime controller in `voicekey/ui/tray.py` with runtime-state indicator mapping and deterministic action dispatch contracts.
+  - Implemented daemon/session behavior resolution in `voicekey/ui/daemon.py` so daemon mode suppresses terminal UI and enables tray only in graphical sessions.
+  - Added integration coverage in `tests/unit/test_tray.py` for tray action flows and daemon headless/graphical behavior.
+- Verification commands/evidence:
+  - `.venv/bin/python -m pytest tests/unit/test_dashboard.py tests/unit/test_tray.py` => PASS (10 passed)
+  - `.venv/bin/python -m pytest tests/unit` => PASS (269 passed)
