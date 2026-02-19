@@ -120,6 +120,7 @@ class VoiceKeyConfig(BaseModel):
     system: SystemConfig = Field(default_factory=SystemConfig)
     features: FeaturesConfig = Field(default_factory=FeaturesConfig)
     privacy: PrivacyConfig = Field(default_factory=PrivacyConfig)
+    app_profiles: dict[str, dict[str, Any]] = Field(default_factory=dict)
     custom_commands: dict[str, dict[str, Any]] = Field(default_factory=dict)
     snippets: dict[str, str] = Field(
         default_factory=lambda: {

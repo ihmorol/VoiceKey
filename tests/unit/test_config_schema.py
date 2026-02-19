@@ -15,6 +15,7 @@ def test_default_config_matches_expected_baseline() -> None:
     assert config.modes.inactivity_auto_pause_seconds == 30
     assert config.features.window_commands_enabled is False
     assert config.features.text_expansion_enabled is False
+    assert config.app_profiles == {}
 
 
 def test_validate_with_fallback_replaces_invalid_values_and_keeps_valid_values() -> None:
