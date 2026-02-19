@@ -21,7 +21,9 @@ Priority legend:
 - E02-S01: complete (wake detector bound to FSM wake_word transitions; timeout/reset coordinator verified)
 - E02-S02: complete (parser command-suffix + unknown-literal fallback + alias matching verified)
 - E02-S04: complete (special phrase channel wired in runtime for paused resume/stop; parser exact-match suffix bypass verified)
+- E02-S05: complete (catalog aligned to `requirements/commands.md` section 3; full built-in phrase/alias parser coverage with window command feature-gate tests)
 - E03-S01: complete (table-driven FSM transitions and invalid-transition guards verified)
+- E03-S03: complete (paused routing policy enforces suppression with resume/stop-only paused phrase channel; race sequencing covered)
 
 ---
 

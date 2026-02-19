@@ -132,3 +132,23 @@
   - Updated backlog live execution status in `backlog/BACKLOG_MASTER.md` to mark E02-S04 complete.
 - Verification commands/evidence:
   - `.venv/bin/python -m pytest tests/unit/test_runtime_coordinator.py tests/unit/test_parser.py` => PASS (19 passed)
+
+- E03-S03 completed:
+  - Added deterministic paused-state routing policy in `voicekey/app/routing_policy.py` to gate parsed outputs by state.
+  - Policy now enforces FR-M06/FR-M07 in `PAUSED`: blocks dictation text and non-system commands, allows only `resume voice key` (when phrase channel enabled) and `voice key stop`.
+  - Integrated policy enforcement in `voicekey/app/main.py` `RuntimeCoordinator` via new `routing_policy` dependency and paused transcript handler.
+  - Added policy unit coverage in `tests/unit/test_routing_policy.py` for paused suppression and allowed control phrases.
+  - Expanded paused coordinator coverage in `tests/unit/test_runtime_coordinator.py` for suppression behavior, optional resume-phrase channel toggle, and rapid pause/resume race-style sequencing.
+  - Updated backlog live execution status in `backlog/BACKLOG_MASTER.md` to mark E03-S03 complete.
+- Verification commands/evidence:
+  - `.venv/bin/python -m pytest tests/unit/test_routing_policy.py tests/unit/test_runtime_coordinator.py` => PASS (18 passed)
+  - `.venv/bin/python -m pytest tests/unit/test_parser.py tests/unit/test_state_machine.py tests/unit/test_routing_policy.py tests/unit/test_runtime_coordinator.py` => PASS (52 passed)
+
+- E02-S05 completed:
+  - Updated `voicekey/commands/builtins.py` to align built-in command catalog with `requirements/commands.md` section 3, including missing core phrases (`escape`) and formatting phrases (`capital hello`, `all caps hello`).
+  - Preserved productivity command feature-gate behavior (`window_commands`) as disabled by default until explicitly enabled.
+  - Enforced parser single-source-of-truth for special phrases by deriving parser special phrase set directly from `voicekey/commands/builtins.py`.
+  - Added dedicated catalog coverage in `tests/unit/test_builtins_catalog.py` to validate every built-in phrase and alias, including gated-on/gated-off behavior checks.
+  - Updated backlog live execution status in `backlog/BACKLOG_MASTER.md` to mark E02-S05 complete.
+- Verification commands/evidence:
+  - `.venv/bin/python -m pytest tests/unit/test_builtins_catalog.py tests/unit/test_parser.py` => PASS (49 passed)
