@@ -49,6 +49,7 @@ Priority legend:
 - E07-S03: complete (Linux AppImage helper/scripts and Ubuntu 22.04/24.04 CI AppImage launch smoke matrix added; pip channel validation remains covered by package-smoke)
 - E07-S04: complete (integrity bundle helpers/scripts implemented for SHA256SUMS, detached signature command path, CycloneDX SBOM, and provenance manifest with CI integrity smoke validation)
 - E07-S05: complete (model catalog/checksum/downloader modules implemented with checksum-first cache reuse, mirror fallback retry path, and deterministic failure handling)
+- E07-S06: complete (release policy validator added for artifact naming, x64 channel scope, and compatibility checklist/distribution policy checks with CI smoke coverage)
 
 ---
 

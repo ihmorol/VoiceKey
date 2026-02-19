@@ -93,7 +93,7 @@ This matrix provides 100% requirement coverage from specification to backlog and
 | Usability targets (first setup <=5 min, first sentence <=2 min) | E06-S03, E10-S02 | onboarding timing tests |
 | Linux support target (Ubuntu 22.04/24.04 x64, X11 full, Wayland best-effort) | E04-S03, E10-S04 | compatibility matrix |
 | Windows support target (10/11 x64, standard/admin behavior) | E04-S03, E10-S04 | compatibility matrix |
-| Distribution policy (x64 public scope, artifact naming convention, one-major migration path) | E07-S06 | release policy validator checks |
+| Distribution policy (x64 public scope, artifact naming convention, one-major migration path) | E07-S06 | release policy validator unit/integration checks (`test_release_policy.py`, `test_validate_distribution_policy_script.py`) |
 | CI hardening controls (secret scan, license scan, branch protection, CODEOWNERS, pinned actions, least-privilege permissions, CI observability) | E08-S04 | CI governance checks |
 | Error and edge scenarios table (no mic, disconnect, unknown command, hotkey conflict, checksum fail, keyboard block) | E03-S04, E04-S02, E07-S05 | integration/error-path tests |
 | Test matrix governance (Ubuntu/Windows + Python version matrix coverage) | E10-S06 | matrix coverage reports |
