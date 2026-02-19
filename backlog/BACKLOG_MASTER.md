@@ -27,6 +27,8 @@ Priority legend:
 - E03-S03: complete (paused routing policy enforces suppression with resume/stop-only paused phrase channel; race sequencing covered)
 - E03-S04: complete (runtime error taxonomy, bounded retry helpers, and safety fallback-to-paused policy verified)
 - E03-S05: complete (single-instance runtime lock and shutdown queue-drain timeout/discard safeguards verified)
+- E04-S01: complete (Linux/Windows keyboard adapters now share a typed contract with deterministic capability self-check and degraded-state reporting)
+- E04-S02: complete (hotkey register/unregister abstraction implemented with deterministic conflict alternatives)
 
 ---
 

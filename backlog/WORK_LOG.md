@@ -164,3 +164,16 @@
 - Verification commands/evidence:
   - `.venv/bin/python -m pytest tests/unit/test_runtime_resilience.py tests/unit/test_single_instance.py tests/unit/test_shutdown.py` => PASS (18 passed)
   - `.venv/bin/python -m pytest tests/unit` => PASS (223 passed)
+
+- E04-S01 completed:
+  - Added shared keyboard backend contract and typed capability/error models in `voicekey/platform/keyboard_base.py`.
+  - Implemented `voicekey/platform/keyboard_linux.py` with X11 primary path, fallback hooks, and explicit Wayland best-effort degraded diagnostics.
+  - Implemented `voicekey/platform/keyboard_windows.py` with standard/admin capability reporting and primary/fallback adapter states.
+  - Added contract and capability coverage in `tests/unit/test_keyboard_backends.py`.
+- E04-S02 completed:
+  - Added global hotkey abstraction and deterministic conflict suggestion logic in `voicekey/platform/hotkey_base.py`.
+  - Implemented Linux/Windows hotkey adapters in `voicekey/platform/hotkey_linux.py` and `voicekey/platform/hotkey_windows.py`.
+  - Added registration lifecycle and conflict-suggestion tests in `tests/unit/test_hotkey_backends.py`.
+- Verification commands/evidence:
+  - `.venv/bin/python -m pytest tests/unit/test_keyboard_backends.py tests/unit/test_hotkey_backends.py` => PASS (18 passed)
+  - `.venv/bin/python -m pytest tests/unit` => PASS (241 passed)
