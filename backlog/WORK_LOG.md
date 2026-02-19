@@ -344,3 +344,15 @@
 - Verification commands/evidence:
   - `.venv/bin/python -m pytest tests/unit/test_portable_paths.py tests/unit/test_cli.py::test_start_command_supports_portable_mode_runtime_paths tests/unit/test_cli.py::test_start_command_uses_env_config_override_for_runtime_paths tests/integration/test_portable_mode_smoke.py` => PASS (8 passed)
   - `.venv/bin/python -m pytest tests/unit tests/integration` => PASS (358 passed)
+
+- E07-S01 completed:
+  - Added root project `README.md` so package metadata references an existing file for wheel/sdist builds.
+  - Updated `pyproject.toml` packaging metadata to SPDX-style license declaration (`license = "MIT"`) and removed deprecated license classifier.
+  - Extended CI pipeline in `.github/workflows/ci.yml` with `package-smoke` job:
+    - builds wheel and sdist via `python -m build`,
+    - validates clean-environment installation for wheel and sdist in fresh virtual environments.
+  - Updated test-summary aggregation in CI to include package smoke status.
+- Verification commands/evidence:
+  - `.venv/bin/python -m build` => PASS (wheel + sdist generated successfully)
+  - `python3 -m venv /tmp/voicekey-smoke-wheel-nodeps2 && /tmp/voicekey-smoke-wheel-nodeps2/bin/python -m pip install --upgrade pip && /tmp/voicekey-smoke-wheel-nodeps2/bin/python -m pip install --no-deps dist/*.whl && /tmp/voicekey-smoke-wheel-nodeps2/bin/python -m pip show voicekey && /tmp/voicekey-smoke-wheel-nodeps2/bin/python -c "import voicekey; print(voicekey.__version__)"` => PASS
+  - `python3 -m venv /tmp/voicekey-smoke-sdist-nodeps && /tmp/voicekey-smoke-sdist-nodeps/bin/python -m pip install --upgrade pip && /tmp/voicekey-smoke-sdist-nodeps/bin/python -m pip install --no-deps dist/*.tar.gz && /tmp/voicekey-smoke-sdist-nodeps/bin/python -m pip show voicekey && /tmp/voicekey-smoke-sdist-nodeps/bin/python -c "import voicekey; print(voicekey.__version__)"` => PASS

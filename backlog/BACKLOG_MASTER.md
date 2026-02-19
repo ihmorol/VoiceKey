@@ -44,6 +44,7 @@ Priority legend:
 - E06-S05: complete (snippet expansion engine added with default-off parser behavior and deterministic recursion/loop guards)
 - E06-S06: complete (active app profile resolver and deterministic fallback merge strategy implemented with feature-gated application)
 - E06-S07: complete (portable runtime path resolver added for local config/data/model directories with CLI portable-mode contract and smoke coverage)
+- E07-S01: complete (PyPI packaging metadata finalized with root README and SPDX license; CI package-smoke job now builds wheel/sdist and validates clean-environment installs)
 
 ---
 
