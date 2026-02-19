@@ -264,3 +264,15 @@
 - Verification commands/evidence:
   - `.venv/bin/python -m pytest tests/unit/test_onboarding.py tests/unit/test_cli.py` => PASS (10 passed)
   - `.venv/bin/python -m pytest tests/unit` => PASS (306 passed)
+
+- E06-S04 completed:
+  - Implemented custom command loader/validator in `voicekey/commands/custom.py` for config-defined command actions (`key_combo` and `text`) with phrase normalization, collision protection, and strict action payload validation.
+  - Integrated custom command registration into parser factory in `voicekey/commands/parser.py` and built-in registry composition in `voicekey/commands/builtins.py`.
+  - Added keyboard command-id dispatch mapping in `voicekey/actions/keyboard_dispatch.py` and action routing across window/keyboard/custom command channels in `voicekey/actions/router.py`.
+  - Exported custom command types/loaders in `voicekey/commands/__init__.py`.
+  - Added parser and loader coverage in `tests/unit/test_custom_commands.py` and `tests/unit/test_custom_parser.py`.
+  - Added dispatch/router coverage in `tests/unit/test_keyboard_dispatch.py` and `tests/unit/test_action_router.py`.
+- Updated backlog live execution status in `backlog/BACKLOG_MASTER.md` to mark E06-S04 complete.
+- Verification commands/evidence:
+  - `.venv/bin/python -m pytest tests/unit/test_custom_commands.py tests/unit/test_custom_parser.py tests/unit/test_keyboard_dispatch.py tests/unit/test_action_router.py` => PASS (16 passed)
+  - `.venv/bin/python -m pytest tests/unit` => PASS (322 passed)
