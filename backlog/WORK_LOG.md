@@ -469,3 +469,26 @@
   - `.venv/bin/python -m pytest tests/unit/test_release_changelog.py tests/integration/test_generate_release_notes_script.py` => PASS (5 passed)
   - `.venv/bin/python -c "import yaml, pathlib; yaml.safe_load(pathlib.Path('.github/workflows/ci.yml').read_text(encoding='utf-8')); yaml.safe_load(pathlib.Path('.github/workflows/release.yml').read_text(encoding='utf-8')); print('workflow_yaml_parse=ok')"` => PASS (`workflow_yaml_parse=ok`)
   - `.venv/bin/python -m pytest tests/unit tests/integration` => PASS (401 passed)
+
+- Cross-requirement alignment audit and gap correction pass completed (post E08-S02):
+  - Ran parallel audit tracks for backlog/traceability coverage, CI-release conformance, and documentation consistency.
+  - Quantified implementation progress from backlog status:
+    - total stories: 58
+    - complete: 41
+    - pending: 17
+  - Corrected traceability over-claims for incomplete stories:
+    - `FR-CI08`, `FR-CI09`, `FR-OSS05` rows now explicitly marked pending until mapped stories complete.
+  - Improved live status visibility in `backlog/BACKLOG_MASTER.md` by adding pending entries for all remaining story IDs.
+  - Aligned documentation consistency across governance/dev guides:
+    - `AGENTS.md` repository-state text updated to active implementation,
+    - Python baseline and test/perf command guidance aligned in `AGENTS.md`, `CONTRIBUTING.md`, and `requirements/development.md`,
+    - added semver/changelog policy text to `CONTRIBUTING.md`,
+    - fixed PR template path casing in `requirements/open-source-governance.md`,
+    - clarified CI Windows matrix wording and perf-guardrail reference in `requirements/testing-strategy.md`.
+  - Tightened CI policy conformance:
+    - removed advisory formatter mode so ruff format check is now merge-blocking,
+    - removed unnecessary workflow-level `id-token` permission from PR CI.
+- Verification commands/evidence:
+  - `.venv/bin/python - <<'PY' ... parse backlog story/complete counts ...` => PASS (`stories=58`, `complete_status=41`, `remaining=17`)
+  - `.venv/bin/python -c "import yaml, pathlib; yaml.safe_load(pathlib.Path('.github/workflows/ci.yml').read_text(encoding='utf-8')); yaml.safe_load(pathlib.Path('.github/workflows/release.yml').read_text(encoding='utf-8')); print('workflow_yaml_parse=ok')"` => PASS (`workflow_yaml_parse=ok`)
+  - `.venv/bin/python -m pytest tests/unit tests/integration` => PASS (401 passed)

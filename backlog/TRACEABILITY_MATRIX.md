@@ -62,14 +62,14 @@ This matrix provides 100% requirement coverage from specification to backlog and
 | FR-CI05 | E08-S02 | semantic tag trigger + signed-tag verification in release workflow (`.github/workflows/release.yml`) |
 | FR-CI06 | E08-S02 | isolated tag build job in release workflow (`.github/workflows/release.yml`) |
 | FR-CI07 | E08-S02 | changelog metadata release-note generation (`scripts/release/generate_release_notes.py`, `test_generate_release_notes_script.py`) |
-| FR-CI08 | E08-S03, E10-S04 | post-publish smoke matrix |
-| FR-CI09 | E08-S03 | rollback/yank runbook tests |
+| FR-CI08 | E08-S03, E10-S04 | pending - post-publish smoke matrix evidence after E08-S03/E10-S04 completion |
+| FR-CI09 | E08-S03 | pending - rollback/yank runbook test evidence after E08-S03 completion |
 | FR-CI10 | E08-S02 | PyPI trusted publishing via OIDC (`pypa/gh-action-pypi-publish` in `.github/workflows/release.yml`) |
 | FR-OSS01 | E00-S01 | repository policy audit |
 | FR-OSS02 | E00-S01 | governance file audit |
 | FR-OSS03 | E00-S01 | template presence check |
 | FR-OSS04 | E00-S02 | semver/changelog policy check |
-| FR-OSS05 | E11-S02 | compatibility matrix update check |
+| FR-OSS05 | E11-S02 | pending - compatibility matrix update evidence after E11-S02 completion |
 | FR-OSS06 | E00-S03 | security policy SLA check |
 | FR-OSS07 | E00-S01 | DCO workflow check |
 

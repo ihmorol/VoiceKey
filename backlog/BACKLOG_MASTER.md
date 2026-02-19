@@ -52,6 +52,23 @@ Priority legend:
 - E07-S06: complete (release policy validator added for artifact naming, x64 channel scope, and compatibility checklist/distribution policy checks with CI smoke coverage)
 - E08-S01: complete (PR pipeline now includes strict vulnerability/license scan behavior, full Linux/Windows Python matrix execution, and performance guardrail job with enforcement toggle)
 - E08-S02: complete (tag-triggered release workflow added with semantic tag/signature verification, OIDC PyPI publish path, and changelog-driven release notes generation)
+- E08-S03: pending (post-publish install smoke matrix and rollback/yank runbook automation)
+- E08-S04: pending (CI security hardening governance and observability metrics export)
+- E09-S01: pending (privacy-by-default data minimization runtime enforcement)
+- E09-S02: pending (secure diagnostics export and incident response checks)
+- E09-S03: pending (runtime egress guardrails and telemetry-default regression coverage)
+- E10-S01: pending (unit baseline hardening for parser/FSM/config/backends)
+- E10-S02: pending (integration harness expansion for mic-to-inject path and tray/autostart)
+- E10-S03: pending (performance benchmark harness and CI comparator)
+- E10-S04: pending (distribution verification matrix and integrity verification tests)
+- E10-S05: pending (reliability/soak scenarios for reconnect/race/long-run stability)
+- E10-S06: pending (CI matrix coverage assertion and report governance)
+- E11-S01: pending (user docs release-link completeness validation)
+- E11-S02: pending (developer docs + compatibility matrix maintenance)
+- E11-S03: pending (traceability maintenance and release blocking enforcement)
+- E12-S01: pending (plugin SDK contract and safety model)
+- E12-S02: pending (language-pack workflow and fallback behavior)
+- E12-S03: pending (advanced automation plugin guardrails)
 
 ---
 
