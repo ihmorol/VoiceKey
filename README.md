@@ -20,3 +20,8 @@ voicekey start
 - Project docs: `docs/index.md`
 - Requirements: `software_requirements.md`
 - Architecture: `architecture.md`
+- Security policy: `SECURITY.md`
+
+## Release Cadence
+
+- Target release cadence: monthly patch release window.
