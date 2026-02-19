@@ -20,6 +20,7 @@ Priority legend:
 - E01-S04: complete (final-transcript confidence filtering verified)
 - E02-S01: complete (wake detector bound to FSM wake_word transitions; timeout/reset coordinator verified)
 - E02-S02: complete (parser command-suffix + unknown-literal fallback + alias matching verified)
+- E02-S04: complete (special phrase channel wired in runtime for paused resume/stop; parser exact-match suffix bypass verified)
 - E03-S01: complete (table-driven FSM transitions and invalid-transition guards verified)
 
 ---

@@ -123,3 +123,12 @@
 - Verification commands/evidence:
   - `.venv/bin/python -m pytest tests/unit/test_runtime_coordinator.py` => PASS (6 passed)
   - `.venv/bin/python -m pytest tests/unit/test_wake.py tests/unit/test_state_machine.py tests/unit/test_runtime_coordinator.py` => PASS (37 passed)
+
+- E02-S04 completed:
+  - Updated `voicekey/app/main.py` `RuntimeCoordinator` to parse paused transcripts via special phrase channel and trigger FSM events for `resume voice key` (`RESUME_REQUESTED`) and `voice key stop` (`STOP_REQUESTED`).
+  - Preserved command-suffix bypass semantics by relying on parser system-phrase exact matching; non-exact variants like `resume voice key command` do not take the system phrase path.
+  - Added paused-state coordinator coverage in `tests/unit/test_runtime_coordinator.py` for `PAUSED -> STANDBY` (resume) and `PAUSED -> SHUTTING_DOWN` (stop).
+  - Added parser coverage in `tests/unit/test_parser.py` verifying `resume voice key command` remains literal text.
+  - Updated backlog live execution status in `backlog/BACKLOG_MASTER.md` to mark E02-S04 complete.
+- Verification commands/evidence:
+  - `.venv/bin/python -m pytest tests/unit/test_runtime_coordinator.py tests/unit/test_parser.py` => PASS (19 passed)
