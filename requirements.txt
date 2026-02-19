@@ -1,0 +1,19 @@
+# VoiceKey Production Dependencies
+# Privacy-first offline voice-to-keyboard for Linux and Windows
+
+# Core ASR and Audio
+faster-whisper>=0.10.0
+sounddevice>=0.4.6
+silero-vad>=1.0.0
+
+# Keyboard and Input
+pynput>=1.7.6
+
+# CLI and UI
+click>=8.1.7
+rich>=13.7.0
+pystray>=0.19.5
+
+# Configuration
+pydantic>=2.5.0
+pyyaml>=6.0.1

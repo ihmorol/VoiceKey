@@ -1,0 +1,1 @@
+"""Window management action dispatcher."""
