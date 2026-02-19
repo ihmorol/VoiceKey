@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from voicekey.commands.builtins import create_builtin_registry
-from voicekey.commands.parser import CommandParser, ParseKind
+from voicekey.commands.parser import CommandParser, ParseKind, create_parser
 from voicekey.commands.registry import FeatureGate
 
 
@@ -88,9 +88,29 @@ def test_window_productivity_commands_are_disabled_by_default() -> None:
     assert result.command is None
 
 
+def test_create_parser_disables_window_commands_by_default() -> None:
+    parser = create_parser()
+
+    result = parser.parse("maximize window command")
+
+    assert result.kind is ParseKind.TEXT
+    assert result.literal_text == "maximize window command"
+    assert result.command is None
+
+
 def test_window_productivity_commands_can_be_enabled_explicitly() -> None:
     registry = create_builtin_registry(enabled_features={FeatureGate.WINDOW_COMMANDS})
     parser = CommandParser(registry=registry)
+
+    result = parser.parse("maximize window command")
+
+    assert result.kind is ParseKind.COMMAND
+    assert result.command is not None
+    assert result.command.command_id == "maximize_window"
+
+
+def test_create_parser_routes_window_commands_when_enabled() -> None:
+    parser = create_parser(window_commands_enabled=True)
 
     result = parser.parse("maximize window command")
 
