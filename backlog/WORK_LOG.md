@@ -213,3 +213,16 @@
 - Verification commands/evidence:
   - `.venv/bin/python -m pytest tests/unit/test_dashboard.py tests/unit/test_tray.py` => PASS (10 passed)
   - `.venv/bin/python -m pytest tests/unit` => PASS (269 passed)
+
+- E02-S03 completed:
+  - Added optional fuzzy matching module in `voicekey/commands/fuzzy.py` with explicit `enabled` and threshold validation controls.
+  - Integrated threshold-bounded fuzzy fallback into `voicekey/commands/parser.py` command-candidate path while preserving default-off behavior.
+  - Added parser-facing fuzzy coverage in `tests/unit/test_fuzzy_parser.py` and expanded parser factory coverage in `tests/unit/test_parser.py`.
+- E04-S04 completed:
+  - Added cross-platform window backend contract and typed diagnostics/errors in `voicekey/platform/window_base.py`.
+  - Implemented Linux/Windows window adapters in `voicekey/platform/window_linux.py` and `voicekey/platform/window_windows.py`.
+  - Added deterministic command-to-operation window action routing in `voicekey/actions/window_dispatch.py`.
+  - Added unit coverage in `tests/unit/test_window_backends.py` and `tests/unit/test_window_dispatch.py`, and parser gate routing checks in `tests/unit/test_parser.py`.
+- Updated backlog live execution status in `backlog/BACKLOG_MASTER.md` to mark E02-S03 and E04-S04 complete.
+- Verification commands/evidence:
+  - `.venv/bin/python -m pytest tests/unit` => PASS (285 passed)
