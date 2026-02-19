@@ -20,13 +20,13 @@ VoiceKey follows a milestone-driven approach:
 
 Focus: Core architecture and audio pipeline
 
-- ✅ Audio capture module
-- ✅ VAD module
-- ⏳ State machine
-- ⏳ Command parser
-- ⏳ ASR integration
-- ⏳ Platform backends
-- ⏳ UI components
+-  Audio capture module
+-  VAD module
+-  State machine
+-  Command parser
+-  ASR integration
+-  Platform backends
+-  UI components
 
 ---
 

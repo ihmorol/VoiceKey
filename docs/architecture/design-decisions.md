@@ -15,11 +15,11 @@ This document explains the key architectural decisions made in VoiceKey and the 
 **Chosen:** faster-whisper (CTranslate2 backend)
 
 **Rationale:**
-- ✅ 2-4x faster than original Whisper
-- ✅ Int8 and float16 quantization support
-- ✅ Same accuracy as original Whisper
-- ✅ Active maintenance
-- ✅ Easy model selection (tiny/base/small)
+-  2-4x faster than original Whisper
+-  Int8 and float16 quantization support
+-  Same accuracy as original Whisper
+-  Active maintenance
+-  Easy model selection (tiny/base/small)
 
 **Trade-offs:**
 - Larger model sizes compared to tiny models like Vosk
@@ -32,11 +32,11 @@ This document explains the key architectural decisions made in VoiceKey and the 
 **Chosen:** Silero VAD
 
 **Rationale:**
-- ✅ State-of-the-art accuracy
-- ✅ Lightweight models
-- ✅ Local processing (privacy)
-- ✅ Good for streaming
-- ✅ Fallback ensures functionality when Silero unavailable
+-  State-of-the-art accuracy
+-  Lightweight models
+-  Local processing (privacy)
+-  Good for streaming
+-  Fallback ensures functionality when Silero unavailable
 
 **Trade-offs:**
 - Requires model download (~50MB)
@@ -49,9 +49,9 @@ This document explains the key architectural decisions made in VoiceKey and the 
 **Chosen:** pynput → evdev (Linux) / pywin32 (Windows)
 
 **Rationale:**
-- ✅ Cross-platform abstraction
-- ✅ Works in most scenarios
-- ✅ Fallbacks handle edge cases
+-  Cross-platform abstraction
+-  Works in most scenarios
+-  Fallbacks handle edge cases
 
 **Trade-offs:**
 - Requires permissions on some systems
@@ -64,9 +64,9 @@ This document explains the key architectural decisions made in VoiceKey and the 
 **Chosen:** Streaming ASR with phrase detection + VAD pre-filtering
 
 **Rationale:**
-- ✅ Reuses ASR model (no extra model)
-- ✅ VAD reduces false triggers
-- ✅ Configurable sensitivity
+-  Reuses ASR model (no extra model)
+-  VAD reduces false triggers
+-  Configurable sensitivity
 
 **Trade-offs:**
 - Higher latency than specialized wake word models
@@ -94,10 +94,10 @@ This document explains the key architectural decisions made in VoiceKey and the 
 **Chosen:** Single FSM with timers
 
 **Rationale:**
-- ✅ Clear state transitions
-- ✅ Predictable behavior
-- ✅ Easy to debug
-- ✅ Safety timers prevent hung states
+-  Clear state transitions
+-  Predictable behavior
+-  Easy to debug
+-  Safety timers prevent hung states
 
 **Trade-offs:**
 - Complex for advanced users to customize
@@ -110,10 +110,10 @@ This document explains the key architectural decisions made in VoiceKey and the 
 **Chosen:** Commands end with "command" suffix
 
 **Rationale:**
-- ✅ Simple and intuitive
-- ✅ Natural language integration
-- ✅ Unknown commands type literally
-- ✅ No silent failures
+-  Simple and intuitive
+-  Natural language integration
+-  Unknown commands type literally
+-  No silent failures
 
 **Trade-offs:**
 - Requires saying "command" for every action
@@ -126,10 +126,10 @@ This document explains the key architectural decisions made in VoiceKey and the 
 **Chosen:** YAML config + Pydantic schema
 
 **Rationale:**
-- ✅ Human-readable
-- ✅ Supports comments
-- ✅ Pydantic provides validation and migration
-- ✅ Easy to extend
+-  Human-readable
+-  Supports comments
+-  Pydantic provides validation and migration
+-  Easy to extend
 
 **Trade-offs:**
 - YAML parsing can be slow for very large configs
@@ -142,10 +142,10 @@ This document explains the key architectural decisions made in VoiceKey and the 
 **Chosen:** Runtime download with checksum verification
 
 **Rationale:**
-- ✅ Smaller installer
-- ✅ User can choose model size
-- ✅ Easy model updates
-- ✅ Checksum ensures integrity
+-  Smaller installer
+-  User can choose model size
+-  Easy model updates
+-  Checksum ensures integrity
 
 **Trade-offs:**
 - First-run requires internet
@@ -158,10 +158,10 @@ This document explains the key architectural decisions made in VoiceKey and the 
 **Chosen:** Fully offline after model download
 
 **Rationale:**
-- ✅ Maximum privacy
-- ✅ No network dependencies
-- ✅ Works without internet
-- ✅ User trust
+-  Maximum privacy
+-  No network dependencies
+-  Works without internet
+-  User trust
 
 **Trade-offs:**
 - No automatic updates without user action
@@ -174,9 +174,9 @@ This document explains the key architectural decisions made in VoiceKey and the 
 **Chosen:** Transition to PAUSED state on errors
 
 **Rationale:**
-- ✅ Prevents accidental typing
-- ✅ User can manually resume
-- ✅ Clear feedback
+-  Prevents accidental typing
+-  User can manually resume
+-  Clear feedback
 
 **Trade-offs:**
 - Requires user intervention to resume
@@ -189,9 +189,9 @@ This document explains the key architectural decisions made in VoiceKey and the 
 **Chosen:** Ubuntu 22.04/24.04 + Windows 10/11
 
 **Rationale:**
-- ✅ Largest desktop user base
-- ✅ Best library support
-- ✅ Clear testing matrix
+-  Largest desktop user base
+-  Best library support
+-  Clear testing matrix
 
 **Trade-offs:**
 - macOS not supported

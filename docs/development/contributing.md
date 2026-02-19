@@ -44,7 +44,7 @@ git checkout -b fix/issue-description
 
 ## Contribution Types
 
-### 🐛 Bug Reports
+###  Bug Reports
 
 Use GitHub Issues with the `bug` template:
 
@@ -69,7 +69,7 @@ What actually happens
 - Python version: 3.11
 ```
 
-### 💡 Feature Requests
+###  Feature Requests
 
 Use GitHub Issues with the `feature` template:
 
@@ -87,7 +87,7 @@ How you think it should work
 Other solutions you've considered
 ```
 
-### 🔧 Pull Requests
+###  Pull Requests
 
 1. **Before starting work**, check existing issues and PRs
 2. **Create an issue** to discuss large changes

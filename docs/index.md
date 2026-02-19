@@ -13,12 +13,12 @@
 
 | Feature | Description |
 |---------|-------------|
-| 🎙️ **Voice-to-Text** | Dictate text in any application using your voice |
-| 🔐 **Wake Word** | Say "voice key" to activate listening mode |
-| ⌨️ **Command Execution** | Speak commands ending with "command" for instant actions |
-| ⏸️ **Pause/Resume** | Control voice typing with voice commands or hotkeys |
-| 🔔 **System Tray** | Runs in background with visual status indicators |
-| 🚀 **Auto-start** | Launch at login for seamless integration |
+|  **Voice-to-Text** | Dictate text in any application using your voice |
+|  **Wake Word** | Say "voice key" to activate listening mode |
+|  **Command Execution** | Speak commands ending with "command" for instant actions |
+|  **Pause/Resume** | Control voice typing with voice commands or hotkeys |
+|  **System Tray** | Runs in background with visual status indicators |
+|  **Auto-start** | Launch at login for seamless integration |
 
 ## Quick Example
 
@@ -39,10 +39,10 @@
 
 | Platform | Status | Version |
 |----------|--------|---------|
-| 🐧 Ubuntu 22.04 LTS | ✅ Supported | x64 |
-| 🐧 Ubuntu 24.04 LTS | ✅ Supported | x64 |
-| 🪟 Windows 10 | ✅ Supported | x64 |
-| 🪟 Windows 11 | ✅ Supported | x64 |
+|  Ubuntu 22.04 LTS |  Supported | x64 |
+|  Ubuntu 24.04 LTS |  Supported | x64 |
+|  Windows 10 |  Supported | x64 |
+|  Windows 11 |  Supported | x64 |
 
 ## Installation
 
@@ -100,9 +100,9 @@ VoiceKey follows a modular, layer-based architecture:
 
 VoiceKey welcomes contributions! Please see our [Contributing Guide](development/contributing.md) for details.
 
-- 📖 [Documentation](index.md)
-- 💬 [GitHub Discussions](https://github.com/voicekey/voice-key/discussions)
-- 🐛 [Issue Tracker](https://github.com/voicekey/voice-key/issues)
+-  [Documentation](index.md)
+-  [GitHub Discussions](https://github.com/voicekey/voice-key/discussions)
+-  [Issue Tracker](https://github.com/voicekey/voice-key/issues)
 
 ---
 

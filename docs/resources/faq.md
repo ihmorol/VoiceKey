@@ -141,10 +141,10 @@ Try these fixes:
 ### Is VoiceKey safe to use?
 
 Yes. VoiceKey:
-- ✅ Works completely offline
-- ✅ Doesn't send data to the cloud
-- ✅ Doesn't log audio or transcripts
-- ✅ Verifies model checksums
+-  Works completely offline
+-  Doesn't send data to the cloud
+-  Doesn't log audio or transcripts
+-  Verifies model checksums
 
 ### Can VoiceKey record my conversations?
 

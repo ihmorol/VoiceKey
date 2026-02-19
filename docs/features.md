@@ -4,7 +4,7 @@ VoiceKey provides a comprehensive set of features for hands-free text input and 
 
 ## Core Features
 
-### 🎙️ Real-time Voice-to-Text
+###  Real-time Voice-to-Text
 
 VoiceKey captures your voice through the microphone and converts it to text in real-time. The text is typed directly into the currently focused application.
 
@@ -12,7 +12,7 @@ VoiceKey captures your voice through the microphone and converts it to text in r
 - **High Accuracy**: Uses faster-whisper for state-of-the-art speech recognition
 - **Partial Results**: See live transcription as you speak
 
-### 🔐 Wake Word Activation
+###  Wake Word Activation
 
 The default wake phrase is "voice key". When you speak this phrase, VoiceKey enters listening mode and processes your subsequent speech.
 
@@ -20,7 +20,7 @@ The default wake phrase is "voice key". When you speak this phrase, VoiceKey ent
 - **Fast Detection**: Optimized for minimal latency
 - **False Trigger Prevention**: VAD gating and sensitivity controls
 
-### ⌨️ Command Execution
+###  Command Execution
 
 Speak commands ending with "command" to trigger system actions:
 
@@ -43,7 +43,7 @@ Speak commands ending with "command" to trigger system actions:
 | `control l command` | Focus Address Bar (Ctrl+L) |
 | `scratch that command` | Delete last spoken phrase |
 
-### ⏸️ Pause/Resume Control
+###  Pause/Resume Control
 
 Control VoiceKey with your voice — no wake word required:
 
@@ -51,7 +51,7 @@ Control VoiceKey with your voice — no wake word required:
 - **`resume voice key`** — Resumes voice recognition
 - **`voice key stop`** — Stops current listening session
 
-### 🔔 System Tray Integration
+###  System Tray Integration
 
 VoiceKey runs in the system tray, providing:
 
@@ -59,7 +59,7 @@ VoiceKey runs in the system tray, providing:
 - **Quick Actions**: Start, pause, resume, dashboard, settings, exit
 - **Background Operation**: Works without a terminal window
 
-### 🚀 Auto-start Integration
+###  Auto-start Integration
 
 Start VoiceKey automatically when you log in:
 

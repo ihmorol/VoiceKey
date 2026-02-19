@@ -37,10 +37,10 @@ voicekey start --mode toggle
 
 | Icon Color | Status |
 |------------|--------|
-| 🟡 Yellow | STANDBY - Ready |
-| 🟢 Green | LISTENING - Active |
-| 🔵 Blue | PAUSED - Paused |
-| 🔴 Red | ERROR - Issue |
+|  Yellow | STANDBY - Ready |
+|  Green | LISTENING - Active |
+|  Blue | PAUSED - Paused |
+|  Red | ERROR - Issue |
 
 ## Getting Help
 

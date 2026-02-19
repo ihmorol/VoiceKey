@@ -164,11 +164,11 @@ If no speech or keyboard activity for this duration, VoiceKey auto-pauses.
 
 When in PAUSED state:
 
-- ❌ Full dictation ASR path is disabled
-- ❌ Command execution is disabled
-- ✅ Resume phrase detector is active (configurable)
-- ✅ Resume hotkey is active
-- ✅ Stop command is active
+-  Full dictation ASR path is disabled
+-  Command execution is disabled
+-  Resume phrase detector is active (configurable)
+-  Resume hotkey is active
+-  Stop command is active
 
 ## Events and Transitions
 

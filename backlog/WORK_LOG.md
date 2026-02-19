@@ -44,9 +44,9 @@
   - All actions pinned to SHA
   - Least-privilege workflow permissions
 - **Phase 0 Exit Criteria Verified**:
-  - ✅ Governance files and legal policy are complete and linked
-  - ✅ Required PR checks are enforced (lint, tests, scans)
-  - ✅ Security/governance CI controls are active for pull requests
+  -  Governance files and legal policy are complete and linked
+  -  Required PR checks are enforced (lint, tests, scans)
+  -  Security/governance CI controls are active for pull requests
 
 ## Phase 1: Core Runtime Baseline (Starting)
 

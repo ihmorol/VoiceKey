@@ -89,7 +89,7 @@ voicekey dashboard
 
 ```
 ┌────────────────────────────────────────┐
-│  🎙️ VoiceKey Dashboard                │
+│   VoiceKey Dashboard                │
 ├────────────────────────────────────────┤
 │  Status:     LISTENING                 │
 │  Mode:       wake_word                 │
@@ -110,10 +110,10 @@ voicekey dashboard
 
 | Color | State | Meaning |
 |-------|-------|---------|
-| 🟡 Yellow | STANDBY | Ready, waiting for activation |
-| 🟢 Green | LISTENING | Actively listening for speech |
-| 🔵 Blue | PAUSED | Voice recognition paused |
-| 🔴 Red | ERROR | Error occurred |
+|  Yellow | STANDBY | Ready, waiting for activation |
+|  Green | LISTENING | Actively listening for speech |
+|  Blue | PAUSED | Voice recognition paused |
+|  Red | ERROR | Error occurred |
 
 ### Dashboard Status
 

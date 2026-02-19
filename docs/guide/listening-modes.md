@@ -31,14 +31,14 @@ listening:
 
 ### Pros
 
-- ✅ Maximum safety — no accidental triggers
-- ✅ Saves resources when not in use
-- ✅ Clear activation/deactivation
+-  Maximum safety — no accidental triggers
+-  Saves resources when not in use
+-  Clear activation/deactivation
 
 ### Cons
 
-- ❌ Requires saying wake phrase each time
-- ❌ Slightly higher latency for first word
+-  Requires saying wake phrase each time
+-  Slightly higher latency for first word
 
 ### Best Practices
 
@@ -69,14 +69,14 @@ hotkeys:
 
 ### Pros
 
-- ✅ No wake phrase needed
-- ✅ Good control over activation
-- ✅ Inactivity auto-pause for safety
+-  No wake phrase needed
+-  Good control over activation
+-  Inactivity auto-pause for safety
 
 ### Cons
 
-- ❌ Requires keyboard interaction
-- ❌ May not work in all applications
+-  Requires keyboard interaction
+-  May not work in all applications
 
 ### Best Practices
 
@@ -110,15 +110,15 @@ listening:
 
 ### Pros
 
-- ✅ Instant activation — no wake phrase
-- ✅ Best for hands-free workflows
-- ✅ Seamless dictation
+-  Instant activation — no wake phrase
+-  Best for hands-free workflows
+-  Seamless dictation
 
 ### Cons
 
-- ❌ Highest risk of accidental triggers
-- ❌ More CPU usage
-- ❌ May type unintended speech
+-  Highest risk of accidental triggers
+-  More CPU usage
+-  May type unintended speech
 
 ### Best Practices
 

@@ -228,16 +228,16 @@ jobs:
           
           # Check unit test results
           if ${{ needs.unit-tests.result == 'success' ]]; then
-            echo "✅ Unit Tests: PASSED" >> $GITHUB_STEP_SUMMARY
+            echo " Unit Tests: PASSED" >> $GITHUB_STEP_SUMMARY
           else
-            echo "❌ Unit Tests: ${{ needs.unit-tests.result }}" >> $GITHUB_STEP_SUMMARY
+            echo " Unit Tests: ${{ needs.unit-tests.result }}" >> $GITHUB_STEP_SUMMARY
           fi
           
           # Check integration test results
           if ${{ needs.integration-smoke.result == 'success' ]]; then
-            echo "✅ Integration Smoke: PASSED" >> $GITHUB_STEP_SUMMARY
+            echo " Integration Smoke: PASSED" >> $GITHUB_STEP_SUMMARY
           else
-            echo "❌ Integration Smoke: ${{ needs.integration-smoke.result }}" >> $GITHUB_STEP_SUMMARY
+            echo " Integration Smoke: ${{ needs.integration-smoke.result }}" >> $GITHUB_STEP_SUMMARY
           fi
           
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -262,23 +262,23 @@ jobs:
           
           echo "### Vulnerability Scan" >> $GITHUB_STEP_SUMMARY
           if ${{ needs.vulnerability-scan.result == 'success' }}; then
-            echo "✅ pip-audit completed" >> $GITHUB_STEP_SUMMARY
+            echo " pip-audit completed" >> $GITHUB_STEP_SUMMARY
           else
-            echo "⚠️  pip-audit: ${{ needs.vulnerability-scan.result }}" >> $GITHUB_STEP_SUMMARY
+            echo "  pip-audit: ${{ needs.vulnerability-scan.result }}" >> $GITHUB_STEP_SUMMARY
           fi
           
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Secret Scan" >> $GITHUB_STEP_SUMMARY
           if ${{ needs.secret-scan.result == 'success' }}; then
-            echo "✅ TruffleHog: No secrets detected" >> $GITHUB_STEP_SUMMARY
+            echo " TruffleHog: No secrets detected" >> $GITHUB_STEP_SUMMARY
           else
-            echo "❌ TruffleHog: ${{ needs.secret-scan.result }}" >> $GITHUB_STEP_SUMMARY
+            echo " TruffleHog: ${{ needs.secret-scan.result }}" >> $GITHUB_STEP_SUMMARY
           fi
           
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### License Compliance" >> $GITHUB_STEP_SUMMARY
           if ${{ needs.license-scan.result == 'success' }}; then
-            echo "✅ License compliance: OK" >> $GITHUB_STEP_SUMMARY
+            echo " License compliance: OK" >> $GITHUB_STEP_SUMMARY
           else
-            echo "⚠️  License scan: ${{ needs.license-scan.result }}" >> $GITHUB_STEP_SUMMARY
+            echo "  License scan: ${{ needs.license-scan.result }}" >> $GITHUB_STEP_SUMMARY
           fi
