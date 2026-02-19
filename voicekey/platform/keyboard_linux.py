@@ -7,6 +7,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Protocol
 
+from voicekey.platform.compatibility import detect_display_session
 from voicekey.platform.keyboard_base import (
     KeyboardBackend,
     KeyboardBackendError,
@@ -143,8 +144,10 @@ class LinuxKeyboardBackend(KeyboardBackend):
     def _detect_session_type(session_type: str | None) -> str:
         if session_type is not None:
             return session_type.strip().lower() or "unknown"
-        env_value = os.environ.get("XDG_SESSION_TYPE", "x11")
-        return env_value.strip().lower() or "unknown"
+        env_value = os.environ.get("XDG_SESSION_TYPE")
+        if env_value is not None:
+            return env_value.strip().lower() or "unknown"
+        return detect_display_session(platform_name="linux", env=os.environ).value
 
     def _available_adapters(self) -> tuple[str, ...]:
         available: list[str] = []
