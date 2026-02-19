@@ -8,6 +8,7 @@ from typing import Any
 
 import click
 
+from voicekey.config.manager import ConfigError, parse_startup_env_overrides
 from voicekey.ui.onboarding import run_onboarding
 from voicekey.ui.exit_codes import ExitCode
 
@@ -91,6 +92,11 @@ def cli(ctx: click.Context, output: str) -> None:
 @click.pass_context
 def start_command(ctx: click.Context, daemon: bool, config_path: str | None) -> None:
     """Start VoiceKey runtime contract (stub)."""
+    try:
+        startup_overrides = parse_startup_env_overrides()
+    except ConfigError as exc:
+        raise click.ClickException(str(exc)) from exc
+
     _emit_output(
         ctx,
         command="start",
@@ -98,6 +104,16 @@ def start_command(ctx: click.Context, daemon: bool, config_path: str | None) -> 
             "accepted": True,
             "daemon": daemon,
             "config_path": config_path,
+            "env_overrides": {
+                "config_path": str(startup_overrides.config_path)
+                if startup_overrides.config_path is not None
+                else None,
+                "model_dir": str(startup_overrides.model_dir)
+                if startup_overrides.model_dir is not None
+                else None,
+                "log_level": startup_overrides.log_level,
+                "disable_tray": startup_overrides.disable_tray,
+            },
             "runtime": "not_implemented",
         },
     )

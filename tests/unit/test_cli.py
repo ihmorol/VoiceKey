@@ -112,3 +112,11 @@ def test_setup_json_output_includes_required_onboarding_fields(tmp_path) -> None
     assert payload["result"]["completed"] is True
     assert payload["result"]["persisted"] is True
     assert payload["result"]["selected_device_id"] == 3
+
+
+def test_start_command_returns_command_error_for_invalid_env_override() -> None:
+    runner = CliRunner()
+
+    result = runner.invoke(cli, ["start"], env={"VOICEKEY_LOG_LEVEL": "verbose"})
+
+    assert result.exit_code == ExitCode.COMMAND_ERROR
