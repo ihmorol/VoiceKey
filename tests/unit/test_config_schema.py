@@ -14,6 +14,7 @@ def test_default_config_matches_expected_baseline() -> None:
     assert config.wake_word.phrase == "voice key"
     assert config.modes.inactivity_auto_pause_seconds == 30
     assert config.features.window_commands_enabled is False
+    assert config.features.text_expansion_enabled is False
 
 
 def test_validate_with_fallback_replaces_invalid_values_and_keeps_valid_values() -> None:
