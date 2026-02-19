@@ -1,1 +1,37 @@
 """Audio processing components."""
+
+from voicekey.audio.asr_faster_whisper import (
+    ASREngine,
+    ModelLoadError,
+    TranscriptionError,
+    TranscriptEvent,
+    create_asr_from_config,
+    get_all_model_info,
+    get_available_models,
+    get_model_size_info,
+)
+from voicekey.audio.vad import (
+    StreamingVAD,
+    VADCalibrator,
+    VADProcessor,
+    VADResult,
+    create_vad_from_config,
+)
+
+__all__ = [
+    # ASR
+    "ASREngine",
+    "TranscriptEvent",
+    "ModelLoadError",
+    "TranscriptionError",
+    "get_available_models",
+    "get_model_size_info",
+    "get_all_model_info",
+    "create_asr_from_config",
+    # VAD
+    "VADProcessor",
+    "VADResult",
+    "StreamingVAD",
+    "VADCalibrator",
+    "create_vad_from_config",
+]
