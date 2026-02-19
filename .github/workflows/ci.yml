@@ -69,16 +69,8 @@ jobs:
       - name: Install pip-audit
         run: pip install pip-audit==2.10.0
 
-      - name: Create requirements file for audit
-        run: |
-          # Create a minimal requirements file for scanning
-          # In production, this would come from pyproject.toml/requirements.txt
-          echo "# VoiceKey dependencies - to be populated" > requirements-audit.txt
-
       - name: Run pip-audit
-        run: pip-audit -r requirements-audit.txt || true
-        # Allow pipeline to continue but report vulnerabilities
-        # TODO: Change to fail on vulnerabilities after initial deps are added
+        run: pip-audit -r requirements-dev.txt
 
   # =============================================================================
   # SECRET SCAN - TruffleHog
@@ -119,8 +111,7 @@ jobs:
         run: pip install pip-licenses==5.5.1
 
       - name: Run license report
-        run: pip-licenses --format=markdown --with-urls || true
-        # TODO: Configure allowed licenses and fail appropriately
+        run: pip-licenses --format=markdown --with-urls
 
   # =============================================================================
   # UNIT TESTS - Matrix across OS and Python versions
@@ -134,10 +125,6 @@ jobs:
       matrix:
         os: [ubuntu-22.04, ubuntu-24.04, windows-2022]
         python-version: ["3.11", "3.12"]
-        exclude:
-          # Reduce matrix: skip Windows for Python 3.11 initially to save CI time
-          - os: windows-2022
-            python-version: "3.11"
     steps:
       - name: Checkout repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
@@ -301,6 +288,31 @@ jobs:
           retention-days: 7
 
   # =============================================================================
+  # PERFORMANCE GUARDRAIL
+  # =============================================================================
+  performance-guardrail:
+    name: Performance Guardrail
+    runs-on: ubuntu-24.04
+    needs: [lint]
+    env:
+      PERF_GUARDRAIL_ENFORCE: ${{ vars.VOICEKEY_ENFORCE_PERF_GUARDRAIL }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+
+      - name: Set up Python
+        uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b  # v5.3.0
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Run perf guardrail check (P1 toggle)
+        run: |
+          python scripts/ci/check_perf_guardrails.py \
+            --metrics-file tests/perf/metrics_baseline.json \
+            --enforce "${PERF_GUARDRAIL_ENFORCE:-0}"
+
+  # =============================================================================
   # INTEGRITY BUNDLE SMOKE
   # =============================================================================
   integrity-bundle-smoke:
@@ -404,7 +416,7 @@ jobs:
   test-summary:
     name: Test Summary
     runs-on: ubuntu-24.04
-    needs: [unit-tests, integration-smoke, package-smoke, appimage-smoke, integrity-bundle-smoke, distribution-policy-smoke]
+    needs: [unit-tests, integration-smoke, package-smoke, appimage-smoke, performance-guardrail, integrity-bundle-smoke, distribution-policy-smoke]
     if: always()
     steps:
       - name: Download all coverage artifacts
@@ -443,6 +455,12 @@ jobs:
             echo " Linux AppImage Smoke: ${{ needs.appimage-smoke.result }}" >> $GITHUB_STEP_SUMMARY
           fi
 
+          if [ "${{ needs.performance-guardrail.result }}" = "success" ]; then
+            echo " Performance Guardrail: PASSED" >> $GITHUB_STEP_SUMMARY
+          else
+            echo " Performance Guardrail: ${{ needs.performance-guardrail.result }}" >> $GITHUB_STEP_SUMMARY
+          fi
+
           if [ "${{ needs.integrity-bundle-smoke.result }}" = "success" ]; then
             echo " Integrity Bundle Smoke: PASSED" >> $GITHUB_STEP_SUMMARY
           else
@@ -459,8 +477,9 @@ jobs:
           echo "### Matrix Summary" >> $GITHUB_STEP_SUMMARY
           echo "- Ubuntu 22.04 + Python 3.11, 3.12" >> $GITHUB_STEP_SUMMARY
           echo "- Ubuntu 24.04 + Python 3.11, 3.12" >> $GITHUB_STEP_SUMMARY
-          echo "- Windows 2022 + Python 3.12" >> $GITHUB_STEP_SUMMARY
+          echo "- Windows 2022 + Python 3.11, 3.12" >> $GITHUB_STEP_SUMMARY
           echo "- Linux AppImage launch smoke: Ubuntu 22.04 and 24.04" >> $GITHUB_STEP_SUMMARY
+          echo "- Performance guardrail check with optional strict enforcement toggle" >> $GITHUB_STEP_SUMMARY
           echo "- Integrity bundle generation and signature smoke" >> $GITHUB_STEP_SUMMARY
           echo "- Distribution naming and architecture policy validation" >> $GITHUB_STEP_SUMMARY
 
