@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import StrEnum
 
-from voicekey.commands.builtins import create_builtin_registry
+from voicekey.commands.builtins import SPECIAL_PHRASES, create_builtin_registry
 from voicekey.commands.registry import (
     CommandChannel,
     CommandDefinition,
@@ -14,11 +14,6 @@ from voicekey.commands.registry import (
 )
 
 COMMAND_SUFFIX = "command"
-SPECIAL_PHRASES: tuple[str, ...] = (
-    "pause voice key",
-    "resume voice key",
-    "voice key stop",
-)
 
 
 class ParseKind(StrEnum):

@@ -9,6 +9,7 @@ from voicekey.commands.registry import (
     CommandDefinition,
     CommandRegistry,
     FeatureGate,
+    normalize_phrase,
 )
 
 SPECIAL_PHRASE_COMMANDS: tuple[CommandDefinition, ...] = (
@@ -39,6 +40,7 @@ CORE_COMMANDS: tuple[CommandDefinition, ...] = (
     CommandDefinition(command_id="right", phrase="right"),
     CommandDefinition(command_id="up", phrase="up"),
     CommandDefinition(command_id="down", phrase="down"),
+    CommandDefinition(command_id="escape", phrase="escape"),
     CommandDefinition(command_id="control_c", phrase="control c"),
     CommandDefinition(command_id="control_v", phrase="control v"),
     CommandDefinition(command_id="control_x", phrase="control x"),
@@ -46,6 +48,8 @@ CORE_COMMANDS: tuple[CommandDefinition, ...] = (
     CommandDefinition(command_id="control_a", phrase="control a"),
     CommandDefinition(command_id="control_l", phrase="control l"),
     CommandDefinition(command_id="scratch_that", phrase="scratch that"),
+    CommandDefinition(command_id="capital_hello", phrase="capital hello"),
+    CommandDefinition(command_id="all_caps_hello", phrase="all caps hello"),
 )
 
 WINDOW_PRODUCTIVITY_COMMANDS: tuple[CommandDefinition, ...] = (
@@ -84,6 +88,10 @@ WINDOW_PRODUCTIVITY_COMMANDS: tuple[CommandDefinition, ...] = (
         phrase="cut that",
         feature_gate=FeatureGate.WINDOW_COMMANDS,
     ),
+)
+
+SPECIAL_PHRASES: tuple[str, ...] = tuple(
+    normalize_phrase(command.phrase) for command in SPECIAL_PHRASE_COMMANDS
 )
 
 
