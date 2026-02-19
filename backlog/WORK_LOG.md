@@ -226,3 +226,17 @@
 - Updated backlog live execution status in `backlog/BACKLOG_MASTER.md` to mark E02-S03 and E04-S04 complete.
 - Verification commands/evidence:
   - `.venv/bin/python -m pytest tests/unit` => PASS (285 passed)
+
+- E06-S01 completed:
+  - Implemented typed config schema in `voicekey/config/schema.py` covering canonical defaults, bounds, and enums from `requirements/configuration.md`.
+  - Added deterministic schema fallback behavior: invalid/unsupported keys are replaced/removed with warning messages instead of hard failure.
+  - Implemented config persistence and error-reporting flow in `voicekey/config/manager.py` with explicit path resolution precedence (`--config` override via explicit path, `VOICEKEY_CONFIG`, then platform defaults).
+  - Added backup-on-repair behavior for invalid YAML and invalid values, with migration-note warnings and sanitized config rewrite.
+  - Exported config API surface in `voicekey/config/__init__.py`.
+  - Added unit coverage in `tests/unit/test_config_schema.py` and `tests/unit/test_config_manager.py` for validation bounds, fallback semantics, backup handling, and path precedence.
+- Development dependency alignment:
+  - Updated `requirements-dev.txt` to include `pydantic` and `pyyaml` so local dev/test setup matches config subsystem requirements.
+- Updated backlog live execution status in `backlog/BACKLOG_MASTER.md` to mark E06-S01 complete.
+- Verification commands/evidence:
+  - `.venv/bin/python -m pytest tests/unit/test_config_schema.py tests/unit/test_config_manager.py` => PASS (7 passed)
+  - `.venv/bin/python -m pytest tests/unit` => PASS (292 passed)

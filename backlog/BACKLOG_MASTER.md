@@ -35,6 +35,7 @@ Priority legend:
 - E05-S01: complete (CLI now exposes required command surface with deterministic text/json output and stable usage error handling)
 - E05-S02: complete (dashboard renderer now exposes state/latency/last-action with throttled non-blocking refresh behavior)
 - E05-S03: complete (tray action contract and daemon session behavior implemented with runtime-state indicator mapping)
+- E06-S01: complete (typed YAML config schema, safe fallback validation, path resolution, persistence, backup, and warning-based migration reporting)
 
 ---
 
