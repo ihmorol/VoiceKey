@@ -15,6 +15,7 @@ Requirements: FR-A03, FR-A04, FR-A06
 from __future__ import annotations
 
 import logging
+import threading
 from dataclasses import dataclass
 from queue import Queue
 from typing import AsyncGenerator, Dict, List, Optional
@@ -127,6 +128,23 @@ class TranscriptionError(Exception):
     pass
 
 
+class TranscriptionTimeoutError(TranscriptionError):
+    """Raised when speech transcription exceeds the configured timeout.
+
+    This exception indicates that the ASR engine took too long to process
+    the audio and was terminated to prevent hanging.
+
+    Attributes:
+        timeout_seconds: The timeout duration that was exceeded.
+    """
+
+    def __init__(self, timeout_seconds: float, message: str | None = None) -> None:
+        self.timeout_seconds = timeout_seconds
+        if message is None:
+            message = f"Transcription timed out after {timeout_seconds} seconds"
+        super().__init__(message)
+
+
 class ASREngine:
     """Automatic Speech Recognition engine using Faster Whisper.
 
@@ -159,6 +177,7 @@ class ASREngine:
         device: str = "auto",
         compute_type: Optional[str] = None,
         sample_rate: int = 16000,
+        transcription_timeout: float = 30.0,
     ):
         """Initialize ASR engine.
 
@@ -168,8 +187,10 @@ class ASREngine:
             device: Device to use for inference ("auto", "cpu", "cuda").
                    Default "auto" automatically selects best available.
             compute_type: Compute precision type (int8, float16, int8_float16).
-                         Default None uses model-appropriate default.
+                          Default None uses model-appropriate default.
             sample_rate: Audio sample rate in Hz. Default 16000.
+            transcription_timeout: Maximum seconds to wait for transcription.
+                                   Default 30 seconds. Set to 0 to disable timeout.
 
         Raises:
             ValueError: If model_size or device is not supported
@@ -198,11 +219,13 @@ class ASREngine:
         self._sample_rate = sample_rate
         self._model: Optional[WhisperModel] = None
         self._model_loaded = False
+        self._transcription_timeout = transcription_timeout
 
         # Lazy load model on first use
         logger.info(
             f"ASR engine initialized: model={model_size}, "
-            f"device={device}, compute_type={self._compute_type}"
+            f"device={device}, compute_type={self._compute_type}, "
+            f"timeout={transcription_timeout}s"
         )
 
     @property
@@ -224,6 +247,11 @@ class ASREngine:
     def sample_rate(self) -> int:
         """Get audio sample rate."""
         return self._sample_rate
+
+    @property
+    def transcription_timeout(self) -> float:
+        """Get transcription timeout in seconds."""
+        return self._transcription_timeout
 
     def load_model(self) -> None:
         """Load the Faster Whisper model.
@@ -346,6 +374,7 @@ class ASREngine:
 
         Raises:
             TranscriptionError: If transcription fails
+            TranscriptionTimeoutError: If transcription exceeds the configured timeout
         """
         # Ensure model is loaded
         if not self._model_loaded:
@@ -366,6 +395,53 @@ class ASREngine:
         if audio.ndim > 1:
             audio = audio.mean(axis=1)
 
+        # If timeout is disabled (0), run directly
+        if self._transcription_timeout <= 0:
+            return self._transcribe_internal(audio)
+
+        # Run transcription with timeout using a thread
+        result_container: dict[str, object] = {}
+        exception_container: list[Exception] = []
+
+        def _transcribe_worker() -> None:
+            try:
+                result_container["result"] = self._transcribe_internal(audio)
+            except Exception as e:
+                exception_container.append(e)
+
+        worker_thread = threading.Thread(target=_transcribe_worker, daemon=True)
+        worker_thread.start()
+        worker_thread.join(timeout=self._transcription_timeout)
+
+        if worker_thread.is_alive():
+            # Thread is still running - timeout occurred
+            logger.error(
+                f"Transcription timed out after {self._transcription_timeout} seconds"
+            )
+            raise TranscriptionTimeoutError(self._transcription_timeout)
+
+        # Thread completed - check for exceptions
+        if exception_container:
+            exc = exception_container[0]
+            logger.error(f"Transcription error: {exc}")
+            if isinstance(exc, TranscriptionTimeoutError):
+                raise exc
+            raise TranscriptionError(f"Transcription failed: {exc}")
+
+        return result_container.get("result", [])  # type: ignore[return-value]
+
+    def _transcribe_internal(self, audio: np.ndarray) -> List[TranscriptEvent]:
+        """Internal transcription implementation without timeout wrapping.
+
+        Args:
+            audio: Audio samples as float32 numpy array
+
+        Returns:
+            List of TranscriptEvent objects
+
+        Raises:
+            TranscriptionError: If transcription fails
+        """
         try:
             # Run transcription
             segments, info = self._model.transcribe(
@@ -434,6 +510,8 @@ class ASREngine:
 
             return events
 
+        except TranscriptionTimeoutError:
+            raise
         except Exception as e:
             logger.error(f"Transcription error: {e}")
             raise TranscriptionError(f"Transcription failed: {e}")
@@ -659,10 +737,12 @@ def create_asr_from_config(config: dict) -> ASREngine:
     device = asr_config.get("device", "auto")
     compute_type = asr_config.get("compute_type")
     sample_rate = asr_config.get("sample_rate", 16000)
+    transcription_timeout = asr_config.get("transcription_timeout", 30.0)
 
     return ASREngine(
         model_size=model_size,
         device=device,
         compute_type=compute_type,
         sample_rate=sample_rate,
+        transcription_timeout=transcription_timeout,
     )

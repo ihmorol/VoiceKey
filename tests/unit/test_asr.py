@@ -417,3 +417,114 @@ class TestASRStreaming:
 
         result = engine.stream_transcribe(Queue())
         assert inspect.isasyncgen(result) or callable(result)
+
+
+class TestASRTimeout:
+    """Tests for transcription timeout functionality."""
+
+    def test_default_timeout_is_30_seconds(self):
+        """Test that default timeout is 30 seconds."""
+        from voicekey.audio.asr_faster_whisper import ASREngine
+
+        engine = ASREngine()
+        assert engine.transcription_timeout == 30.0
+
+    def test_custom_timeout_can_be_set(self):
+        """Test that custom timeout can be configured."""
+        from voicekey.audio.asr_faster_whisper import ASREngine
+
+        engine = ASREngine(transcription_timeout=60.0)
+        assert engine.transcription_timeout == 60.0
+
+    def test_zero_timeout_disables_timeout(self):
+        """Test that zero timeout disables the timeout mechanism."""
+        from voicekey.audio.asr_faster_whisper import ASREngine
+
+        engine = ASREngine(transcription_timeout=0)
+        assert engine.transcription_timeout == 0
+
+    def test_timeout_raises_transcription_timeout_error(self):
+        """Test that transcription exceeding timeout raises TranscriptionTimeoutError."""
+        import time
+        from voicekey.audio.asr_faster_whisper import (
+            ASREngine,
+            TranscriptionTimeoutError,
+        )
+
+        engine = ASREngine(transcription_timeout=0.1)  # 100ms timeout
+        engine.load_model()
+
+        # Make transcribe hang for longer than timeout
+        def slow_transcribe(*args, **kwargs):
+            time.sleep(1.0)  # Sleep for 1 second, longer than 100ms timeout
+            mock_segment = MagicMock()
+            mock_segment.text = "Test"
+            mock_segment.avg_log_prob = 0.0
+            mock_segment.start = 0.0
+            mock_segment.end = 0.5
+            mock_info = MagicMock()
+            mock_info.language = "en"
+            mock_info.language_probability = 0.9
+            return ([mock_segment], mock_info)
+
+        mock_whisper_model.transcribe.side_effect = slow_transcribe
+
+        audio = np.random.randn(16000).astype(np.float32) * 0.1
+
+        with pytest.raises(TranscriptionTimeoutError) as exc_info:
+            engine.transcribe(audio)
+
+        assert exc_info.value.timeout_seconds == 0.1
+        assert "timed out" in str(exc_info.value).lower()
+
+    def test_fast_transcription_completes_within_timeout(self):
+        """Test that fast transcription completes successfully."""
+        from voicekey.audio.asr_faster_whisper import ASREngine
+
+        engine = ASREngine(transcription_timeout=30.0)
+        engine.load_model()
+
+        # Mock fast transcribe
+        mock_segment = MagicMock()
+        mock_segment.text = "Quick test"
+        mock_segment.avg_log_prob = 0.5
+        mock_segment.start = 0.0
+        mock_segment.end = 1.0
+
+        mock_info = MagicMock()
+        mock_info.language = "en"
+        mock_info.language_probability = 0.95
+
+        mock_whisper_model.transcribe.return_value = ([mock_segment], mock_info)
+
+        audio = np.random.randn(16000).astype(np.float32) * 0.1
+
+        result = engine.transcribe(audio)
+
+        assert len(result) > 0
+
+    def test_create_asr_from_config_with_timeout(self):
+        """Test that create_asr_from_config respects timeout config."""
+        from voicekey.audio.asr_faster_whisper import (
+            ASREngine,
+            create_asr_from_config,
+        )
+
+        config = {
+            "asr": {
+                "model_size": "base",
+                "transcription_timeout": 45.0,
+            }
+        }
+
+        engine = create_asr_from_config(config)
+        assert engine.transcription_timeout == 45.0
+
+    def test_create_asr_from_config_default_timeout(self):
+        """Test that create_asr_from_config uses default timeout when not specified."""
+        from voicekey.audio.asr_faster_whisper import create_asr_from_config
+
+        config = {"asr": {"model_size": "base"}}
+
+        engine = create_asr_from_config(config)
+        assert engine.transcription_timeout == 30.0
