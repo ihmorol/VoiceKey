@@ -27,23 +27,23 @@ class ConfidenceFilter:
         threshold: Minimum confidence score (0.0 to 1.0) required to pass.
                   Defaults to 0.5.
         log_dropped: Whether to log dropped transcripts for debugging.
-                     Defaults to True.
+                     Defaults to False (privacy-by-default).
 
     Example:
-        >>> filter_obj = ConfidenceFilter(threshold=0.7, log_dropped=True)
+        >>> filter_obj = ConfidenceFilter(threshold=0.7)
         >>> event = TranscriptEvent(text="Hello", is_final=True, confidence=0.8)
         >>> result = filter_obj.filter(event)
         >>> print(result.text)  # "Hello"
     """
 
-    def __init__(self, threshold: float = 0.5, log_dropped: bool = True) -> None:
+    def __init__(self, threshold: float = 0.5, log_dropped: bool = False) -> None:
         """Initialize the confidence filter.
 
         Args:
             threshold: Minimum confidence score from 0.0 to 1.0.
                       Defaults to 0.5.
             log_dropped: Whether to log transcripts that are dropped.
-                        Defaults to True.
+                        Defaults to False (privacy-by-default).
 
         Raises:
             ValueError: If threshold is not between 0.0 and 1.0.

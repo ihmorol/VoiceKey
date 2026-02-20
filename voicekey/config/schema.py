@@ -103,6 +103,7 @@ class PrivacyConfig(BaseModel):
     telemetry_enabled: bool = False
     transcript_logging: bool = False
     redact_debug_text: bool = True
+    persist_audio: bool = False
 
 
 class VoiceKeyConfig(BaseModel):
