@@ -6,6 +6,7 @@ import json
 import os
 import signal
 import sys
+import threading
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
@@ -14,7 +15,7 @@ import click
 import yaml
 
 from voicekey.app.main import RuntimeCoordinator
-from voicekey.app.state_machine import AppState, ListeningMode, VoiceKeyStateMachine
+from voicekey.app.state_machine import AppEvent, AppState, ListeningMode, VoiceKeyStateMachine
 from voicekey.config.manager import (
     ConfigError,
     StartupEnvOverrides,
@@ -27,8 +28,10 @@ from voicekey.config.manager import (
 from voicekey.config.schema import default_config, validate_with_fallback
 from voicekey.platform.keyboard_base import KeyboardBackend
 from voicekey.platform.keyboard_linux import LinuxKeyboardBackend
+from voicekey.ui.daemon import resolve_daemon_start_behavior
 from voicekey.ui.exit_codes import ExitCode
 from voicekey.ui.onboarding import run_onboarding
+from voicekey.ui.tray import TrayActionHandlers, TrayController, TrayIconBackend
 
 REQUIRED_COMMANDS: tuple[str, ...] = (
     "setup",
@@ -45,6 +48,99 @@ REQUIRED_COMMANDS: tuple[str, ...] = (
 
 # Global coordinator reference for signal handling
 _coordinator: RuntimeCoordinator | None = None
+
+# Global tray references
+_tray_controller: TrayController | None = None
+_tray_backend: TrayIconBackend | None = None
+_tray_update_thread: threading.Thread | None = None
+_tray_stop_event: threading.Event | None = None
+
+
+def _create_tray_handlers() -> TrayActionHandlers:
+    """Create tray action handlers connected to the global coordinator."""
+
+    def on_start() -> None:
+        global _coordinator
+        if _coordinator is not None and not _coordinator.is_running:
+            _coordinator.start()
+
+    def on_stop() -> None:
+        global _coordinator
+        if _coordinator is not None and _coordinator.is_running:
+            _coordinator.stop()
+
+    def on_pause() -> None:
+        global _coordinator
+        if _coordinator is not None:
+            try:
+                machine = _coordinator._state_machine
+                if machine.state == AppState.STANDBY:
+                    machine.transition(AppEvent.PAUSE_REQUESTED)
+            except Exception:
+                pass  # State transition may not be valid in current state
+
+    def on_resume() -> None:
+        global _coordinator
+        if _coordinator is not None:
+            try:
+                machine = _coordinator._state_machine
+                if machine.state == AppState.PAUSED:
+                    machine.transition(AppEvent.RESUME_REQUESTED)
+            except Exception:
+                pass  # State transition may not be valid in current state
+
+    def on_exit() -> None:
+        global _coordinator, _tray_backend
+        if _coordinator is not None and _coordinator.is_running:
+            _coordinator.stop()
+        if _tray_backend is not None:
+            _tray_backend.stop()
+        raise SystemExit(0)
+
+    return TrayActionHandlers(
+        on_start=on_start,
+        on_stop=on_stop,
+        on_pause=on_pause,
+        on_resume=on_resume,
+        on_open_dashboard=None,  # Dashboard not implemented yet
+        on_open_settings=None,  # Settings UI not implemented yet
+        on_exit=on_exit,
+    )
+
+
+def _start_tray_update_thread() -> None:
+    """Start background thread to sync tray state with coordinator."""
+    global _tray_controller, _tray_backend, _tray_stop_event
+
+    if _tray_controller is None or _tray_backend is None:
+        return
+
+    _tray_stop_event = threading.Event()
+
+    def update_loop() -> None:
+        while not _tray_stop_event.is_set():
+            if _tray_controller is not None and _coordinator is not None:
+                # Sync state from coordinator to tray
+                try:
+                    _tray_controller.set_runtime_state(_coordinator.state)
+                    _tray_controller.set_runtime_active(_coordinator.is_running)
+                    _tray_backend.update_icon()
+                except Exception:
+                    pass  # Ignore sync errors
+
+            _tray_stop_event.wait(0.5)  # Update every 500ms
+
+    _tray_update_thread = threading.Thread(target=update_loop, daemon=True)
+    _tray_update_thread.start()
+
+
+def _stop_tray_update_thread() -> None:
+    """Stop the tray state update thread."""
+    global _tray_stop_event
+    if _tray_stop_event is not None:
+        _tray_stop_event.set()
+    if _tray_update_thread is not None:
+        _tray_update_thread.join(timeout=2.0)
 
 
 def _create_runtime_coordinator(
@@ -81,11 +177,15 @@ def _create_runtime_coordinator(
 
 def _signal_handler(signum, frame) -> None:
     """Handle Ctrl+C gracefully."""
-    global _coordinator
+    global _coordinator, _tray_backend
     if _coordinator is not None:
         click.echo("\nReceived interrupt signal, shutting down...")
         _coordinator.stop()
         _coordinator = None
+    if _tray_backend is not None:
+        _tray_backend.stop()
+        _tray_backend = None
+    _stop_tray_update_thread()
     sys.exit(0)
 
 def _emit_output(ctx: click.Context, command: str, result: dict[str, Any]) -> None:
@@ -214,12 +314,21 @@ def start_command(
     portable_root: str | None,
 ) -> None:
     """Start VoiceKey runtime."""
-    global _coordinator
+    global _coordinator, _tray_controller, _tray_backend
 
     try:
         startup_overrides = parse_startup_env_overrides()
     except ConfigError as exc:
         raise click.ClickException(str(exc)) from exc
+
+    # Resolve daemon behavior to determine if tray should be enabled
+    behavior = resolve_daemon_start_behavior(
+        daemon=daemon,
+        environment={key: str(value) for key, value in os.environ.items() if key in (
+            "XDG_SESSION_TYPE", "DISPLAY", "WAYLAND_DISPLAY"
+        )}
+    )
+    tray_enabled = behavior.tray_enabled and not startup_overrides.disable_tray
 
     effective_config_path = config_path or startup_overrides.config_path
     runtime_paths = resolve_runtime_paths(
@@ -256,6 +365,22 @@ def start_command(
         signal.signal(signal.SIGINT, _signal_handler)
         signal.signal(signal.SIGTERM, _signal_handler)
 
+        # Initialize tray if enabled
+        if tray_enabled:
+            _tray_controller = TrayController(
+                handlers=_create_tray_handlers(),
+                initial_runtime_state=_coordinator.state,
+                runtime_active=True,
+            )
+            _tray_backend = TrayIconBackend(controller=_tray_controller)
+            if _tray_backend.start():
+                # Start the tray state update thread
+                _start_tray_update_thread()
+            else:
+                # Tray failed to start - clean up
+                _tray_controller = None
+                _tray_backend = None
+
         # Start the coordinator
         _coordinator.start()
         runtime_state = _coordinator.state.value if _coordinator else "standby"
@@ -285,6 +410,7 @@ def start_command(
             result={
                 "accepted": True,
                 "daemon": daemon,
+                "tray_enabled": tray_enabled,
                 "config_path": config_path,
                 "runtime_paths": {
                     "config_path": str(runtime_paths.config_path),
@@ -333,6 +459,11 @@ def start_command(
         if _coordinator is not None:
             _coordinator.stop()
             _coordinator = None
+        if _tray_backend is not None:
+            _tray_backend.stop()
+            _tray_backend = None
+        _stop_tray_update_thread()
+        _tray_controller = None
 
     click.echo("\nVoiceKey stopped.")
 
@@ -396,16 +527,88 @@ def setup_command(
 @cli.command("status")
 @click.pass_context
 def status_command(ctx: click.Context) -> None:
-    """Show runtime status contract (stub)."""
-    _emit_output(
-        ctx,
-        command="status",
-        result={
-            "runtime_state": "stub",
-            "listening_mode": "stub",
-            "model_status": "not_downloaded",
+    """Show runtime status including state, config, devices, and model status."""
+    from voicekey.app.single_instance import SingleInstanceGuard
+    from voicekey.config.manager import resolve_runtime_paths
+    from voicekey.models import ModelDownloadManager
+
+    # Try to detect if runtime is running by checking instance lock
+    runtime_running = False
+    runtime_state = "stopped"
+    try:
+        guard = SingleInstanceGuard()
+        guard.acquire()
+        # If we can acquire the lock, no runtime is running
+        guard.release()
+    except RuntimeError:
+        # Lock is held by another process - runtime is running
+        runtime_running = True
+        runtime_state = "running"
+
+    # Get config summary
+    config_summary: dict[str, Any] = {}
+    selected_device = None
+    try:
+        load_result = load_config()
+        cfg = load_result.config
+        config_summary = {
+            "wake_word.phrase": cfg.wake_word.phrase if hasattr(cfg, 'wake_word') else "voice key",
+            "wake_word.sensitivity": cfg.wake_word.sensitivity if hasattr(cfg, 'wake_word') else 0.55,
+            "engine.model_profile": cfg.engine.model_profile if hasattr(cfg, 'engine') else "base",
+            "vad.speech_threshold": cfg.vad.speech_threshold if hasattr(cfg, 'vad') else 0.5,
+            "modes.inactivity_auto_pause_seconds": cfg.modes.inactivity_auto_pause_seconds
+            if hasattr(cfg, 'modes') else 300,
+        }
+        selected_device = cfg.audio.device_id if hasattr(cfg, 'audio') and hasattr(cfg.audio, 'device_id') else None
+    except ConfigError:
+        config_summary = {"error": "config_not_available"}
+
+    # Get audio device info
+    device_info: dict[str, Any] = {"available": False, "devices": [], "selected": None}
+    try:
+        from voicekey.audio import list_devices as get_devices
+        devices = get_devices()
+        device_info = {
+            "available": True,
+            "count": len(devices),
+            "devices": [
+                {"index": d["index"], "name": d["name"], "channels": d["channels"]}
+                for d in devices
+            ],
+            "selected": selected_device,
+        }
+    except Exception:
+        device_info = {"available": False, "error": "audio_library_not_available"}
+
+    # Get model download status
+    model_status: dict[str, Any] = {}
+    try:
+        runtime_paths = resolve_runtime_paths()
+        manager = ModelDownloadManager(model_dir=runtime_paths.model_dir)
+        all_status = manager.get_all_status()
+        model_status = {
+            name: {
+                "installed": s.installed,
+                "profile": s.profile,
+                "checksum_valid": s.checksum_valid,
+            }
+            for name, s in all_status.items()
+        }
+    except Exception:
+        model_status = {"error": "model_status_unavailable"}
+
+    # Build the result
+    result: dict[str, Any] = {
+        "runtime": {
+            "running": runtime_running,
+            "state": runtime_state,
         },
-    )
+        "config": config_summary,
+        "audio": device_info,
+        "models": model_status,
+    }
+
+    _emit_output(ctx, command="status", result=result)
 
 
 @cli.command("devices")

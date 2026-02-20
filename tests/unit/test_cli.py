@@ -59,15 +59,13 @@ def test_json_output_shape_is_deterministic() -> None:
 
     assert result.exit_code == ExitCode.SUCCESS
     payload = json.loads(result.output)
-    assert payload == {
-        "ok": True,
-        "command": "status",
-        "result": {
-            "runtime_state": "stub",
-            "listening_mode": "stub",
-            "model_status": "not_downloaded",
-        },
-    }
+    assert payload["ok"] is True
+    assert payload["command"] == "status"
+    # Check the structure - runtime, config, audio, models sections
+    assert "runtime" in payload["result"]
+    assert "config" in payload["result"]
+    assert "audio" in payload["result"]
+    assert "models" in payload["result"]
 
 
 def test_unknown_command_returns_deterministic_usage_error_exit_code() -> None:

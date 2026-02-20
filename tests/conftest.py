@@ -13,12 +13,19 @@ tests can run without PortAudio installed.
 from __future__ import annotations
 
 import queue
+import sys
 import time
 from dataclasses import dataclass, field
 from typing import Callable, Optional
+from unittest.mock import MagicMock
 
 import numpy as np
 import pytest
+
+# Mock sounddevice before importing any voicekey modules that depend on it
+# This allows tests to run without PortAudio installed
+if 'sounddevice' not in sys.modules:
+    sys.modules['sounddevice'] = MagicMock()
 
 from voicekey.app.state_machine import AppState, ModeHooks, VoiceKeyStateMachine
 from voicekey.audio.asr_faster_whisper import TranscriptEvent

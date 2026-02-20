@@ -153,14 +153,17 @@ class TrayController:
 
 # Optional dependency - pystray for system tray icon
 _pystray_available: bool = False
-_Icon: Callable | None = None
-_Menu: Callable | None = None
-_Item: Callable | None = None
+_Icon: "type" | None = None
+_Menu: "type" | None = None
+_Item: "type" | None = None
 
 try:
     from pystray import Icon, Menu, MenuItem
 
     _pystray_available = True
+    _Icon = Icon
+    _Menu = Menu
+    _Item = MenuItem
 except ImportError:
     pass
 
