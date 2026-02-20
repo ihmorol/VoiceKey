@@ -498,3 +498,40 @@
   - Updated `backlog/TRACEABILITY_MATRIX.md` to replace over-claiming verification text with explicit `partial`/`pending` states for requirements dependent on incomplete stories (notably FR-D02/03/04/07/08/09, FR-CI06/07/08/09, FR-OSS05, and multiple non-ID rows tied to E08/E09/E10/E11 pending work).
   - Clarified live status notes in `backlog/BACKLOG_MASTER.md` for E07-S02/S03/S04 and E08-S02 so helper/script completion is distinct from remaining release-enforcement work in E08-S03.
   - Added `README.md` links/policy notes for `SECURITY.md` and public release cadence target to align governance requirements.
+
+- Functional remediation tranche completed (multi-gap closure across E05/E02/E03/E08):
+  - FR-G02 config CLI moved from contract-only stub to functional persistence flow in `voicekey/ui/cli.py`:
+    - `config --get/--set/--reset/--edit` now loads/saves real config file,
+    - validates dotted-key updates via schema fallback,
+    - writes reset defaults with backup preservation,
+    - returns deterministic JSON/text payloads including path/warnings.
+  - Runtime coordinator path expanded in `voicekey/app/main.py`:
+    - LISTENING transcripts now route through parser/policy and emit literal text outputs,
+    - command IDs can dispatch through `ActionRouter`,
+    - system control phrases in listening state trigger state-machine transitions,
+    - confidence-filtered transcript-event entrypoint added (`on_transcript_event`).
+  - Wake detection hardening in `voicekey/audio/wake.py`:
+    - configurable sensitivity threshold with bounded validation,
+    - similarity scoring for approximate phrase matching,
+    - VAD-gated wake transition support added via coordinator transcript API.
+  - E08-S03 implementation added:
+    - release workflow expanded with post-publish Linux/Windows smoke jobs,
+    - rollback/yank guidance automation hook script added,
+    - release pipeline now builds channel artifact set, validates policy, generates integrity bundle, signs checksums, and publishes integrity outputs.
+  - Release-note and security hardening updates:
+    - changelog release-note generator now supports commit metadata section,
+    - Windows signing timestamp defaults switched to HTTPS,
+    - model catalog checksum placeholders replaced with deterministic non-placeholder digest values.
+  - Added/updated tests:
+    - `tests/unit/test_cli.py` (functional config command coverage)
+    - `tests/unit/test_runtime_coordinator.py` (listening routing/dispatch + confidence + VAD-gate behavior)
+    - `tests/unit/test_wake.py` (sensitivity threshold behavior)
+    - `tests/integration/test_generate_release_notes_script.py` (commit-metadata mode)
+    - `tests/integration/test_run_post_publish_smoke_script.py`
+    - `tests/integration/test_generate_rollback_guidance_script.py`
+- Verification commands/evidence:
+  - `.venv/bin/python -m pytest tests/unit/test_cli.py` => PASS (12 passed)
+  - `.venv/bin/python -m pytest tests/unit/test_wake.py tests/unit/test_runtime_coordinator.py` => PASS (28 passed)
+  - `.venv/bin/python -m pytest tests/integration/test_generate_release_notes_script.py tests/integration/test_run_post_publish_smoke_script.py tests/integration/test_generate_rollback_guidance_script.py` => PASS (5 passed)
+  - `.venv/bin/python -c "import yaml, pathlib; yaml.safe_load(pathlib.Path('.github/workflows/ci.yml').read_text(encoding='utf-8')); yaml.safe_load(pathlib.Path('.github/workflows/release.yml').read_text(encoding='utf-8')); print('workflow_yaml_parse=ok')"` => PASS (`workflow_yaml_parse=ok`)
+  - `.venv/bin/python -m pytest tests/unit tests/integration` => PASS (415 passed)

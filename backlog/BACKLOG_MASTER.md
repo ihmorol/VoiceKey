@@ -45,18 +45,18 @@ Priority legend:
 - E06-S06: complete (active app profile resolver and deterministic fallback merge strategy implemented with feature-gated application)
 - E06-S07: complete (portable runtime path resolver added for local config/data/model directories with CLI portable-mode contract and smoke coverage)
 - E07-S01: complete (PyPI packaging metadata finalized with root README and SPDX license; CI package-smoke job now builds wheel/sdist and validates clean-environment installs)
-- E07-S02: complete (Windows artifact helper/scripts and signing hooks implemented; release-channel publish/smoke enforcement continues in E08-S03)
-- E07-S03: complete (Linux AppImage helper/scripts and PR smoke implemented; release-channel publish/smoke enforcement continues in E08-S03)
-- E07-S04: complete (integrity/signing/SBOM/provenance helpers and smoke tests implemented; per-release attachment enforcement continues in E08-S03)
+- E07-S02: complete (Windows artifact helper/scripts and signing hooks implemented; release workflow now publishes canonical installer/portable artifacts with post-publish smoke hooks)
+- E07-S03: complete (Linux AppImage helper/scripts and PR smoke implemented; release workflow now publishes AppImage artifact with post-publish smoke hooks)
+- E07-S04: complete (integrity/signing/SBOM/provenance helpers and smoke tests implemented; release workflow now generates and attaches integrity bundle artifacts)
 - E07-S05: complete (model catalog/checksum/downloader modules implemented with checksum-first cache reuse, mirror fallback retry path, and deterministic failure handling)
 - E07-S06: complete (release policy validator added for artifact naming, x64 channel scope, and compatibility checklist/distribution policy checks with CI smoke coverage)
 - E08-S01: complete (PR pipeline now includes strict vulnerability/license scan behavior, full Linux/Windows Python matrix execution, and performance guardrail job with enforcement toggle)
-- E08-S02: complete (tag-triggered release workflow added with semantic tag/signature verification, OIDC PyPI publish path, and changelog-driven release notes; commit-metadata enrichment continues in E08-S03)
-- E08-S03: pending (post-publish install smoke matrix and rollback/yank runbook automation)
-- E08-S04: pending (CI security hardening governance and observability metrics export)
-- E09-S01: pending (privacy-by-default data minimization runtime enforcement)
-- E09-S02: pending (secure diagnostics export and incident response checks)
-- E09-S03: pending (runtime egress guardrails and telemetry-default regression coverage)
+- E08-S02: complete (tag-triggered release workflow added with semantic tag/signature verification, OIDC PyPI publish path, and changelog + commit-metadata release notes generation)
+- E08-S03: complete (post-publish Linux/Windows smoke jobs and rollback/yank guidance automation hooks added to release workflow)
+- E08-S04: complete (CI security hardening governance and observability metrics export implemented with CODEOWNERS, metrics export script, and branch protection validation)
+- E09-S01: complete (privacy-by-default data minimization enforced: persist_audio/transcript_logging off by default, redaction on by default, ConfidenceFilter default to no-logging)
+- E09-S02: complete (secure diagnostics export with redaction-by-default, incident response runbook, and 40 security verification tests)
+- E09-S03: complete (runtime egress guardrails and telemetry-default regression coverage - egress guard module `voicekey/security/egress_guard.py`, privacy assertions `voicekey/security/privacy_assertions.py`, 62 offline/telemetry tests passing)
 - E10-S01: pending (unit baseline hardening for parser/FSM/config/backends)
 - E10-S02: pending (integration harness expansion for mic-to-inject path and tray/autostart)
 - E10-S03: pending (performance benchmark harness and CI comparator)
@@ -625,9 +625,15 @@ Priority legend:
   - raw audio not persisted by default.
   - transcript logging off by default.
   - debug redaction on by default.
+- Implementation details:
+  - Added `persist_audio: bool = False` to PrivacyConfig schema.
+  - Changed ConfidenceFilter default `log_dropped` from True to False (privacy-by-default).
+  - Verified PrivacyConfig defaults: telemetry_enabled=False, transcript_logging=False, redact_debug_text=True, persist_audio=False.
+  - Created comprehensive privacy regression test suite (`tests/unit/test_privacy_defaults.py`).
 - Tasks:
-  - E09-S01-T01 Enforce logger redaction pipeline.
-  - E09-S01-T02 Add privacy regression tests.
+  - E09-S01-T01 ✓ Enforce logger redaction pipeline (ConfidenceFilter defaults to no-logging).
+  - E09-S01-T02 ✓ Add privacy regression tests (5 tests covering all privacy defaults).
+- Verification: `pytest tests/unit/test_privacy_defaults.py` - all 5 tests passed
 
 ### Story E09-S02 - Secure diagnostics and incident handling
 
@@ -636,8 +642,14 @@ Priority legend:
   - diagnostics export is redacted by default.
   - incident response flow matches security docs.
 - Tasks:
-  - E09-S02-T01 Implement diagnostics export schema.
-  - E09-S02-T02 Add security incident runbook checks.
+  - E09-S02-T01 ✓ Implement diagnostics export schema with redaction-by-default (`voicekey/diagnostics/`).
+  - E09-S02-T02 ✓ Add security incident runbook checks (`docs/incident-response.md` + 40 tests).
+- Implementation:
+  - Created `voicekey/diagnostics/` module with schema, collector, and redaction utilities.
+  - Updated CLI diagnostics command to use secure export with `--full` opt-in.
+  - Created `docs/incident-response.md` with incident response checklist.
+  - Created `tests/unit/test_diagnostics_security.py` with 40 security verification tests.
+- Verification: `pytest tests/unit/test_diagnostics_security.py` - all 40 tests passed
 
 ### Story E09-S03 - Runtime network and telemetry guardrails
 

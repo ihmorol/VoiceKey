@@ -41,29 +41,29 @@ This matrix provides 100% requirement coverage from specification to backlog and
 | FR-O04 | E06-S03 | autostart preference persistence checks |
 | FR-O05 | E06-S03 | tutorial completion checks |
 | FR-G01 | E06-S01, E06-S02 | schema + migration tests |
-| FR-G02 | E05-S01 | CLI config contract tests |
+| FR-G02 | E05-S01 | functional CLI config get/set/reset/edit persistence tests (`test_cli.py`) |
 | FR-G03 | E06-S04 | custom command loader tests |
 | FR-G04 | E06-S05 | snippet expansion tests |
 | FR-G05 | E06-S06 | per-app profile resolution tests |
 | FR-G06 | E06-S07 | portable-mode smoke tests |
 | FR-D01 | E07-S01 | PyPI install smoke |
-| FR-D02 | E07-S02, E08-S03 | partial - helper scripts/unit coverage complete; publish-channel smoke evidence pending release workflow integration |
-| FR-D03 | E07-S03, E08-S03 | partial - AppImage helper/smoke complete in PR CI; release publish-channel evidence pending |
-| FR-D04 | E07-S04, E08-S03 | partial - integrity helpers/scripts covered; per-release attachment evidence pending |
+| FR-D02 | E07-S02, E08-S03 | partial - release workflow now builds/publishes canonical Windows artifacts with post-publish smoke hooks; production signing toolchain remains environment-dependent |
+| FR-D03 | E07-S03, E08-S03 | partial - release workflow now builds/publishes canonical AppImage and runs post-publish smoke; expanded distribution matrix remains in E10-S04 |
+| FR-D04 | E07-S04, E08-S03 | release workflow generates SHA256SUMS and detached signature bundle with integrity artifact attachment |
 | FR-D05 | E07-S05 | model catalog/checksum/downloader tests (`test_model_catalog.py`, `test_model_checksum.py`, `test_model_downloader.py`) |
 | FR-D06 | E06-S07 | portable artifact validation |
-| FR-D07 | E07-S04, E08-S03 | partial - signing command/script tests complete; release artifact signing enforcement pending |
-| FR-D08 | E07-S04, E08-S03 | partial - SBOM generation tests complete; per-release SBOM attachment evidence pending |
-| FR-D09 | E07-S04, E08-S03 | partial - provenance generation tests complete; per-release attachment evidence pending |
+| FR-D07 | E07-S04, E08-S03 | partial - signed tags and checksum-bundle signing enforced in release workflow; platform code-sign cert path remains environment-dependent |
+| FR-D08 | E07-S04, E08-S03 | release workflow generates and publishes CycloneDX SBOM in integrity bundle |
+| FR-D09 | E07-S04, E08-S03 | release workflow generates and publishes provenance metadata in integrity bundle |
 | FR-CI01 | E08-S01 | CI workflow required checks (`.github/workflows/ci.yml`) + integration guardrail script coverage (`test_check_perf_guardrails_script.py`) |
 | FR-CI02 | E08-S01 | full Linux/Windows Python matrix execution in unit/integration jobs (`.github/workflows/ci.yml`) |
 | FR-CI03 | E08-S01 | strict dependency vulnerability scan gate (`pip-audit -r requirements-dev.txt` in `.github/workflows/ci.yml`) |
 | FR-CI04 | E08-S01 | performance guardrail job + enforcement toggle (`scripts/ci/check_perf_guardrails.py`, `test_check_perf_guardrails_script.py`) |
 | FR-CI05 | E08-S02 | semantic tag trigger + signed-tag verification in release workflow (`.github/workflows/release.yml`) |
 | FR-CI06 | E08-S02, E08-S03 | partial - isolated tagged Python build implemented; full multi-channel isolated release path pending |
-| FR-CI07 | E08-S02 | partial - changelog-based release notes implemented; commit metadata augmentation pending |
-| FR-CI08 | E08-S03, E10-S04 | pending - post-publish smoke matrix evidence after E08-S03/E10-S04 completion |
-| FR-CI09 | E08-S03 | pending - rollback/yank runbook test evidence after E08-S03 completion |
+| FR-CI07 | E08-S02 | changelog + commit-metadata release notes generation (`generate_release_notes.py`, `test_generate_release_notes_script.py`) |
+| FR-CI08 | E08-S03, E10-S04 | partial - release workflow Linux/Windows post-publish smoke jobs implemented; expanded distribution verification matrix remains in E10-S04 |
+| FR-CI09 | E08-S03 | rollback/yank guidance automation hook and test coverage (`generate_rollback_guidance.py`, `test_generate_rollback_guidance_script.py`) |
 | FR-CI10 | E08-S02 | PyPI trusted publishing via OIDC (`pypa/gh-action-pypi-publish` in `.github/workflows/release.yml`) |
 | FR-OSS01 | E00-S01 | repository policy audit |
 | FR-OSS02 | E00-S01 | governance file audit |
@@ -89,12 +89,13 @@ This matrix provides 100% requirement coverage from specification to backlog and
 | Performance targets (wake, ASR, parse, p50/p95) | E10-S03 | pending - benchmark reports after E10-S03 completion |
 | Resource budgets (CPU/memory/disk) | E10-S03 | pending - profiling reports after E10-S03 completion |
 | Reliability bullets (single-instance, reconnect, crash-safe shutdown, bounded retries) | E03-S04, E03-S05, E10-S05 | resilience tests |
-| Privacy bullets (offline runtime, no telemetry, no raw audio persistence, no transcript logs by default) | E09-S01, E09-S03 | pending - privacy regression tests after E09 completion |
+| Privacy bullets (offline runtime, no telemetry, no raw audio persistence, no transcript logs by default) | E09-S01, E09-S02, E09-S03 | complete - E09-S01 privacy regression tests (`tests/unit/test_privacy_defaults.py`); E09-S02 secure diagnostics with redaction-by-default (`tests/unit/test_diagnostics_security.py`, 40 tests); E09-S03 egress guardrails (`voicekey/security/egress_guard.py`, `voicekey/security/privacy_assertions.py`) + offline/telemetry migration tests (`tests/unit/test_offline_runtime.py`, `tests/unit/test_telemetry_migration.py`, 62 tests) |
+| Incident response flow (redacted diagnostics, pause/disable autostart) | E09-S02 | `docs/incident-response.md` + diagnostics security tests |
 | Usability targets (first setup <=5 min, first sentence <=2 min) | E06-S03, E10-S02 | partial - onboarding timing evidence exists; full target validation pending E10-S02 |
 | Linux support target (Ubuntu 22.04/24.04 x64, X11 full, Wayland best-effort) | E04-S03, E10-S04 | partial - adapter diagnostics complete; compatibility matrix evidence pending E10-S04 |
 | Windows support target (10/11 x64, standard/admin behavior) | E04-S03, E10-S04 | partial - adapter diagnostics complete; compatibility matrix evidence pending E10-S04 |
 | Distribution policy (x64 public scope, artifact naming convention, one-major migration path) | E07-S06 | release policy validator unit/integration checks (`test_release_policy.py`, `test_validate_distribution_policy_script.py`) |
-| CI hardening controls (secret scan, license scan, branch protection, CODEOWNERS, pinned actions, least-privilege permissions, CI observability) | E08-S04 | pending - CI governance checks after E08-S04 completion |
+| CI hardening controls (secret scan, license scan, branch protection, CODEOWNERS, pinned actions, least-privilege permissions, CI observability) | E08-S04 | complete - CODEOWNERS file, CI metrics export (`export_ci_metrics.py`), branch protection validation (`check_branch_protection.py`), pinned actions by SHA, least-privilege workflow permissions (`test_export_ci_metrics_script.py`, `test_check_branch_protection_script.py`) |
 | Error and edge scenarios table (no mic, disconnect, unknown command, hotkey conflict, checksum fail, keyboard block) | E03-S04, E04-S02, E07-S05 | integration/error-path tests |
 | Test matrix governance (Ubuntu/Windows + Python version matrix coverage) | E10-S06 | pending - matrix coverage reports after E10-S06 completion |
 | P2 ecosystem roadmap (plugin SDK, language packs, advanced automation plugins) | E12-S01..E12-S03 | roadmap feature test suites |
