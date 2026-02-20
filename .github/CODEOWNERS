@@ -1,0 +1,19 @@
+# VoiceKey CODEOWNERS
+# This file defines code ownership and required review for sensitive paths.
+# See: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# CI/CD and release workflow changes require review
+# These files control the build, test, and release pipeline
+/.github/workflows/release.yml    @emon-morol
+/.github/workflows/ci.yml         @emon-morol
+
+# Security-critical configuration
+/.github/CODEOWNERS               @emon-morol
+
+# Scripts that run in CI or release pipelines
+/scripts/ci/                      @emon-morol
+/scripts/release/                 @emon-morol
+
+# Configuration and requirements that affect build behavior
+/requirements/                    @emon-morol
+/pyproject.toml                   @emon-morol
