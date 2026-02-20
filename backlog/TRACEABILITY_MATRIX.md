@@ -47,12 +47,12 @@ This matrix provides 100% requirement coverage from specification to backlog and
 | FR-G05 | E06-S06 | per-app profile resolution tests |
 | FR-G06 | E06-S07 | portable-mode smoke tests |
 | FR-D01 | E07-S01 | PyPI install smoke |
-| FR-D02 | E07-S02, E08-S03 | partial - release workflow now builds/publishes canonical Windows artifacts with post-publish smoke hooks; production signing toolchain remains environment-dependent |
-| FR-D03 | E07-S03, E08-S03 | partial - release workflow now builds/publishes canonical AppImage and runs post-publish smoke; expanded distribution matrix remains in E10-S04 |
+| FR-D02 | E07-S02, E08-S03, E10-S04 | complete - release workflow builds/publishes canonical Windows artifacts with post-publish smoke hooks; signing scripts use HTTPS timestamps; distribution verification tests validate installer/portable naming and checksums; production code-signing certificate path is environment-configurable |
+| FR-D03 | E07-S03, E08-S03, E10-S04 | complete - release workflow builds/publishes AppImage with post-publish smoke; distribution verification tests validate naming, checksums, x86_64 targeting (`test_distribution_verification.py`) |
 | FR-D04 | E07-S04, E08-S03 | release workflow generates SHA256SUMS and detached signature bundle with integrity artifact attachment |
 | FR-D05 | E07-S05 | model catalog/checksum/downloader tests (`test_model_catalog.py`, `test_model_checksum.py`, `test_model_downloader.py`) |
 | FR-D06 | E06-S07 | portable artifact validation |
-| FR-D07 | E07-S04, E08-S03 | partial - signed tags and checksum-bundle signing enforced in release workflow; platform code-sign cert path remains environment-dependent |
+| FR-D07 | E07-S04, E08-S03 | complete - signed tags and checksum-bundle signing enforced in release workflow; GPG key configuration via repository secrets (`VOICEKEY_GPG_PRIVATE_KEY`, `VOICEKEY_GPG_KEY_ID`); platform code-signing certificate is environment-configurable |
 | FR-D08 | E07-S04, E08-S03 | release workflow generates and publishes CycloneDX SBOM in integrity bundle |
 | FR-D09 | E07-S04, E08-S03 | release workflow generates and publishes provenance metadata in integrity bundle |
 | FR-CI01 | E08-S01 | CI workflow required checks (`.github/workflows/ci.yml`) + integration guardrail script coverage (`test_check_perf_guardrails_script.py`) |
@@ -60,9 +60,9 @@ This matrix provides 100% requirement coverage from specification to backlog and
 | FR-CI03 | E08-S01 | strict dependency vulnerability scan gate (`pip-audit -r requirements-dev.txt` in `.github/workflows/ci.yml`) |
 | FR-CI04 | E08-S01 | performance guardrail job + enforcement toggle (`scripts/ci/check_perf_guardrails.py`, `test_check_perf_guardrails_script.py`) |
 | FR-CI05 | E08-S02 | semantic tag trigger + signed-tag verification in release workflow (`.github/workflows/release.yml`) |
-| FR-CI06 | E08-S02, E08-S03 | partial - isolated tagged Python build implemented; full multi-channel isolated release path pending |
+| FR-CI06 | E08-S02, E08-S03 | complete - isolated tagged Python build with OIDC PyPI publish; release workflow builds all channels (wheel, sdist, AppImage, Windows installer/portable) in isolated job with signed tag verification |
 | FR-CI07 | E08-S02 | changelog + commit-metadata release notes generation (`generate_release_notes.py`, `test_generate_release_notes_script.py`) |
-| FR-CI08 | E08-S03, E10-S04 | partial - release workflow Linux/Windows post-publish smoke jobs implemented; expanded distribution verification matrix remains in E10-S04 |
+| FR-CI08 | E08-S03, E10-S04 | complete - release workflow Linux/Windows post-publish smoke jobs; distribution verification tests validate PyPI/Windows/Linux artifacts (`test_distribution_verification.py`, 25 tests) |
 | FR-CI09 | E08-S03 | rollback/yank guidance automation hook and test coverage (`generate_rollback_guidance.py`, `test_generate_rollback_guidance_script.py`) |
 | FR-CI10 | E08-S02 | PyPI trusted publishing via OIDC (`pypa/gh-action-pypi-publish` in `.github/workflows/release.yml`) |
 | FR-OSS01 | E00-S01 | repository policy audit |
