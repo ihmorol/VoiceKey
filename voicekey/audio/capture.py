@@ -14,7 +14,14 @@ from dataclasses import dataclass, field
 from typing import Optional
 
 import numpy as np
-import sounddevice as sd
+
+# Lazy import - sounddevice requires PortAudio which may not be available
+try:
+    import sounddevice as sd
+    SOUNDDEVICE_AVAILABLE = True
+except OSError:
+    sd = None  # type: ignore
+    SOUNDDEVICE_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
 
