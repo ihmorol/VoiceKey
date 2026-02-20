@@ -471,17 +471,94 @@ def commands_command(ctx: click.Context) -> None:
 
 
 @cli.command("download")
+@click.option("--asr", "asr_profile", type=str, default=None, help="Download ASR model profile (tiny, base, small).")
+@click.option("--vad", "download_vad", is_flag=True, help="Download/verify VAD model.")
+@click.option("--all", "download_all_models", is_flag=True, help="Download all models.")
 @click.option("--force", is_flag=True, help="Force model redownload.")
 @click.pass_context
-def download_command(ctx: click.Context, force: bool) -> None:
-    """Run model download contract (stub)."""
+def download_command(
+    ctx: click.Context,
+    asr_profile: str | None,
+    download_vad: bool,
+    download_all_models: bool,
+    force: bool,
+) -> None:
+    """Download ASR/VAD models for offline use."""
+    from voicekey.config.manager import resolve_runtime_paths
+    from voicekey.models import ModelDownloadManager
+
+    # Resolve model directory
+    runtime_paths = resolve_runtime_paths()
+    manager = ModelDownloadManager(model_dir=runtime_paths.model_dir)
+
+    # If no specific option is selected, show status
+    if not asr_profile and not download_vad and not download_all_models:
+        # Default behavior: show status
+        status = manager.get_all_status()
+        result = {
+            "requested": True,
+            "force": force,
+            "status": "showing_status",
+            "models": {
+                name: {
+                    "installed": s.installed,
+                    "profile": s.profile,
+                    "path": str(s.path) if s.path else None,
+                    "checksum_valid": s.checksum_valid,
+                }
+                for name, s in status.items()
+            },
+        }
+        _emit_output(ctx, command="download", result=result)
+        return
+
+    # Download requested models
+    results: list[dict[str, object]] = []
+
+    if download_all_models:
+        download_results = manager.download_all(force=force)
+        for r in download_results:
+            results.append({
+                "name": r.name,
+                "success": r.success,
+                "profile": r.profile,
+                "path": str(r.path) if r.path else None,
+                "reused": r.reused,
+                "error": r.error,
+            })
+    else:
+        if asr_profile:
+            r = manager.download_asr(asr_profile, force=force)
+            results.append({
+                "name": r.name,
+                "success": r.success,
+                "profile": r.profile,
+                "path": str(r.path) if r.path else None,
+                "reused": r.reused,
+                "error": r.error,
+            })
+
+        if download_vad:
+            r = manager.download_vad()
+            results.append({
+                "name": r.name,
+                "success": r.success,
+                "profile": r.profile,
+                "error": r.error,
+            })
+
+    # Determine overall status
+    all_success = all(r.get("success", False) for r in results)
+    status_value = "completed" if all_success else "failed"
+
     _emit_output(
         ctx,
         command="download",
         result={
             "requested": True,
             "force": force,
-            "status": "not_implemented",
+            "status": status_value,
+            "downloads": results,
         },
     )
 
