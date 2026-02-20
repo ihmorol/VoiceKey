@@ -106,10 +106,13 @@ class VADProcessor:
 
         try:
             self._model, _ = loader()
+            if self._model is None:
+                raise RuntimeError("Silero VAD loader returned None model")
             self._model_loaded = True
             logger.info("Silero VAD model loaded successfully")
         except Exception as e:
             logger.error(f"Failed to load Silero VAD model: {e}")
+            self._model = None
             self._model_loaded = False
 
     @property
@@ -278,10 +281,13 @@ class StreamingVAD:
 
         try:
             self._model, _ = loader()
+            if self._model is None:
+                raise RuntimeError("Silero VAD loader returned None model")
             self._model_loaded = True
             logger.info("Streaming VAD model loaded")
         except Exception as e:
             logger.error(f"Failed to load Silero VAD for streaming: {e}")
+            self._model = None
             self._model_loaded = False
 
     @property

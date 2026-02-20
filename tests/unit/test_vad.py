@@ -371,3 +371,42 @@ class TestVADProcessorFallback:
         result = processor.process(silence_audio)
 
         assert result is False
+
+
+class TestVADModelNoneHandling:
+    """Tests for VAD processor handling when loader returns None model."""
+
+    def test_vadprocessor_handles_none_model(self):
+        """Test VADProcessor handles loader returning None model gracefully."""
+        # Simulate loader returning None model
+        with patch("voicekey.audio.vad.silero_vad_loader") as mock_loader:
+            mock_loader.return_value = (None, MagicMock())
+
+            processor = VADProcessor(threshold=0.5)
+
+            # Should fall back to energy-based detection
+            assert processor.is_model_loaded is False
+            assert processor._model is None
+
+            # Should still process audio using fallback
+            audio = np.full(1600, 0.5, dtype=np.float32)
+            result = processor.process(audio)
+
+            assert isinstance(result, bool)
+
+    def test_streamingvad_handles_none_model(self):
+        """Test StreamingVAD handles loader returning None model gracefully."""
+        with patch("voicekey.audio.vad.silero_vad_loader") as mock_loader:
+            mock_loader.return_value = (None, MagicMock())
+
+            vad = StreamingVAD(threshold=0.5)
+
+            # Should fall back to energy-based detection
+            assert vad._model_loaded is False
+            assert vad._model is None
+
+            # Should still process audio using fallback
+            audio = np.full(1600, 0.5, dtype=np.float32)
+            result = vad.process_chunk(audio)
+
+            assert isinstance(result, VADResult)
