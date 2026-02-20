@@ -3,17 +3,23 @@
 from __future__ import annotations
 
 import json
+import os
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
 import click
+import yaml
 
 from voicekey.config.manager import (
+    backup_config,
     ConfigError,
+    load_config,
     parse_startup_env_overrides,
     resolve_runtime_paths,
+    save_config,
 )
+from voicekey.config.schema import default_config, validate_with_fallback
 from voicekey.ui.exit_codes import ExitCode
 from voicekey.ui.onboarding import run_onboarding
 
@@ -28,14 +34,6 @@ REQUIRED_COMMANDS: tuple[str, ...] = (
     "calibrate",
     "diagnostics",
 )
-
-DEFAULT_CONFIG_VALUES: dict[str, str] = {
-    "modes.default": "wake_word",
-    "system.autostart_enabled": "false",
-    "wake_word.sensitivity": "0.55",
-    "vad.speech_threshold": "0.5",
-}
-
 
 def _emit_output(ctx: click.Context, command: str, result: dict[str, Any]) -> None:
     output_mode = ctx.obj["output"]
@@ -74,6 +72,59 @@ def _validate_single_config_operation(
     if len(enabled) > 1:
         raise click.UsageError("Use only one config operation: --get, --set, --reset, or --edit.")
     return enabled[0] if enabled else "show"
+
+
+def _split_key_value(raw_set_value: str) -> tuple[str, str]:
+    if "=" not in raw_set_value:
+        raise click.UsageError("--set expects KEY=VALUE format.")
+    key, value = raw_set_value.split("=", 1)
+    key = key.strip()
+    if not key:
+        raise click.UsageError("--set expects non-empty key in KEY=VALUE format.")
+    return key, value
+
+
+def _get_nested_value(data: dict[str, Any], dotted_key: str) -> tuple[bool, Any]:
+    current: Any = data
+    for part in dotted_key.split("."):
+        if not isinstance(current, dict) or part not in current:
+            return False, None
+        current = current[part]
+    return True, current
+
+
+def _set_nested_value(data: dict[str, Any], dotted_key: str, value: Any) -> None:
+    parts = dotted_key.split(".")
+    current = data
+    for part in parts[:-1]:
+        next_item = current.get(part)
+        if not isinstance(next_item, dict):
+            raise click.ClickException(
+                f"Unsupported config key '{dotted_key}'. Use a valid dotted key path."
+            )
+        current = next_item
+
+    final_key = parts[-1]
+    if final_key not in current:
+        raise click.ClickException(
+            f"Unsupported config key '{dotted_key}'. Use a valid dotted key path."
+        )
+    current[final_key] = value
+
+
+def _config_payload_for_show(config_data: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "version": config_data.get("version"),
+        "engine.model_profile": config_data.get("engine", {}).get("model_profile"),
+        "wake_word.phrase": config_data.get("wake_word", {}).get("phrase"),
+        "wake_word.sensitivity": config_data.get("wake_word", {}).get("sensitivity"),
+        "modes.inactivity_auto_pause_seconds": config_data.get("modes", {}).get(
+            "inactivity_auto_pause_seconds"
+        ),
+        "typing.confidence_threshold": config_data.get("typing", {}).get("confidence_threshold"),
+        "system.autostart_enabled": config_data.get("system", {}).get("autostart_enabled"),
+        "privacy.telemetry_enabled": config_data.get("privacy", {}).get("telemetry_enabled"),
+    }
 
 
 @click.group(context_settings={"help_option_names": ["-h", "--help"]})
@@ -281,19 +332,62 @@ def calibrate_command(ctx: click.Context) -> None:
 
 
 @cli.command("diagnostics")
-@click.option("--export", "export_path", type=click.Path(), default=None)
+@click.option("--export", "export_path", type=click.Path(), default=None, help="Export diagnostics to file.")
+@click.option(
+    "--full",
+    "full_export",
+    is_flag=True,
+    default=False,
+    help="WARNING: Include full config (may contain sensitive data). Use with caution.",
+)
 @click.pass_context
-def diagnostics_command(ctx: click.Context, export_path: str | None) -> None:
-    """Run diagnostics contract (stub)."""
-    _emit_output(
-        ctx,
-        command="diagnostics",
-        result={
-            "requested": True,
-            "export_path": export_path,
-            "status": "not_implemented",
-        },
+def diagnostics_command(ctx: click.Context, export_path: str | None, full_export: bool) -> None:
+    """Collect and export VoiceKey diagnostics.
+    
+    By default, exports are REDACTED for privacy. Use --full only if you
+    understand the security implications and consent to including potentially
+    sensitive data.
+    
+    If unexpected typing is observed, follow the incident response procedure:
+    1. Pause voice input immediately
+    2. Export redacted diagnostics (this command without --full)
+    3. Disable autostart until resolved
+    """
+    from pathlib import Path
+    
+    from voicekey.diagnostics import (
+        collect_diagnostics,
+        export_diagnostics,
+        get_export_warning_for_full_mode,
+        validate_diagnostics_safety,
     )
+    
+    if full_export:
+        click.echo(get_export_warning_for_full_mode(), err=True)
+        if not click.confirm("Continue with full export?", default=False):
+            raise click.ClickException("Full export cancelled.")
+    
+    if export_path:
+        diagnostics = export_diagnostics(
+            export_path=Path(export_path),
+            include_full_config=full_export,
+        )
+        result = {
+            "exported": True,
+            "export_path": export_path,
+            "export_mode": "full" if full_export else "redacted",
+            "safety_check": "passed" if validate_diagnostics_safety(diagnostics)[0] else "warning",
+        }
+    else:
+        diagnostics = collect_diagnostics(include_full_config=full_export)
+        result = {
+            "exported": False,
+            "export_mode": "full" if full_export else "redacted",
+            "diagnostics": diagnostics,
+            "safety_check": "passed" if validate_diagnostics_safety(diagnostics)[0] else "warning",
+        }
+    
+    _emit_output(ctx, command="diagnostics", result=result)
 
 
 @cli.command("config")
@@ -309,64 +403,88 @@ def config_command(
     reset_flag: bool,
     edit_flag: bool,
 ) -> None:
-    """Config command contract for get/set/reset/edit operations."""
+    """Config command for get/set/reset/edit operations."""
     operation = _validate_single_config_operation(get_key, set_value, reset_flag, edit_flag)
+    try:
+        load_result = load_config()
+    except ConfigError as exc:
+        raise click.ClickException(str(exc)) from exc
+
+    config_data = load_result.config.model_dump(mode="python")
+    config_path = load_result.path
+    load_warnings = list(load_result.warnings)
 
     if operation == "get":
         assert get_key is not None
+        found, value = _get_nested_value(config_data, get_key)
         _emit_output(
             ctx,
             command="config",
             result={
                 "operation": "get",
                 "key": get_key,
-                "value": DEFAULT_CONFIG_VALUES.get(get_key),
-                "found": get_key in DEFAULT_CONFIG_VALUES,
-                "source": "deterministic_stub",
+                "value": value,
+                "found": found,
+                "path": str(config_path),
+                "source": "file",
+                "warnings": load_warnings,
             },
         )
         return
 
     if operation == "set":
         assert set_value is not None
-        if "=" not in set_value:
-            raise click.UsageError("--set expects KEY=VALUE format.")
-        key, value = set_value.split("=", 1)
-        if not key:
-            raise click.UsageError("--set expects non-empty key in KEY=VALUE format.")
+        key, value_raw = _split_key_value(set_value)
+        value = yaml.safe_load(value_raw)
+        updated_data = load_result.config.model_dump(mode="python")
+        _set_nested_value(updated_data, key, value)
+        validated, validation_warnings = validate_with_fallback(updated_data)
+        save_config(validated, config_path)
+
+        found, persisted_value = _get_nested_value(validated.model_dump(mode="python"), key)
         _emit_output(
             ctx,
             command="config",
             result={
                 "operation": "set",
                 "key": key,
-                "value": value,
-                "persisted": False,
-                "status": "contract_only",
+                "value": persisted_value if found else None,
+                "persisted": True,
+                "path": str(config_path),
+                "warnings": load_warnings + list(validation_warnings),
             },
         )
         return
 
     if operation == "reset":
+        backup_path = backup_config(config_path) if config_path.exists() else None
+        defaults = default_config()
+        save_config(defaults, config_path)
         _emit_output(
             ctx,
             command="config",
             result={
                 "operation": "reset",
-                "persisted": False,
-                "status": "contract_only",
+                "persisted": True,
+                "path": str(config_path),
+                "backup_path": str(backup_path) if backup_path is not None else None,
+                "warnings": load_warnings,
             },
         )
         return
 
     if operation == "edit":
+        editor = os.getenv("VISUAL") or os.getenv("EDITOR")
+        click.edit(filename=str(config_path), editor=editor, require_save=False)
         _emit_output(
             ctx,
             command="config",
             result={
                 "operation": "edit",
-                "editor_spawned": False,
-                "status": "contract_only",
+                "editor_spawned": True,
+                "path": str(config_path),
+                "editor": editor or "system_default",
+                "warnings": load_warnings,
             },
         )
         return
@@ -376,8 +494,9 @@ def config_command(
         command="config",
         result={
             "operation": "show",
-            "status": "contract_only",
-            "path": "not_implemented",
+            "path": str(config_path),
+            "values": _config_payload_for_show(config_data),
+            "warnings": load_warnings,
         },
     )
 

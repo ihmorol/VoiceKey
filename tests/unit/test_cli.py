@@ -165,3 +165,87 @@ def test_start_command_uses_env_config_override_for_runtime_paths(tmp_path) -> N
     assert runtime_paths["portable_mode"] is False
     assert runtime_paths["config_path"] == str(env_config)
     assert runtime_paths["data_dir"] == str(env_config.parent)
+
+
+def test_config_set_get_reset_persists_to_config_file(tmp_path) -> None:
+    runner = CliRunner()
+    config_path = tmp_path / "voicekey" / "config.yaml"
+    env = {"VOICEKEY_CONFIG": str(config_path)}
+
+    set_result = runner.invoke(
+        cli,
+        ["--output", "json", "config", "--set", "system.autostart_enabled=true"],
+        env=env,
+    )
+    assert set_result.exit_code == ExitCode.SUCCESS
+    set_payload = json.loads(set_result.output)
+    assert set_payload["result"]["persisted"] is True
+    assert set_payload["result"]["value"] is True
+
+    get_result = runner.invoke(
+        cli,
+        ["--output", "json", "config", "--get", "system.autostart_enabled"],
+        env=env,
+    )
+    assert get_result.exit_code == ExitCode.SUCCESS
+    get_payload = json.loads(get_result.output)
+    assert get_payload["result"]["found"] is True
+    assert get_payload["result"]["value"] is True
+
+    reset_result = runner.invoke(
+        cli,
+        ["--output", "json", "config", "--reset"],
+        env=env,
+    )
+    assert reset_result.exit_code == ExitCode.SUCCESS
+    reset_payload = json.loads(reset_result.output)
+    assert reset_payload["result"]["persisted"] is True
+
+    get_after_reset = runner.invoke(
+        cli,
+        ["--output", "json", "config", "--get", "system.autostart_enabled"],
+        env=env,
+    )
+    assert get_after_reset.exit_code == ExitCode.SUCCESS
+    get_after_reset_payload = json.loads(get_after_reset.output)
+    assert get_after_reset_payload["result"]["value"] is False
+
+
+def test_config_set_rejects_unknown_key(tmp_path) -> None:
+    runner = CliRunner()
+    config_path = tmp_path / "voicekey" / "config.yaml"
+
+    result = runner.invoke(
+        cli,
+        ["config", "--set", "unknown.key=1"],
+        env={"VOICEKEY_CONFIG": str(config_path)},
+    )
+
+    assert result.exit_code == ExitCode.COMMAND_ERROR
+
+
+def test_config_edit_spawns_editor(monkeypatch, tmp_path) -> None:
+    runner = CliRunner()
+    config_path = tmp_path / "voicekey" / "config.yaml"
+    captured: dict[str, str | bool | None] = {}
+
+    def fake_edit(*, filename: str, editor: str | None = None, require_save: bool = False) -> str | None:
+        captured["filename"] = filename
+        captured["editor"] = editor
+        captured["require_save"] = require_save
+        return None
+
+    monkeypatch.setattr("voicekey.ui.cli.click.edit", fake_edit)
+    result = runner.invoke(
+        cli,
+        ["--output", "json", "config", "--edit"],
+        env={"VOICEKEY_CONFIG": str(config_path), "EDITOR": "nano"},
+    )
+
+    assert result.exit_code == ExitCode.SUCCESS
+    payload = json.loads(result.output)
+    assert payload["result"]["editor_spawned"] is True
+    assert payload["result"]["editor"] == "nano"
+    assert captured["filename"] == str(config_path)
+    assert captured["editor"] == "nano"
+    assert captured["require_save"] is False
