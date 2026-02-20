@@ -31,6 +31,8 @@ from voicekey.audio.capture import (
     AudioDeviceNotFoundError,
     AudioFrame,
     get_default_device,
+    get_invalid_frame_count,
+    reset_invalid_frame_count,
     list_devices,
 )
 
@@ -322,3 +324,121 @@ class TestErrorMessages:
         """Test AudioDeviceDisconnectedError message."""
         error = AudioDeviceDisconnectedError()
         assert "disconnected" in str(error).lower()
+
+
+class TestAudioDataValidation:
+    """Tests for audio data validation (NaN/inf detection)."""
+
+    def setup_method(self):
+        """Reset invalid frame counter before each test."""
+        reset_invalid_frame_count()
+
+    def test_audio_callback_skips_nan_values(self):
+        """Test that audio callback skips frames with NaN values."""
+        capture = AudioCapture()
+        capture._stream = MagicMock()
+        capture._is_running = True
+
+        # Create audio data with NaN
+        audio_data = np.array([0.1, np.nan, 0.3], dtype=np.float32)
+        mock_time_info = MagicMock()
+        mock_time_info.input_buffer_adc_time = 1.0
+
+        # Call callback
+        capture._audio_callback(audio_data.reshape(-1, 1), 3, mock_time_info)
+
+        # Frame should be skipped, queue should be empty
+        assert capture._audio_queue.empty()
+        assert get_invalid_frame_count() == 1
+
+    def test_audio_callback_skips_inf_values(self):
+        """Test that audio callback skips frames with inf values."""
+        capture = AudioCapture()
+        capture._stream = MagicMock()
+        capture._is_running = True
+
+        # Create audio data with inf
+        audio_data = np.array([0.1, np.inf, 0.3], dtype=np.float32)
+        mock_time_info = MagicMock()
+        mock_time_info.input_buffer_adc_time = 1.0
+
+        # Call callback
+        capture._audio_callback(audio_data.reshape(-1, 1), 3, mock_time_info)
+
+        # Frame should be skipped, queue should be empty
+        assert capture._audio_queue.empty()
+        assert get_invalid_frame_count() == 1
+
+    def test_audio_callback_skips_negative_inf_values(self):
+        """Test that audio callback skips frames with -inf values."""
+        capture = AudioCapture()
+        capture._stream = MagicMock()
+        capture._is_running = True
+
+        # Create audio data with -inf
+        audio_data = np.array([0.1, -np.inf, 0.3], dtype=np.float32)
+        mock_time_info = MagicMock()
+        mock_time_info.input_buffer_adc_time = 1.0
+
+        # Call callback
+        capture._audio_callback(audio_data.reshape(-1, 1), 3, mock_time_info)
+
+        # Frame should be skipped, queue should be empty
+        assert capture._audio_queue.empty()
+        assert get_invalid_frame_count() == 1
+
+    def test_audio_callback_accepts_valid_audio(self):
+        """Test that audio callback accepts valid finite audio."""
+        reset_invalid_frame_count()
+        capture = AudioCapture()
+        capture._stream = MagicMock()
+        capture._is_running = True
+
+        # Create valid audio data
+        audio_data = np.random.randn(1600).astype(np.float32) * 0.1
+        mock_time_info = MagicMock()
+        mock_time_info.input_buffer_adc_time = 123.456
+
+        # Call callback
+        capture._audio_callback(audio_data.reshape(-1, 1), 1600, mock_time_info)
+
+        # Frame should be in queue
+        assert not capture._audio_queue.empty()
+        assert get_invalid_frame_count() == 0
+
+    def test_invalid_frame_count_increments(self):
+        """Test that invalid frame counter increments correctly."""
+        reset_invalid_frame_count()
+        capture = AudioCapture()
+        capture._stream = MagicMock()
+        capture._is_running = True
+
+        # Create audio with NaN
+        nan_audio = np.full(100, np.nan, dtype=np.float32).reshape(-1, 1)
+        mock_time_info = MagicMock()
+        mock_time_info.input_buffer_adc_time = 1.0
+
+        # Call callback multiple times
+        for _ in range(3):
+            capture._audio_callback(nan_audio, 100, mock_time_info)
+
+        assert get_invalid_frame_count() == 3
+
+    def test_reset_invalid_frame_count(self):
+        """Test resetting the invalid frame counter."""
+        reset_invalid_frame_count()
+        capture = AudioCapture()
+        capture._stream = MagicMock()
+        capture._is_running = True
+
+        # Create invalid audio
+        nan_audio = np.full(100, np.nan, dtype=np.float32).reshape(-1, 1)
+        mock_time_info = MagicMock()
+        mock_time_info.input_buffer_adc_time = 1.0
+
+        capture._audio_callback(nan_audio, 100, mock_time_info)
+        assert get_invalid_frame_count() == 1
+
+        # Reset counter
+        reset_invalid_frame_count()
+        assert get_invalid_frame_count() == 0

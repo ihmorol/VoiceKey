@@ -22,6 +22,9 @@ logger = logging.getLogger(__name__)
 DEFAULT_QUEUE_SIZE = 32  # Bounded queue max size
 DEFAULT_CHUNK_DURATION = 0.1  # 100ms chunks for low latency
 
+# Metrics counters for audio validation
+_invalid_frame_count = 0
+
 
 class AudioDeviceNotFoundError(Exception):
     """Raised when no microphone device is found or specified device doesn't exist."""
@@ -363,8 +366,20 @@ class AudioCapture:
             frames: Number of frames in this chunk
             time_info: Timing information from PortAudio
         """
+        global _invalid_frame_count
+
         # Extract mono channel
         audio_data = indata[:, 0].copy()
+
+        # Validate audio data for NaN/inf values
+        if not np.all(np.isfinite(audio_data)):
+            _invalid_frame_count += 1
+            logger.warning(
+                "Invalid audio frame detected (NaN/inf values), frame skipped. "
+                "Total invalid frames: %d",
+                _invalid_frame_count,
+            )
+            return
 
         # Create audio frame
         frame = AudioFrame(
@@ -397,3 +412,23 @@ class AudioCapture:
             self.stop()
         except Exception:
             pass
+
+
+def get_invalid_frame_count() -> int:
+    """Get the total count of invalid audio frames detected (NaN/inf values).
+
+    This is a global counter across all AudioCapture instances.
+
+    Returns:
+        Number of invalid frames detected since module load or last reset.
+    """
+    return _invalid_frame_count
+
+
+def reset_invalid_frame_count() -> None:
+    """Reset the invalid frame counter to zero.
+
+    Useful for testing or periodic monitoring.
+    """
+    global _invalid_frame_count
+    _invalid_frame_count = 0
