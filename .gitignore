@@ -50,7 +50,8 @@ voicekey/models/*.onnx
 voicekey/models/*.pt
 
 # Project tooling caches
-.opencode/node_modules/
+.kilo/node_modules/
 
 .agent
+.kilo
 .opencode
