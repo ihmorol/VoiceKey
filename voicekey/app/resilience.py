@@ -88,9 +88,9 @@ def decide_safety_fallback(
 
 
 def _pause_event_for_state(state: AppState) -> AppEvent | None:
-    if state is AppState.STANDBY:
+    if state == AppState.STANDBY:
         return AppEvent.PAUSE_REQUESTED
-    if state is AppState.LISTENING:
+    if state == AppState.LISTENING:
         return AppEvent.INACTIVITY_AUTO_PAUSE
     return None
 

@@ -186,7 +186,7 @@ class VoiceKeyStateMachine:
 
             to_state = target
             self._state = to_state
-            if to_state is AppState.SHUTTING_DOWN and not self._mode_exited:
+            if to_state == AppState.SHUTTING_DOWN and not self._mode_exited:
                 self._mode_hooks.on_mode_exit(self._mode)
                 self._mode_exited = True
 

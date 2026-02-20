@@ -101,7 +101,7 @@ class TrayController:
     def menu_items(self) -> tuple[TrayMenuItem, ...]:
         """Return deterministic tray menu model for UI adapters."""
         start_stop_label = "Stop" if self._runtime_active else "Start"
-        pause_resume_label = "Resume" if self._runtime_state is AppState.PAUSED else "Pause"
+        pause_resume_label = "Resume" if self._runtime_state == AppState.PAUSED else "Pause"
         return (
             TrayMenuItem(action=TrayAction.START_OR_STOP, label=start_stop_label),
             TrayMenuItem(action=TrayAction.PAUSE_OR_RESUME, label=pause_resume_label),
@@ -112,23 +112,23 @@ class TrayController:
 
     def trigger_action(self, action: TrayAction) -> None:
         """Dispatch a tray action to the configured handler contracts."""
-        if action is TrayAction.START_OR_STOP:
+        if action == TrayAction.START_OR_STOP:
             self._invoke_start_or_stop()
             return
 
-        if action is TrayAction.PAUSE_OR_RESUME:
+        if action == TrayAction.PAUSE_OR_RESUME:
             self._invoke_pause_or_resume()
             return
 
-        if action is TrayAction.OPEN_DASHBOARD:
+        if action == TrayAction.OPEN_DASHBOARD:
             self._invoke(self._handlers.on_open_dashboard)
             return
 
-        if action is TrayAction.OPEN_SETTINGS:
+        if action == TrayAction.OPEN_SETTINGS:
             self._invoke(self._handlers.on_open_settings)
             return
 
-        if action is TrayAction.EXIT:
+        if action == TrayAction.EXIT:
             self._invoke(self._handlers.on_exit)
             return
 
@@ -139,7 +139,7 @@ class TrayController:
         self._invoke(self._handlers.on_start)
 
     def _invoke_pause_or_resume(self) -> None:
-        if self._runtime_state is AppState.PAUSED:
+        if self._runtime_state == AppState.PAUSED:
             self._invoke(self._handlers.on_resume)
             return
         self._invoke(self._handlers.on_pause)

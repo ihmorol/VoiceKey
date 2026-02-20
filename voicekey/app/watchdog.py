@@ -117,13 +117,13 @@ class InactivityWatchdog:
         self._last_activity_at = self._clock()
 
     def _timeout_for_mode(self, mode: ListeningMode) -> float:
-        if mode is ListeningMode.WAKE_WORD:
+        if mode == ListeningMode.WAKE_WORD:
             return self._config.wake_window_timeout_seconds
         return self._config.inactivity_auto_pause_seconds
 
     @staticmethod
     def _timeout_type_for_mode(mode: ListeningMode) -> WatchdogTimeoutType:
-        if mode is ListeningMode.WAKE_WORD:
+        if mode == ListeningMode.WAKE_WORD:
             return WatchdogTimeoutType.WAKE_WINDOW_TIMEOUT
         return WatchdogTimeoutType.INACTIVITY_AUTO_PAUSE
 

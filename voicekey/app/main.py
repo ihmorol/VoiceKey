@@ -132,17 +132,31 @@ class RuntimeCoordinator:
             # Initialize audio capture if not provided
             if self._audio_capture is None:
                 if AudioCapture is None:
-                    raise RuntimeError("Audio capture not available (sounddevice/PortAudio missing)")
-                self._audio_capture = AudioCapture(
-                    device_index=self._device_index,
-                    sample_rate=self._sample_rate,
-                )
+                    logger.warning("Audio capture not available (sounddevice/PortAudio missing)")
+                    self._is_running = False
+                    return
+                try:
+                    self._audio_capture = AudioCapture(
+                        device_index=self._device_index,
+                        sample_rate=self._sample_rate,
+                    )
+                except Exception as e:
+                    logger.error(f"Failed to initialize audio capture: {e}")
+                    self._is_running = False
+                    return
 
             # Initialize VAD processor if not provided
             if self._vad_processor is None:
                 if VADProcessor is None:
-                    raise RuntimeError("VAD processor not available")
-                self._vad_processor = VADProcessor(threshold=self._vad_threshold)
+                    logger.warning("VAD processor not available")
+                    self._is_running = False
+                    return
+                try:
+                    self._vad_processor = VADProcessor(threshold=self._vad_threshold)
+                except Exception as e:
+                    logger.error(f"Failed to initialize VAD processor: {e}")
+                    self._is_running = False
+                    return
 
             # Initialize ASR engine if not provided and available
             if self._asr_engine is None:
@@ -236,7 +250,10 @@ class RuntimeCoordinator:
                         self._check_timeout()
                     continue
 
-                # Process VAD
+                # Process VAD (defensive check)
+                if self._vad_processor is None:
+                    logger.warning("VAD processor not available, skipping frame")
+                    continue
                 is_speech = self._vad_processor.process(frame.audio)
 
                 # Update frame with VAD result
@@ -371,13 +388,13 @@ class RuntimeCoordinator:
 
     def on_transcript(self, transcript: str, *, vad_active: bool = True) -> RuntimeUpdate:
         """Handle transcript as wake detection input/activity signal."""
-        if self.state is AppState.PAUSED:
+        if self.state == AppState.PAUSED:
             return self._handle_paused_transcript(transcript)
 
         if self._state_machine.mode is not ListeningMode.WAKE_WORD:
             return RuntimeUpdate()
 
-        if self.state is AppState.STANDBY:
+        if self.state == AppState.STANDBY:
             if not vad_active:
                 return RuntimeUpdate()
             match = self._wake_detector.detect(transcript)
@@ -388,7 +405,7 @@ class RuntimeCoordinator:
             self._wake_window.open_window()
             return RuntimeUpdate(transition=transition, wake_detected=True)
 
-        if self.state is AppState.LISTENING and self._wake_window.is_open():
+        if self.state == AppState.LISTENING and self._wake_window.is_open():
             self._wake_window.on_activity()
             return self._handle_listening_transcript(transcript)
 
@@ -406,7 +423,7 @@ class RuntimeCoordinator:
         if self._state_machine.mode is not ListeningMode.WAKE_WORD:
             return RuntimeUpdate()
 
-        if self.state is AppState.LISTENING and self._wake_window.is_open():
+        if self.state == AppState.LISTENING and self._wake_window.is_open():
             self._wake_window.on_activity()
 
         return RuntimeUpdate()
