@@ -69,7 +69,7 @@ This matrix provides 100% requirement coverage from specification to backlog and
 | FR-OSS02 | E00-S01 | governance file audit |
 | FR-OSS03 | E00-S01 | template presence check |
 | FR-OSS04 | E00-S02 | semver/changelog policy check |
-| FR-OSS05 | E11-S02 | pending - compatibility matrix update evidence after E11-S02 completion |
+| FR-OSS05 | E11-S02 | complete - compatibility matrix (`docs/compatibility-matrix.md`) with OS/Python versions, platform notes; developer docs validation script (`scripts/docs/validate_developer_docs.py`) with 23 checks; integration tests (`tests/integration/test_validate_developer_docs_script.py`) with 12 passing tests |
 | FR-OSS06 | E00-S03 | security policy SLA check |
 | FR-OSS07 | E00-S01 | DCO workflow check |
 
@@ -98,10 +98,10 @@ This matrix provides 100% requirement coverage from specification to backlog and
 | CI hardening controls (secret scan, license scan, branch protection, CODEOWNERS, pinned actions, least-privilege permissions, CI observability) | E08-S04 | complete - CODEOWNERS file, CI metrics export (`export_ci_metrics.py`), branch protection validation (`check_branch_protection.py`), pinned actions by SHA, least-privilege workflow permissions (`test_export_ci_metrics_script.py`, `test_check_branch_protection_script.py`) |
 | Error and edge scenarios table (no mic, disconnect, unknown command, hotkey conflict, checksum fail, keyboard block) | E03-S04, E04-S02, E07-S05 | integration/error-path tests |
 | Unit test baseline (parser, FSM, config migration, backend capability checks) | E10-S01 | complete - 516 unit tests passing with 87% coverage; parser 99%, FSM 100%, config migration 99%, backend bases 97-100% (`tests/unit/test_parser.py`, `tests/unit/test_state_machine.py`, `tests/unit/test_config_migration.py`, `tests/unit/test_keyboard_backends.py`, `tests/unit/test_window_backends.py`, `tests/unit/test_hotkey_backends.py`, `tests/unit/test_autostart_adapters.py`) |
-| Test matrix governance (Ubuntu/Windows + Python version matrix coverage) | E10-S06 | pending - matrix coverage reports after E10-S06 completion |
+| Test matrix governance (Ubuntu/Windows + Python version matrix coverage) | E10-S06 | complete - matrix coverage assertion script (`scripts/ci/check_matrix_coverage.py`), report generator (`scripts/ci/generate_matrix_report.py`), matrix-coverage CI job with artifact upload, 20 integration tests passing (`test_check_matrix_coverage_script.py`); validates ubuntu-22.04/24.04 + windows-2022 with Python 3.11/3.12 |
 | P2 ecosystem roadmap (plugin SDK, language packs, advanced automation plugins) | E12-S01..E12-S03 | roadmap feature test suites |
-| Acceptance criteria section 9 | E10-S01..E10-S06 | partial - E10-S01 complete (unit baseline hardened: parser 99%, FSM 100%, config migration 99%, backend capability bases 97-100%); E10-S02 complete (integration harness: 55 integration tests for pipeline, tray, autostart); E10-S03 complete (performance harness: 29 perf tests + 11 integration tests, benchmark runner + resource monitor + CI comparator); remaining pending E10-S04..E10-S06 completion |
-| Required implementation artifacts in sections 11 and 15 | E11-S01..E11-S03 | pending - documentation audit gate after E11 completion |
+| Acceptance criteria section 9 | E10-S01..E10-S06 | partial - E10-S01 complete (unit baseline hardened: parser 99%, FSM 100%, config migration 99%, backend capability bases 97-100%); E10-S02 complete (integration harness: 55 integration tests for pipeline, tray, autostart); E10-S03 complete (performance harness: 29 perf tests + 11 integration tests, benchmark runner + resource monitor + CI comparator); E10-S06 complete (matrix coverage: 20 integration tests, assertion + report scripts, CI job); remaining pending E10-S04..E10-S05 completion |
+| Required implementation artifacts in sections 11 and 15 | E11-S01..E11-S03 | partial - E11-S01 complete (user docs validation: `scripts/docs/validate_user_docs.py`, 11 integration tests `test_validate_user_docs_script.py`, all required sections validated - installation, onboarding, commands, troubleshooting); E11-S02..E11-S03 pending |
 
 ---
 

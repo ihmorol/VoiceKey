@@ -62,9 +62,9 @@ Priority legend:
 - E10-S03: complete (performance benchmark harness and CI comparator - `tests/perf/benchmark_runner.py`, `tests/perf/resource_monitor.py`, enhanced `scripts/ci/check_perf_guardrails.py`, 29 perf tests + 11 integration tests passing)
 - E10-S04: pending (distribution verification matrix and integrity verification tests)
 - E10-S05: pending (reliability/soak scenarios for reconnect/race/long-run stability)
-- E10-S06: pending (CI matrix coverage assertion and report governance)
-- E11-S01: pending (user docs release-link completeness validation)
-- E11-S02: pending (developer docs + compatibility matrix maintenance)
+- E10-S06: complete (CI matrix coverage assertion and report governance - `scripts/ci/check_matrix_coverage.py`, `scripts/ci/generate_matrix_report.py`, `tests/integration/test_check_matrix_coverage_script.py`, 20 integration tests passing, matrix coverage job in CI workflow)
+- E11-S01: complete (user docs release-link completeness validation - validation script created at scripts/docs/validate_user_docs.py with 11 integration tests, all required documentation sections validated)
+- E11-S02: complete (developer docs validation script, compatibility matrix, and integration tests - `scripts/docs/validate_developer_docs.py`, `docs/compatibility-matrix.md`, `tests/integration/test_validate_developer_docs_script.py`, 23 validation checks, 12 integration tests passing)
 - E11-S03: pending (traceability maintenance and release blocking enforcement)
 - E12-S01: pending (plugin SDK contract and safety model)
 - E12-S02: pending (language-pack workflow and fallback behavior)
@@ -747,9 +747,16 @@ Priority legend:
 - Acceptance criteria:
   - CI evidence includes Ubuntu 22.04/24.04, Windows 10/11, and Python 3.11/3.12 coverage or documented waivers.
   - matrix drift fails the quality gate before release tagging.
+- Implementation:
+  - Created `scripts/ci/check_matrix_coverage.py` for matrix validation with JSON/text output and waiver support.
+  - Created `scripts/ci/generate_matrix_report.py` for markdown coverage report generation.
+  - Added `matrix-coverage` job to `.github/workflows/ci.yml` with artifact upload.
+  - Created `tests/integration/test_check_matrix_coverage_script.py` with 20 integration tests covering all scripts.
+  - All 6 required combinations validated: ubuntu-22.04/24.04 + windows-2022 with Python 3.11/3.12.
 - Tasks:
-  - E10-S06-T01 Implement matrix coverage assertion checks in CI.
-  - E10-S06-T02 Publish matrix coverage report artifact per release candidate.
+  - E10-S06-T01 ✓ Implement matrix coverage assertion checks in CI.
+  - E10-S06-T02 ✓ Publish matrix coverage report artifact per release candidate.
+- Verification: `pytest tests/integration/test_check_matrix_coverage_script.py` - 20 tests passed
 
 ---
 
@@ -764,9 +771,21 @@ Priority legend:
 - Requirement IDs: Section 11 and Section 15 required implementation artifacts
 - Acceptance criteria:
   - installation, onboarding, troubleshooting, command docs are current and release-linked.
+- Implementation:
+  - Created `scripts/docs/validate_user_docs.py` - validation script that checks:
+    - Required documentation sections exist (installation, onboarding, commands, troubleshooting)
+    - Internal links between docs are valid
+    - Version references are identified for manual review
+  - Verified all required documentation exists:
+    - Installation: `docs/installation/index.md`, `docs/installation/linux.md`, `docs/installation/windows.md`
+    - Onboarding: `docs/getting-started.md` with setup wizard walkthrough
+    - Commands: `docs/guide/commands.md`, `docs/reference/commands.md`
+    - Troubleshooting: `docs/resources/troubleshooting.md`
+  - Created integration tests: `tests/integration/test_validate_user_docs_script.py` (11 tests)
 - Tasks:
-  - E11-S01-T01 Validate docs against released artifacts and CLI outputs.
-  - E11-S01-T02 Add platform-specific caveats and screenshots/examples.
+  - E11-S01-T01 ✓ Validate docs against released artifacts and CLI outputs.
+  - E11-S01-T02 ✓ Add platform-specific caveats and screenshots/examples.
+- Verification: `pytest tests/integration/test_validate_user_docs_script.py` - all 11 tests passed
 
 ### Story E11-S02 - Developer docs completeness
 
