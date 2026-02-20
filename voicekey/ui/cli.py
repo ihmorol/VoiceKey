@@ -411,14 +411,48 @@ def status_command(ctx: click.Context) -> None:
 @cli.command("devices")
 @click.pass_context
 def devices_command(ctx: click.Context) -> None:
-    """List microphone devices contract (stub)."""
+    """List available microphone devices."""
+    from voicekey.audio import get_default_device, list_devices
+
+    # Get list of available devices
+    devices = list_devices()
+
+    # Get the default device info (may fail on some systems)
+    default_index = None
+    try:
+        default_device = get_default_device()
+        if default_device:
+            default_index = default_device["index"]
+    except Exception:
+        pass  # Default device detection not available
+
+    # Try to get configured device from config
+    selected_device_id = None
+    try:
+        load_result = load_config()
+        selected_device_id = load_result.config.audio.device_id
+    except ConfigError:
+        pass  # Config not available, ignore
+
+    # Build result with proper device info
+    result_devices = []
+    for dev in devices:
+        result_devices.append({
+            "index": dev["index"],
+            "name": dev["name"],
+            "channels": dev["channels"],
+            "sample_rate": dev["sample_rates"],
+            "is_default": dev["default"],
+        })
+
     _emit_output(
         ctx,
         command="devices",
         result={
-            "devices": [],
-            "selected_device_id": None,
-            "probe": "not_implemented",
+            "devices": result_devices,
+            "selected_device_id": selected_device_id,
+            "default_device_id": default_index,
+            "probe": "sounddevice",
         },
     )
 
