@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import json
 import os
+import signal
+import sys
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
@@ -11,15 +13,20 @@ from typing import Any
 import click
 import yaml
 
+from voicekey.app.main import RuntimeCoordinator
+from voicekey.app.state_machine import AppState, ListeningMode, VoiceKeyStateMachine
 from voicekey.config.manager import (
-    backup_config,
     ConfigError,
+    StartupEnvOverrides,
+    backup_config,
     load_config,
     parse_startup_env_overrides,
     resolve_runtime_paths,
     save_config,
 )
 from voicekey.config.schema import default_config, validate_with_fallback
+from voicekey.platform.keyboard_base import KeyboardBackend
+from voicekey.platform.keyboard_linux import LinuxKeyboardBackend
 from voicekey.ui.exit_codes import ExitCode
 from voicekey.ui.onboarding import run_onboarding
 
@@ -34,6 +41,52 @@ REQUIRED_COMMANDS: tuple[str, ...] = (
     "calibrate",
     "diagnostics",
 )
+
+
+# Global coordinator reference for signal handling
+_coordinator: RuntimeCoordinator | None = None
+
+
+def _create_runtime_coordinator(
+    config: Any,
+    runtime_paths: Any,
+    device_index: int | None = None,
+    keyboard_backend: KeyboardBackend | None = None,
+) -> RuntimeCoordinator:
+    """Create and configure a RuntimeCoordinator instance."""
+    # Get configuration values
+    model_profile = config.engine.model_profile if hasattr(config, 'engine') else 'base'
+    wake_phrase = config.wake_word.phrase if hasattr(config, 'wake_word') else 'voice key'
+    wake_sensitivity = config.wake_word.sensitivity if hasattr(config, 'wake_word') else 0.55
+    vad_threshold = config.vad.speech_threshold if hasattr(config, 'vad') else 0.5
+    wake_window_timeout = config.wake_word.wake_window_timeout_seconds if hasattr(config, 'wake_word') and hasattr(config.wake_word, 'wake_window_timeout_seconds') else 5.0
+
+    # Create state machine
+    state_machine = VoiceKeyStateMachine(
+        mode=ListeningMode.WAKE_WORD,
+        initial_state=AppState.INITIALIZING,
+    )
+
+    # Create coordinator
+    coordinator = RuntimeCoordinator(
+        state_machine=state_machine,
+        keyboard_backend=keyboard_backend,
+        device_index=device_index,
+        sample_rate=16000,
+        vad_threshold=vad_threshold,
+    )
+
+    return coordinator
+
+
+def _signal_handler(signum, frame) -> None:
+    """Handle Ctrl+C gracefully."""
+    global _coordinator
+    if _coordinator is not None:
+        click.echo("\nReceived interrupt signal, shutting down...")
+        _coordinator.stop()
+        _coordinator = None
+    sys.exit(0)
 
 def _emit_output(ctx: click.Context, command: str, result: dict[str, Any]) -> None:
     output_mode = ctx.obj["output"]
@@ -160,7 +213,9 @@ def start_command(
     portable: bool,
     portable_root: str | None,
 ) -> None:
-    """Start VoiceKey runtime contract (stub)."""
+    """Start VoiceKey runtime."""
+    global _coordinator
+
     try:
         startup_overrides = parse_startup_env_overrides()
     except ConfigError as exc:
@@ -174,32 +229,112 @@ def start_command(
         portable_root=Path(portable_root).expanduser() if portable_root is not None else None,
     )
 
-    _emit_output(
-        ctx,
-        command="start",
-        result={
-            "accepted": True,
-            "daemon": daemon,
-            "config_path": config_path,
-            "runtime_paths": {
-                "config_path": str(runtime_paths.config_path),
-                "data_dir": str(runtime_paths.data_dir),
-                "model_dir": str(runtime_paths.model_dir),
-                "portable_mode": runtime_paths.portable_mode,
+    # Load configuration
+    try:
+        load_result = load_config(explicit_path=runtime_paths.config_path)
+        config = load_result.config
+    except ConfigError as exc:
+        raise click.ClickException(f"Failed to load config: {exc}") from exc
+
+    # Create keyboard backend
+    keyboard_backend: KeyboardBackend | None = None
+    try:
+        keyboard_backend = LinuxKeyboardBackend()
+    except Exception as e:
+        click.echo(f"Warning: Could not initialize keyboard backend: {e}", err=True)
+
+    # Create and start coordinator
+    runtime_state = "stub"
+    try:
+        _coordinator = _create_runtime_coordinator(
+            config=config,
+            runtime_paths=runtime_paths,
+            keyboard_backend=keyboard_backend,
+        )
+
+        # Set up signal handlers for graceful shutdown
+        signal.signal(signal.SIGINT, _signal_handler)
+        signal.signal(signal.SIGTERM, _signal_handler)
+
+        # Start the coordinator
+        _coordinator.start()
+        runtime_state = _coordinator.state.value if _coordinator else "standby"
+
+    except RuntimeError as exc:
+        # Audio not available - this is OK in test environments
+        if "Audio capture not available" in str(exc):
+            output_mode = ctx.obj.get("output", "text")
+            if output_mode != "json":
+                click.echo(f"Warning: {exc}", err=True)
+            runtime_state = "standby"
+            _coordinator = None
+        else:
+            raise click.ClickException(f"Failed to start VoiceKey: {exc}") from exc
+    except Exception as exc:
+        raise click.ClickException(f"Failed to start VoiceKey: {exc}") from exc
+
+    # Output startup information
+    # Always use JSON output format for machine-readable output
+    # (or when coordinator couldn't start)
+    output_mode = ctx.obj.get("output", "text")
+    if daemon or _coordinator is None:
+        # In daemon mode or when coordinator couldn't start, just output success and exit
+        _emit_output(
+            ctx,
+            command="start",
+            result={
+                "accepted": True,
+                "daemon": daemon,
+                "config_path": config_path,
+                "runtime_paths": {
+                    "config_path": str(runtime_paths.config_path),
+                    "data_dir": str(runtime_paths.data_dir),
+                    "model_dir": str(runtime_paths.model_dir),
+                    "portable_mode": runtime_paths.portable_mode,
+                },
+                "env_overrides": {
+                    "config_path": str(startup_overrides.config_path)
+                    if startup_overrides.config_path is not None
+                    else None,
+                    "model_dir": str(startup_overrides.model_dir)
+                    if startup_overrides.model_dir is not None
+                    else None,
+                    "log_level": startup_overrides.log_level,
+                    "disable_tray": startup_overrides.disable_tray,
+                },
+                "runtime": "started" if _coordinator else "stub",
+                "state": _coordinator.state.value if _coordinator and _coordinator.is_running else "standby",
             },
-            "env_overrides": {
-                "config_path": str(startup_overrides.config_path)
-                if startup_overrides.config_path is not None
-                else None,
-                "model_dir": str(startup_overrides.model_dir)
-                if startup_overrides.model_dir is not None
-                else None,
-                "log_level": startup_overrides.log_level,
-                "disable_tray": startup_overrides.disable_tray,
-            },
-            "runtime": "not_implemented",
-        },
-    )
+        )
+        return
+
+    # In foreground mode, run until interrupted
+    click.echo("VoiceKey started. Press Ctrl+C to stop.")
+
+    # Wait in a loop, checking status
+    try:
+        while _coordinator is not None and _coordinator.is_running:
+            state = _coordinator.state
+            if state == AppState.STANDBY:
+                click.echo("\rListening for wake phrase...", nl=False)
+            elif state == AppState.LISTENING:
+                click.echo("\rListening for command...", nl=False)
+            elif state == AppState.PAUSED:
+                click.echo("\rPaused (say 'resume voice key' to continue)", nl=False)
+            else:
+                click.echo(f"\rState: {state.value}", nl=False)
+
+            import time
+            time.sleep(1)
+
+    except KeyboardInterrupt:
+        pass
+    finally:
+        if _coordinator is not None:
+            _coordinator.stop()
+            _coordinator = None
+
+    click.echo("\nVoiceKey stopped.")
 
 
 @cli.command("setup")
