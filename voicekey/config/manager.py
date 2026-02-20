@@ -162,11 +162,22 @@ def resolve_runtime_paths(
     )
 
 
+def _set_secure_file_permissions(path: Path) -> None:
+    """Set restrictive permissions on a file (owner read/write only).
+
+    On POSIX systems, sets mode to 0o600. On Windows, this is a no-op
+    as the OS handles file permissions differently via ACLs.
+    """
+    if os.name == "posix":
+        os.chmod(path, 0o600)
+
+
 def backup_config(path: Path) -> Path:
     """Create timestamped backup and return new path."""
     timestamp = datetime.now(tz=UTC).strftime("%Y%m%d%H%M%S")
     backup_path = path.with_suffix(f".yaml.bak.{timestamp}")
     backup_path.write_text(path.read_text(encoding="utf-8"), encoding="utf-8")
+    _set_secure_file_permissions(backup_path)
     return backup_path
 
 
@@ -174,6 +185,7 @@ def save_config(config: VoiceKeyConfig, path: Path) -> None:
     """Persist validated config to disk."""
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(serialize_config(config), encoding="utf-8")
+    _set_secure_file_permissions(path)
 
 
 def load_config(

@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import os
+import stat
 from pathlib import Path
 
 import yaml
 
 from voicekey.config.migration import MigrationRegistry
-from voicekey.config.manager import load_config, resolve_config_path
+from voicekey.config.manager import backup_config, load_config, resolve_config_path, save_config
 
 
 def test_resolve_config_path_uses_explicit_then_env_then_platform_defaults(tmp_path: Path) -> None:
@@ -144,3 +146,53 @@ def test_load_config_rejects_unsupported_future_version_with_safe_defaults(tmp_p
     assert result.backup_path is not None
     assert result.config.version == 3
     assert any("Config migration failed:" in warning for warning in result.warnings)
+
+
+def test_save_config_sets_restricted_file_permissions(tmp_path: Path) -> None:
+    """Security: Config files must have restrictive permissions (0o600)."""
+    from voicekey.config.schema import default_config
+
+    config_path = tmp_path / "secure" / "config.yaml"
+    config = default_config()
+
+    save_config(config, config_path)
+
+    assert config_path.exists()
+
+    # On POSIX systems, verify permissions are restricted
+    if os.name == "posix":
+        mode = config_path.stat().st_mode
+        permissions = stat.S_IMODE(mode)
+        assert permissions == 0o600, f"Expected 0o600, got {oct(permissions)}"
+
+
+def test_backup_config_sets_restricted_file_permissions(tmp_path: Path) -> None:
+    """Security: Backup files must have restrictive permissions (0o600)."""
+    config_path = tmp_path / "original.yaml"
+    config_path.write_text("version: 3\n", encoding="utf-8")
+
+    backup_path = backup_config(config_path)
+
+    assert backup_path.exists()
+
+    # On POSIX systems, verify permissions are restricted
+    if os.name == "posix":
+        mode = backup_path.stat().st_mode
+        permissions = stat.S_IMODE(mode)
+        assert permissions == 0o600, f"Expected 0o600, got {oct(permissions)}"
+
+
+def test_load_config_creates_file_with_restricted_permissions(tmp_path: Path) -> None:
+    """Security: Newly created config files must have restrictive permissions."""
+    config_path = tmp_path / "newconfig" / "config.yaml"
+
+    result = load_config(explicit_path=config_path)
+
+    assert result.created is True
+    assert config_path.exists()
+
+    # On POSIX systems, verify permissions are restricted
+    if os.name == "posix":
+        mode = config_path.stat().st_mode
+        permissions = stat.S_IMODE(mode)
+        assert permissions == 0o600, f"Expected 0o600, got {oct(permissions)}"
