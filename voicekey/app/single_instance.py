@@ -154,7 +154,12 @@ class SingleInstanceGuard:
         base_lock_path: Path | None = None,
     ) -> None:
         self._lock_id = lock_id
-        self._base_lock_path = base_lock_path or (Path(tempfile.gettempdir()) / "voicekey.runtime.lock")
+        if base_lock_path is not None:
+            self._base_lock_path = base_lock_path
+        else:
+            # Use a secure subdirectory within the temp directory
+            secure_dir = _secure_lock_directory(Path(tempfile.gettempdir()))
+            self._base_lock_path = secure_dir / "voicekey.runtime.lock"
         self._backend = backend or default_lock_backend(self._base_lock_path)
         self._acquired = False
 
@@ -187,6 +192,19 @@ class SingleInstanceGuard:
 
     def __exit__(self, _exc_type: object, _exc: object, _tb: object) -> None:
         self.release()
+
+
+def _secure_lock_directory(base_dir: Path) -> Path:
+    """Create a secure lock directory with restricted permissions.
+
+    Creates a 'voicekey-locks' subdirectory with mode 0o700 (owner-only access)
+    to prevent symlink attacks and unauthorized access in world-writable temp dirs.
+    """
+    lock_dir = base_dir / "voicekey-locks"
+    lock_dir.mkdir(parents=True, exist_ok=True)
+    # Set restrictive permissions on the lock directory
+    os.chmod(lock_dir, 0o700)
+    return lock_dir
 
 
 def _lock_path_for(base_lock_path: Path, lock_id: str) -> Path:
