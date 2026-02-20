@@ -71,3 +71,78 @@ def test_migration_raises_when_step_missing_for_source_version() -> None:
 
     with pytest.raises(ConfigMigrationError):
         registry.migrate({"version": 1})
+
+
+def test_registry_rejects_target_version_less_than_one() -> None:
+    with pytest.raises(ValueError, match="target_version must be >= 1"):
+        MigrationRegistry(target_version=0)
+
+
+def test_registry_rejects_from_version_less_than_one() -> None:
+    registry = MigrationRegistry(target_version=3)
+
+    with pytest.raises(ValueError, match="from_version must be >= 1"):
+        registry.register(0, lambda payload: {**payload, "version": 2})
+
+
+def test_registry_rejects_from_version_at_or_above_target() -> None:
+    registry = MigrationRegistry(target_version=3)
+
+    with pytest.raises(ValueError, match="from_version must be below target_version"):
+        registry.register(3, lambda payload: {**payload, "version": 4})
+
+    with pytest.raises(ValueError, match="from_version must be below target_version"):
+        registry.register(4, lambda payload: {**payload, "version": 5})
+
+
+def test_migration_raises_when_handler_returns_non_dict() -> None:
+    registry = MigrationRegistry(target_version=2)
+    registry.register(1, lambda payload: "not a dict")  # type: ignore[arg-type]
+
+    with pytest.raises(ConfigMigrationError, match="must return a mapping payload"):
+        registry.migrate({"version": 1})
+
+
+def test_migration_raises_when_handler_does_not_set_integer_version() -> None:
+    registry = MigrationRegistry(target_version=2)
+    registry.register(1, lambda payload: {**payload, "version": "not-an-int"})
+
+    with pytest.raises(ConfigMigrationError, match="did not set integer version"):
+        registry.migrate({"version": 1})
+
+
+def test_migration_raises_when_handler_does_not_advance_version() -> None:
+    registry = MigrationRegistry(target_version=3)
+    registry.register(1, lambda payload: {**payload, "version": 1})  # Doesn't advance
+
+    with pytest.raises(ConfigMigrationError, match="did not advance config version"):
+        registry.migrate({"version": 1})
+
+
+def test_migration_raises_when_handler_advances_past_target() -> None:
+    registry = MigrationRegistry(target_version=2)
+    registry.register(1, lambda payload: {**payload, "version": 5})  # Skips past target
+
+    with pytest.raises(ConfigMigrationError, match="advanced past supported target version"):
+        registry.migrate({"version": 1})
+
+
+def test_migration_raises_for_non_integer_version_in_payload() -> None:
+    registry = build_default_registry()
+
+    with pytest.raises(ConfigMigrationError, match="config version must be an integer"):
+        registry.migrate({"version": "1"})  # String instead of int
+
+
+def test_migration_raises_for_boolean_version_in_payload() -> None:
+    registry = build_default_registry()
+
+    with pytest.raises(ConfigMigrationError, match="config version must be an integer"):
+        registry.migrate({"version": True})  # Boolean (subclass of int but rejected)
+
+
+def test_migration_raises_for_negative_source_version() -> None:
+    registry = build_default_registry()
+
+    with pytest.raises(ConfigMigrationError, match="config version must be >= 1"):
+        registry.migrate({"version": -1})

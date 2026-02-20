@@ -120,3 +120,16 @@ def test_mode_hooks_called_on_mode_entry_and_shutdown_exit() -> None:
         ("enter", ListeningMode.TOGGLE),
         ("exit", ListeningMode.TOGGLE),
     ]
+
+
+def test_transition_after_termination_raises_error() -> None:
+    machine = VoiceKeyStateMachine(
+        mode=ListeningMode.WAKE_WORD,
+        initial_state=AppState.SHUTTING_DOWN,
+    )
+    machine.transition(AppEvent.SHUTDOWN_COMPLETE)
+
+    assert machine.terminated is True
+
+    with pytest.raises(InvalidTransitionError, match="already terminated"):
+        machine.transition(AppEvent.STOP_REQUESTED)

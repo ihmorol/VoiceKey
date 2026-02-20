@@ -97,9 +97,10 @@ This matrix provides 100% requirement coverage from specification to backlog and
 | Distribution policy (x64 public scope, artifact naming convention, one-major migration path) | E07-S06 | release policy validator unit/integration checks (`test_release_policy.py`, `test_validate_distribution_policy_script.py`) |
 | CI hardening controls (secret scan, license scan, branch protection, CODEOWNERS, pinned actions, least-privilege permissions, CI observability) | E08-S04 | complete - CODEOWNERS file, CI metrics export (`export_ci_metrics.py`), branch protection validation (`check_branch_protection.py`), pinned actions by SHA, least-privilege workflow permissions (`test_export_ci_metrics_script.py`, `test_check_branch_protection_script.py`) |
 | Error and edge scenarios table (no mic, disconnect, unknown command, hotkey conflict, checksum fail, keyboard block) | E03-S04, E04-S02, E07-S05 | integration/error-path tests |
+| Unit test baseline (parser, FSM, config migration, backend capability checks) | E10-S01 | complete - 516 unit tests passing with 87% coverage; parser 99%, FSM 100%, config migration 99%, backend bases 97-100% (`tests/unit/test_parser.py`, `tests/unit/test_state_machine.py`, `tests/unit/test_config_migration.py`, `tests/unit/test_keyboard_backends.py`, `tests/unit/test_window_backends.py`, `tests/unit/test_hotkey_backends.py`, `tests/unit/test_autostart_adapters.py`) |
 | Test matrix governance (Ubuntu/Windows + Python version matrix coverage) | E10-S06 | pending - matrix coverage reports after E10-S06 completion |
 | P2 ecosystem roadmap (plugin SDK, language packs, advanced automation plugins) | E12-S01..E12-S03 | roadmap feature test suites |
-| Acceptance criteria section 9 | E10-S01..E10-S06 | pending - release gate checks after E10 completion |
+| Acceptance criteria section 9 | E10-S01..E10-S06 | partial - E10-S01 complete (unit baseline hardened: parser 99%, FSM 100%, config migration 99%, backend capability bases 97-100%); remaining pending E10-S02..E10-S06 completion |
 | Required implementation artifacts in sections 11 and 15 | E11-S01..E11-S03 | pending - documentation audit gate after E11 completion |
 
 ---

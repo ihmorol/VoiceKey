@@ -57,7 +57,7 @@ Priority legend:
 - E09-S01: complete (privacy-by-default data minimization enforced: persist_audio/transcript_logging off by default, redaction on by default, ConfidenceFilter default to no-logging)
 - E09-S02: complete (secure diagnostics export with redaction-by-default, incident response runbook, and 40 security verification tests)
 - E09-S03: complete (runtime egress guardrails and telemetry-default regression coverage - egress guard module `voicekey/security/egress_guard.py`, privacy assertions `voicekey/security/privacy_assertions.py`, 62 offline/telemetry tests passing)
-- E10-S01: pending (unit baseline hardening for parser/FSM/config/backends)
+- E10-S01: complete (unit baseline hardening for parser/FSM/config/backends)
 - E10-S02: pending (integration harness expansion for mic-to-inject path and tray/autostart)
 - E10-S03: pending (performance benchmark harness and CI comparator)
 - E10-S04: pending (distribution verification matrix and integrity verification tests)
@@ -676,9 +676,20 @@ Priority legend:
 - Requirement IDs: `requirements/testing-strategy.md` unit and safety layers
 - Acceptance criteria:
   - parser, FSM, config migration, backend capability checks covered.
+- Implementation:
+  - Parser coverage: 99% (`voicekey/commands/parser.py`)
+  - FSM coverage: 100% (`voicekey/app/state_machine.py`) - added termination guard test
+  - Config migration coverage: 99% (`voicekey/config/migration.py`) - added 10 edge case tests
+  - Backend capability coverage:
+    - Keyboard base: 100% (`voicekey/platform/keyboard_base.py`)
+    - Window base: 100% (`voicekey/platform/window_base.py`)
+    - Hotkey base: 98% (`voicekey/platform/hotkey_base.py`)
+    - Autostart base: 97% (`voicekey/platform/autostart_base.py`)
+  - Overall unit test coverage: 87% (516 tests passing)
 - Tasks:
-  - E10-S01-T01 Add unit suites for parser and mode logic.
-  - E10-S01-T02 Add schema/migration validation tests.
+  - E10-S01-T01 ✓ Add unit suites for parser and mode logic (already covered).
+  - E10-S01-T02 ✓ Add schema/migration validation tests (10 new edge case tests added).
+- Verification: `pytest tests/unit/test_config_migration.py tests/unit/test_state_machine.py` - 40 tests passed
 
 ### Story E10-S02 - Integration suite
 
