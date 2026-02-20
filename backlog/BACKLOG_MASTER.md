@@ -61,11 +61,11 @@ Priority legend:
 - E10-S02: complete (integration harness expansion for mic-to-inject path and tray/autostart - `tests/integration/test_pipeline_integration.py`, `tests/integration/test_tray_integration.py`, `tests/integration/test_autostart_integration.py`, 55 integration tests passing)
 - E10-S03: complete (performance benchmark harness and CI comparator - `tests/perf/benchmark_runner.py`, `tests/perf/resource_monitor.py`, enhanced `scripts/ci/check_perf_guardrails.py`, 29 perf tests + 11 integration tests passing)
 - E10-S04: pending (distribution verification matrix and integrity verification tests)
-- E10-S05: pending (reliability/soak scenarios for reconnect/race/long-run stability)
+- E10-S05: complete (reliability/soak scenarios for reconnect/race/long-run stability - `tests/integration/test_reliability.py`, `tests/perf/test_soak.py`, 44 tests passing)
 - E10-S06: complete (CI matrix coverage assertion and report governance - `scripts/ci/check_matrix_coverage.py`, `scripts/ci/generate_matrix_report.py`, `tests/integration/test_check_matrix_coverage_script.py`, 20 integration tests passing, matrix coverage job in CI workflow)
 - E11-S01: complete (user docs release-link completeness validation - validation script created at scripts/docs/validate_user_docs.py with 11 integration tests, all required documentation sections validated)
 - E11-S02: complete (developer docs validation script, compatibility matrix, and integration tests - `scripts/docs/validate_developer_docs.py`, `docs/compatibility-matrix.md`, `tests/integration/test_validate_developer_docs_script.py`, 23 validation checks, 12 integration tests passing)
-- E11-S03: pending (traceability maintenance and release blocking enforcement)
+- E11-S03: complete (traceability maintenance and release blocking enforcement - `scripts/release/validate_traceability.py`, `scripts/release/check_release_gate.py`, `tests/integration/test_traceability_scripts.py`, 22 integration tests passing)
 - E12-S01: pending (plugin SDK contract and safety model)
 - E12-S02: pending (language-pack workflow and fallback behavior)
 - E12-S03: pending (advanced automation plugin guardrails)
@@ -737,9 +737,27 @@ Priority legend:
 - Requirement IDs: Section 5.3 reliability, `requirements/testing-strategy.md` section 3
 - Acceptance criteria:
   - reconnect, rapid toggles, paused-resume phrase path, and long-run stability are validated.
+- Implementation:
+  - Created `tests/integration/test_reliability.py` with 26 tests covering:
+    - Audio device reconnect after disconnect (mock audio capture with disconnect/reconnect simulation)
+    - Rapid toggle (start/stop/pause/resume) cycles with state machine stability
+    - Paused-resume phrase path race conditions with routing policy validation
+    - State machine stability under stress (1000+ rapid transitions)
+    - Watchdog stress tests (arm/disarm cycles, activity resets, many timeout events)
+    - Thread safety tests (concurrent state machine and watchdog operations)
+  - Created `tests/perf/test_soak.py` with 18 tests covering:
+    - Simulated long-duration operation (24-hour watchdog cycle, week of state machine transitions)
+    - Memory leak detection (object counting for state machines, parsers, watchdogs)
+    - Timer/watchdog stability over many cycles (accuracy, activity resets, telemetry counters)
+    - Parser stability over long operation (consistency, edge cases)
+    - Integration scenarios (full pipeline soak, simulated real-world usage pattern)
+  - All tests use time mocking for deterministic long-duration simulation
+  - All tests are fast (< 2 seconds total for 44 tests)
+  - Tests use mocks/fixtures - no real hardware required
 - Tasks:
-  - E10-S05-T01 Add reconnect and mode-race test cases.
-  - E10-S05-T02 Add long-duration soak tests with memory leak monitoring.
+  - E10-S05-T01 ✓ Add reconnect and mode-race test cases (`tests/integration/test_reliability.py`).
+  - E10-S05-T02 ✓ Add long-duration soak tests with memory leak monitoring (`tests/perf/test_soak.py`).
+- Verification: `pytest tests/integration/test_reliability.py tests/perf/test_soak.py` - 44 tests passed
 
 ### Story E10-S06 - Compatibility matrix and test-runtime governance
 
@@ -802,6 +820,12 @@ Priority legend:
 - Requirement IDs: backlog execution and traceability maintenance rules
 - Acceptance criteria:
   - every requirement maps to implemented stories and test evidence.
+- Implementation:
+  - Created `scripts/release/validate_traceability.py` for traceability matrix validation
+  - Created `scripts/release/check_release_gate.py` for release gate enforcement
+  - Added 22 integration tests in `tests/integration/test_traceability_scripts.py`
+  - Scripts validate FR requirements coverage, backlog story mapping, and P0 story completion
+  - Release gate blocks release if traceability incomplete or P0 stories pending
 - Tasks:
   - E11-S03-T01 Update `TRACEABILITY_MATRIX.md` each release.
   - E11-S03-T02 Block release if any requirement has missing coverage.
