@@ -60,7 +60,7 @@ Priority legend:
 - E10-S01: complete (unit baseline hardening for parser/FSM/config/backends)
 - E10-S02: complete (integration harness expansion for mic-to-inject path and tray/autostart - `tests/integration/test_pipeline_integration.py`, `tests/integration/test_tray_integration.py`, `tests/integration/test_autostart_integration.py`, 55 integration tests passing)
 - E10-S03: complete (performance benchmark harness and CI comparator - `tests/perf/benchmark_runner.py`, `tests/perf/resource_monitor.py`, enhanced `scripts/ci/check_perf_guardrails.py`, 29 perf tests + 11 integration tests passing)
-- E10-S04: pending (distribution verification matrix and integrity verification tests)
+- E10-S04: complete (distribution verification matrix and integrity verification tests - `tests/integration/test_distribution_verification.py`, 25 tests for PyPI/Windows/Linux naming, checksums, and policy validation)
 - E10-S05: complete (reliability/soak scenarios for reconnect/race/long-run stability - `tests/integration/test_reliability.py`, `tests/perf/test_soak.py`, 44 tests passing)
 - E10-S06: complete (CI matrix coverage assertion and report governance - `scripts/ci/check_matrix_coverage.py`, `scripts/ci/generate_matrix_report.py`, `tests/integration/test_check_matrix_coverage_script.py`, 20 integration tests passing, matrix coverage job in CI workflow)
 - E11-S01: complete (user docs release-link completeness validation - validation script created at scripts/docs/validate_user_docs.py with 11 integration tests, all required documentation sections validated)
