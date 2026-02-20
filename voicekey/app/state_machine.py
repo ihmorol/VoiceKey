@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import threading
 from dataclasses import dataclass
 from enum import Enum
 
@@ -116,7 +117,10 @@ _MODE_TRANSITIONS: dict[ListeningMode, dict[tuple[AppState, AppEvent], AppState]
 
 
 class VoiceKeyStateMachine:
-    """Deterministic FSM for runtime lifecycle and listening modes."""
+    """Deterministic FSM for runtime lifecycle and listening modes.
+
+    Thread-safe implementation using a lock to protect state transitions.
+    """
 
     def __init__(
         self,
@@ -130,6 +134,7 @@ class VoiceKeyStateMachine:
         self._mode_exited = False
         self._mode_hooks = mode_hooks or _NoOpModeHooks()
         self._mode_hooks.on_mode_enter(mode)
+        self._lock = threading.Lock()
 
     @property
     def mode(self) -> ListeningMode:
@@ -138,54 +143,59 @@ class VoiceKeyStateMachine:
 
     @property
     def state(self) -> AppState:
-        """Current FSM state."""
-        return self._state
+        """Current FSM state (thread-safe read)."""
+        with self._lock:
+            return self._state
 
     @property
     def terminated(self) -> bool:
-        """Whether the machine has reached terminal shutdown marker."""
-        return self._terminated
+        """Whether the machine has reached terminal shutdown marker (thread-safe read)."""
+        with self._lock:
+            return self._terminated
 
     def transition(self, event: AppEvent) -> TransitionResult:
         """Apply an event and return transition details.
 
+        Thread-safe: uses a lock to protect state transitions.
+
         Raises:
             InvalidTransitionError: If the current state/event is not allowed.
         """
-        if self._terminated:
-            raise InvalidTransitionError("state machine is already terminated")
+        with self._lock:
+            if self._terminated:
+                raise InvalidTransitionError("state machine is already terminated")
 
-        key = (self._state, event)
-        target = _MODE_TRANSITIONS[self._mode].get(key)
-        if target is None:
-            target = _COMMON_TRANSITIONS.get(key)
-        if target is None:
-            raise InvalidTransitionError(
-                f"invalid transition: mode={self._mode.value} state={self._state.value} event={event.value}"
-            )
+            key = (self._state, event)
+            target = _MODE_TRANSITIONS[self._mode].get(key)
+            if target is None:
+                target = _COMMON_TRANSITIONS.get(key)
+            if target is None:
+                raise InvalidTransitionError(
+                    f"invalid transition: mode={self._mode.value} state={self._state.value} event={event.value}"
+                )
 
-        from_state = self._state
-        if target is _TERMINAL:
-            self._terminated = True
+            from_state = self._state
+            if target is _TERMINAL:
+                self._terminated = True
+                return TransitionResult(
+                    from_state=from_state,
+                    to_state=None,
+                    event=event,
+                    terminal=True,
+                )
+
+            to_state = target
+            self._state = to_state
+            if to_state is AppState.SHUTTING_DOWN and not self._mode_exited:
+                self._mode_hooks.on_mode_exit(self._mode)
+                self._mode_exited = True
+
             return TransitionResult(
                 from_state=from_state,
-                to_state=None,
+                to_state=to_state,
                 event=event,
-                terminal=True,
+                terminal=False,
             )
-
-        to_state = target
-        self._state = to_state
-        if to_state is AppState.SHUTTING_DOWN and not self._mode_exited:
-            self._mode_hooks.on_mode_exit(self._mode)
-            self._mode_exited = True
-
-        return TransitionResult(
-            from_state=from_state,
-            to_state=to_state,
-            event=event,
-            terminal=False,
-        )
 
 
 __all__ = [

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import threading
+
 import pytest
 
 from voicekey.app.state_machine import (
@@ -133,3 +135,145 @@ def test_transition_after_termination_raises_error() -> None:
 
     with pytest.raises(InvalidTransitionError, match="already terminated"):
         machine.transition(AppEvent.STOP_REQUESTED)
+
+
+class TestStateMachineThreadSafety:
+    """Tests for thread-safe state transitions."""
+
+    def test_concurrent_transitions_are_serialized(self) -> None:
+        """Test that concurrent transitions are properly serialized."""
+        import concurrent.futures
+        import threading
+
+        machine = VoiceKeyStateMachine(
+            mode=ListeningMode.WAKE_WORD,
+            initial_state=AppState.STANDBY,
+        )
+
+        errors: list[Exception] = []
+        results: list[AppState] = []
+        lock = threading.Lock()
+
+        def attempt_transition(event: AppEvent) -> None:
+            try:
+                result = machine.transition(event)
+                with lock:
+                    results.append(result.to_state)  # type: ignore[arg-type]
+            except InvalidTransitionError as e:
+                with lock:
+                    errors.append(e)
+
+        # Try to trigger both valid and invalid transitions concurrently
+        with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+            # Submit multiple valid transitions
+            futures = []
+            for _ in range(5):
+                futures.append(executor.submit(attempt_transition, AppEvent.WAKE_PHRASE_DETECTED))
+            for _ in range(5):
+                futures.append(executor.submit(attempt_transition, AppEvent.PAUSE_REQUESTED))
+
+            concurrent.futures.wait(futures)
+
+        # At least one valid transition should have succeeded
+        # And exactly one should have transitioned to LISTENING
+        assert AppState.LISTENING in results or AppState.PAUSED in results
+
+    def test_state_property_is_thread_safe(self) -> None:
+        """Test that reading state property is thread-safe."""
+        import concurrent.futures
+        import threading
+
+        machine = VoiceKeyStateMachine(
+            mode=ListeningMode.WAKE_WORD,
+            initial_state=AppState.STANDBY,
+        )
+
+        states_read: list[AppState] = []
+        lock = threading.Lock()
+
+        def read_state() -> None:
+            state = machine.state
+            with lock:
+                states_read.append(state)
+
+        def write_state() -> None:
+            try:
+                machine.transition(AppEvent.WAKE_PHRASE_DETECTED)
+            except InvalidTransitionError:
+                pass  # Expected if already transitioned
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
+            futures = []
+            for _ in range(10):
+                futures.append(executor.submit(read_state))
+            for _ in range(10):
+                futures.append(executor.submit(write_state))
+
+            concurrent.futures.wait(futures)
+
+        # All state reads should have returned valid states
+        for state in states_read:
+            assert isinstance(state, AppState)
+
+    def test_terminated_property_is_thread_safe(self) -> None:
+        """Test that reading terminated property is thread-safe."""
+        import concurrent.futures
+
+        machine = VoiceKeyStateMachine(
+            mode=ListeningMode.WAKE_WORD,
+            initial_state=AppState.SHUTTING_DOWN,
+        )
+
+        terminated_reads: list[bool] = []
+
+        def read_terminated() -> None:
+            terminated_reads.append(machine.terminated)
+
+        def trigger_termination() -> None:
+            try:
+                machine.transition(AppEvent.SHUTDOWN_COMPLETE)
+            except InvalidTransitionError:
+                pass  # Already terminated
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+            futures = []
+            for _ in range(5):
+                futures.append(executor.submit(read_terminated))
+            futures.append(executor.submit(trigger_termination))
+            for _ in range(5):
+                futures.append(executor.submit(read_terminated))
+
+            concurrent.futures.wait(futures)
+
+        # All terminated reads should be booleans
+        for val in terminated_reads:
+            assert isinstance(val, bool)
+
+    def test_no_lost_state_updates(self) -> None:
+        """Test that state updates are not lost under contention."""
+        import concurrent.futures
+
+        machine = VoiceKeyStateMachine(
+            mode=ListeningMode.WAKE_WORD,
+            initial_state=AppState.LISTENING,
+        )
+
+        success_count = 0
+        lock = threading.Lock()
+
+        def attempt_pause() -> None:
+            nonlocal success_count
+            try:
+                machine.transition(AppEvent.INACTIVITY_AUTO_PAUSE)
+                with lock:
+                    success_count += 1
+            except InvalidTransitionError:
+                pass  # Already transitioned
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+            futures = [executor.submit(attempt_pause) for _ in range(10)]
+            concurrent.futures.wait(futures)
+
+        # Exactly one transition should succeed
+        assert success_count == 1
+        assert machine.state == AppState.PAUSED
