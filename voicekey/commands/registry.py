@@ -2,14 +2,29 @@
 
 from __future__ import annotations
 
+import unicodedata
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from enum import StrEnum
 
 
 def normalize_phrase(text: str) -> str:
-    """Normalize phrase text deterministically for parser/registry matching."""
-    return " ".join(text.strip().lower().split())
+    """Normalize phrase text deterministically for parser/registry matching.
+
+    Applies NFC unicode normalization to handle composed/decomposed characters
+    consistently (e.g., é can be represented as a single codepoint or as e + combining acute).
+
+    Args:
+        text: The input text to normalize.
+
+    Returns:
+        Normalized text with NFC unicode normalization, whitespace collapsed,
+        and lowercase applied.
+    """
+    # Apply NFC normalization first to ensure consistent unicode representation
+    normalized = unicodedata.normalize("NFC", text)
+    # Then apply whitespace and case normalization
+    return " ".join(normalized.strip().lower().split())
 
 
 class CommandChannel(StrEnum):

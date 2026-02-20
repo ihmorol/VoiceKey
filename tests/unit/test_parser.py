@@ -167,3 +167,88 @@ def test_unknown_command_literal_fallback_is_preserved_when_text_expansion_enabl
     assert result.kind is ParseKind.TEXT
     assert result.literal_text == "hello world command"
     assert result.command is None
+
+
+class TestUnicodeNormalization:
+    """Tests for Unicode normalization in phrase matching."""
+
+    def test_normalize_phrase_handles_composed_unicode(self) -> None:
+        """Test that normalize_phrase handles composed unicode characters."""
+        from voicekey.commands.registry import normalize_phrase
+
+        # é as a single composed character (NFC)
+        composed = "café"
+        # é as decomposed (NFD): e + combining acute accent
+        decomposed = "cafe\u0301"
+
+        assert normalize_phrase(composed) == normalize_phrase(decomposed)
+        assert normalize_phrase(composed) == "café"
+
+    def test_normalize_phrase_handles_various_accented_characters(self) -> None:
+        """Test normalization of various accented characters."""
+        from voicekey.commands.registry import normalize_phrase
+
+        # German umlauts
+        assert normalize_phrase("über") == normalize_phrase("u\u0308ber")
+        # Spanish ñ
+        assert normalize_phrase("señor") == normalize_phrase("sen\u0303or")
+        # French é (e with acute accent)
+        assert normalize_phrase("café") == normalize_phrase("cafe\u0301")
+
+    def test_parser_matches_commands_with_decomposed_unicode(self) -> None:
+        """Test that parser matches commands regardless of unicode composition."""
+        from voicekey.commands.registry import CommandDefinition, CommandRegistry, normalize_phrase
+
+        # Register a command with composed unicode
+        registry = CommandRegistry()
+        registry.register(
+            CommandDefinition(
+                command_id="test_cafe",
+                phrase="café",
+            )
+        )
+
+        # Match with decomposed unicode should work
+        decomposed_query = "cafe\u0301"
+        result = registry.match(decomposed_query)
+        assert result is not None
+        assert result.command_id == "test_cafe"
+
+    def test_parser_matches_builtins_with_unicode_input(self) -> None:
+        """Test that parser handles unicode in user input."""
+        parser = CommandParser(registry=create_builtin_registry())
+
+        # Unicode whitespace should be normalized
+        result = parser.parse("new\u00a0line command")  # non-breaking space
+
+        # Should match the command despite unicode whitespace
+        assert result.kind is ParseKind.COMMAND
+        assert result.command is not None
+        assert result.command.command_id == "new_line"
+
+    def test_normalize_phrase_preserves_case_insensitivity(self) -> None:
+        """Test that normalization still applies case insensitivity."""
+        from voicekey.commands.registry import normalize_phrase
+
+        assert normalize_phrase("CAFÉ") == normalize_phrase("café")
+        assert normalize_phrase("CAFÉ") == "café"
+
+    def test_normalize_phrase_handles_emoji(self) -> None:
+        """Test that emoji are handled without errors."""
+        from voicekey.commands.registry import normalize_phrase
+
+        # Emoji should pass through (they're already in NFC form typically)
+        result = normalize_phrase("hello 👋 world")
+        assert "👋" in result
+        assert result == "hello 👋 world"
+
+    def test_special_phrase_with_unicode_normalization(self) -> None:
+        """Test special phrases work with unicode input."""
+        parser = CommandParser(registry=create_builtin_registry())
+
+        # Test with decomposed unicode characters
+        result = parser.parse("pause voice key")
+
+        assert result.kind is ParseKind.SYSTEM
+        assert result.command is not None
+        assert result.command.command_id == "pause_voice_key"
