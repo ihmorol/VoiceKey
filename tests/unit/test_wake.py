@@ -36,6 +36,26 @@ def test_wake_detector_supports_configured_phrase() -> None:
     assert detector.detect("voice key now").matched is False
 
 
+def test_wake_detector_respects_sensitivity_threshold() -> None:
+    strict = WakePhraseDetector("voice key", sensitivity=0.95)
+    loose = WakePhraseDetector("voice key", sensitivity=0.5)
+
+    strict_result = strict.detect("voice kee now")
+    loose_result = loose.detect("voice kee now")
+
+    assert strict_result.matched is False
+    assert loose_result.matched is True
+    assert 0.0 <= strict_result.score <= 1.0
+
+
+def test_wake_detector_invalid_sensitivity_rejected() -> None:
+    try:
+        WakePhraseDetector(sensitivity=1.1)
+        assert False, "expected ValueError"
+    except ValueError:
+        assert True
+
+
 def test_wake_detector_empty_phrase_rejected() -> None:
     try:
         WakePhraseDetector("   ")

@@ -8,6 +8,7 @@ Implements E02-S01 requirements:
 
 from __future__ import annotations
 
+from difflib import SequenceMatcher
 import time
 from dataclasses import dataclass
 from typing import Callable, Optional
@@ -19,6 +20,7 @@ class WakeMatchResult:
 
     matched: bool
     normalized_transcript: str
+    score: float
 
 
 class WakePhraseDetector:
@@ -28,25 +30,54 @@ class WakePhraseDetector:
     text and does not execute commands directly.
     """
 
-    def __init__(self, wake_phrase: str = "voice key") -> None:
+    def __init__(self, wake_phrase: str = "voice key", *, sensitivity: float = 0.55) -> None:
         normalized = self._normalize(wake_phrase)
         if not normalized:
             raise ValueError("wake_phrase must not be empty")
+        if not 0.0 <= sensitivity <= 1.0:
+            raise ValueError("sensitivity must be between 0.0 and 1.0")
         self._wake_phrase = normalized
+        self._sensitivity = sensitivity
 
     @property
     def wake_phrase(self) -> str:
         """Configured normalized wake phrase."""
         return self._wake_phrase
 
+    @property
+    def sensitivity(self) -> float:
+        """Configured wake-phrase match sensitivity threshold."""
+        return self._sensitivity
+
     def detect(self, transcript: str) -> WakeMatchResult:
         """Return wake match result for transcript text."""
         normalized = self._normalize(transcript)
         if not normalized:
-            return WakeMatchResult(matched=False, normalized_transcript="")
+            return WakeMatchResult(matched=False, normalized_transcript="", score=0.0)
 
-        matched = self._wake_phrase in normalized
-        return WakeMatchResult(matched=matched, normalized_transcript=normalized)
+        if self._wake_phrase in normalized:
+            return WakeMatchResult(matched=True, normalized_transcript=normalized, score=1.0)
+
+        score = self._best_window_similarity(normalized)
+        return WakeMatchResult(
+            matched=score >= self._sensitivity,
+            normalized_transcript=normalized,
+            score=score,
+        )
+
+    def _best_window_similarity(self, normalized_transcript: str) -> float:
+        transcript_tokens = normalized_transcript.split()
+        wake_tokens = self._wake_phrase.split()
+        wake_len = len(wake_tokens)
+
+        if len(transcript_tokens) < wake_len:
+            return SequenceMatcher(None, normalized_transcript, self._wake_phrase).ratio()
+
+        best = 0.0
+        for index in range(len(transcript_tokens) - wake_len + 1):
+            window = " ".join(transcript_tokens[index : index + wake_len])
+            best = max(best, SequenceMatcher(None, window, self._wake_phrase).ratio())
+        return best
 
     @staticmethod
     def _normalize(text: str) -> str:

@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import pytest
+from typing import Any, cast
 
+from voicekey.actions.router import ActionRouter
 from voicekey.app.main import RuntimeCoordinator
 from voicekey.app.routing_policy import RuntimeRoutingPolicy
 from voicekey.app.state_machine import (
@@ -13,7 +15,25 @@ from voicekey.app.state_machine import (
     ListeningMode,
     VoiceKeyStateMachine,
 )
+from voicekey.audio.asr_faster_whisper import TranscriptEvent
 from voicekey.audio.wake import WakeWindowController
+
+
+class RecordingKeyboardBackend:
+    def __init__(self) -> None:
+        self.keys: list[str] = []
+        self.combos: list[tuple[str, ...]] = []
+        self.texts: list[str] = []
+
+    def press_key(self, key: str) -> None:
+        self.keys.append(key)
+
+    def press_combo(self, keys: list[str]) -> None:
+        self.combos.append(tuple(keys))
+
+    def type_text(self, text: str, delay_ms: int = 0) -> None:
+        del delay_ms
+        self.texts.append(text)
 
 
 class FakeClock:
@@ -63,6 +83,21 @@ def test_non_wake_transcript_in_standby_does_not_transition_or_open_window() -> 
     assert update.routed_text is None
     assert coordinator.state is AppState.STANDBY
     assert coordinator.is_wake_window_open is False
+
+
+def test_standby_wake_phrase_is_ignored_when_vad_is_inactive() -> None:
+    coordinator = RuntimeCoordinator(
+        state_machine=VoiceKeyStateMachine(
+            mode=ListeningMode.WAKE_WORD,
+            initial_state=AppState.STANDBY,
+        ),
+    )
+
+    update = coordinator.on_transcript("voice key", vad_active=False)
+
+    assert update.wake_detected is False
+    assert update.transition is None
+    assert coordinator.state is AppState.STANDBY
 
 
 def test_wake_window_timeout_transitions_listening_to_standby() -> None:
@@ -270,3 +305,75 @@ def test_race_style_invalid_interleaving_is_state_machine_guarded() -> None:
 
     with pytest.raises(InvalidTransitionError):
         machine.transition(AppEvent.RESUME_REQUESTED)
+
+
+def test_listening_state_routes_literal_text_output() -> None:
+    routed_texts: list[str] = []
+    coordinator = RuntimeCoordinator(
+        state_machine=VoiceKeyStateMachine(
+            mode=ListeningMode.WAKE_WORD,
+            initial_state=AppState.STANDBY,
+        ),
+        text_output=routed_texts.append,
+    )
+
+    coordinator.on_transcript("voice key")
+    update = coordinator.on_transcript("hello from runtime")
+
+    assert update.transition is None
+    assert update.routed_text == "hello from runtime"
+    assert routed_texts == ["hello from runtime"]
+
+
+def test_listening_state_routes_command_to_action_router() -> None:
+    keyboard = RecordingKeyboardBackend()
+    router = ActionRouter(keyboard_backend=cast(Any, keyboard))  # type: ignore[arg-type]
+    coordinator = RuntimeCoordinator(
+        state_machine=VoiceKeyStateMachine(
+            mode=ListeningMode.WAKE_WORD,
+            initial_state=AppState.STANDBY,
+        ),
+        action_router=router,
+    )
+
+    coordinator.on_transcript("voice key")
+    update = coordinator.on_transcript("new line command")
+
+    assert update.executed_command_id == "new_line"
+    assert keyboard.keys == ["enter"]
+
+
+def test_listening_pause_system_phrase_transitions_to_paused() -> None:
+    coordinator = RuntimeCoordinator(
+        state_machine=VoiceKeyStateMachine(
+            mode=ListeningMode.WAKE_WORD,
+            initial_state=AppState.STANDBY,
+        ),
+    )
+
+    coordinator.on_transcript("voice key")
+    update = coordinator.on_transcript("pause voice key")
+
+    assert update.transition is not None
+    assert update.transition.to_state is AppState.PAUSED
+    assert coordinator.state is AppState.PAUSED
+
+
+def test_low_confidence_transcript_event_is_dropped_before_routing() -> None:
+    routed_texts: list[str] = []
+    coordinator = RuntimeCoordinator(
+        state_machine=VoiceKeyStateMachine(
+            mode=ListeningMode.WAKE_WORD,
+            initial_state=AppState.STANDBY,
+        ),
+        text_output=routed_texts.append,
+    )
+
+    coordinator.on_transcript("voice key")
+    update = coordinator.on_transcript_event(
+        TranscriptEvent(text="low confidence text", is_final=True, confidence=0.1)
+    )
+
+    assert update.transition is None
+    assert update.routed_text is None
+    assert routed_texts == []
