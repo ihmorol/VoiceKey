@@ -47,11 +47,17 @@ class ActionRouter:
             return ActionRouteResult(handled=False, route=None)
 
         if custom_action.action_type is CustomActionType.KEY_COMBO:
-            assert custom_action.keys is not None
+            if custom_action.keys is None:
+                raise ValueError(
+                    f"Custom action '{command_id}' has action_type KEY_COMBO but keys is None"
+                )
             self._keyboard_backend.press_combo(list(custom_action.keys))
             return ActionRouteResult(handled=True, route="custom_key_combo")
 
-        assert custom_action.text is not None
+        if custom_action.text is None:
+            raise ValueError(
+                f"Custom action '{command_id}' has action_type TEXT but text is None"
+            )
         self._keyboard_backend.type_text(custom_action.text)
         return ActionRouteResult(handled=True, route="custom_text")
 

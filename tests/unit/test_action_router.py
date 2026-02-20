@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+import pytest
+
 from voicekey.actions.router import ActionRouter
 from voicekey.commands.custom import CustomActionType, CustomCommandAction
 
@@ -116,3 +118,43 @@ def test_router_returns_unhandled_for_unknown_command() -> None:
 
     assert result.handled is False
     assert result.route is None
+
+
+class TestCustomActionValidation:
+    """Tests for custom action validation (replaces production assertions)."""
+
+    def test_key_combo_action_with_none_keys_raises_valueerror(self) -> None:
+        """Test that KEY_COMBO action with None keys raises ValueError."""
+        keyboard = RecordingKeyboardBackend()
+        router = ActionRouter(
+            keyboard_backend=keyboard,
+            custom_actions={
+                "custom_broken": CustomCommandAction(
+                    command_id="custom_broken",
+                    phrase="broken",
+                    action_type=CustomActionType.KEY_COMBO,
+                    keys=None,  # Invalid: should have keys
+                )
+            },
+        )
+
+        with pytest.raises(ValueError, match="KEY_COMBO but keys is None"):
+            router.dispatch("custom_broken")
+
+    def test_text_action_with_none_text_raises_valueerror(self) -> None:
+        """Test that TEXT action with None text raises ValueError."""
+        keyboard = RecordingKeyboardBackend()
+        router = ActionRouter(
+            keyboard_backend=keyboard,
+            custom_actions={
+                "custom_broken": CustomCommandAction(
+                    command_id="custom_broken",
+                    phrase="broken",
+                    action_type=CustomActionType.TEXT,
+                    text=None,  # Invalid: should have text
+                )
+            },
+        )
+
+        with pytest.raises(ValueError, match="TEXT but text is None"):
+            router.dispatch("custom_broken")
