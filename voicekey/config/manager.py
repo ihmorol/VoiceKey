@@ -173,19 +173,62 @@ def _set_secure_file_permissions(path: Path) -> None:
 
 
 def backup_config(path: Path) -> Path:
-    """Create timestamped backup and return new path."""
+    """Create timestamped backup and return new path.
+    
+    Uses atomic write via temp file + rename to prevent corruption
+    if the process is interrupted during write.
+    """
+    import tempfile
+    
     timestamp = datetime.now(tz=UTC).strftime("%Y%m%d%H%M%S")
     backup_path = path.with_suffix(f".yaml.bak.{timestamp}")
-    backup_path.write_text(path.read_text(encoding="utf-8"), encoding="utf-8")
-    _set_secure_file_permissions(backup_path)
+    
+    # Atomic write: write to temp file, then rename
+    backup_path.parent.mkdir(parents=True, exist_ok=True)
+    fd, temp_path = tempfile.mkstemp(
+        dir=backup_path.parent,
+        prefix=backup_path.name,
+        suffix=".tmp"
+    )
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write(path.read_text(encoding="utf-8"))
+        os.replace(temp_path, backup_path)
+        _set_secure_file_permissions(backup_path)
+    except Exception:
+        # Clean up temp file on failure
+        if os.path.exists(temp_path):
+            os.unlink(temp_path)
+        raise
     return backup_path
 
 
 def save_config(config: VoiceKeyConfig, path: Path) -> None:
-    """Persist validated config to disk."""
+    """Persist validated config to disk.
+    
+    Uses atomic write via temp file + rename to prevent corruption
+    if the process is interrupted during write.
+    """
+    import tempfile
+    
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(serialize_config(config), encoding="utf-8")
-    _set_secure_file_permissions(path)
+    
+    # Atomic write: write to temp file, then rename
+    fd, temp_path = tempfile.mkstemp(
+        dir=path.parent,
+        prefix=path.name,
+        suffix=".tmp"
+    )
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write(serialize_config(config))
+        os.replace(temp_path, path)
+        _set_secure_file_permissions(path)
+    except Exception:
+        # Clean up temp file on failure
+        if os.path.exists(temp_path):
+            os.unlink(temp_path)
+        raise
 
 
 def load_config(
