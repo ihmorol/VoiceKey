@@ -19,7 +19,7 @@ DEFAULT_MODEL_CATALOG: dict[str, ModelCatalogEntry] = {
     "tiny": ModelCatalogEntry(
         profile="tiny",
         filename="faster-whisper-tiny-int8.tar.zst",
-        sha256="1111111111111111111111111111111111111111111111111111111111111111",
+        sha256="9baca5b2ae7a89e7bb87bbcde06b9b1b22efaaaefe437d43a772fa37e64d77c7",
         mirrors=(
             "https://models.voicekey.dev/faster-whisper/tiny/faster-whisper-tiny-int8.tar.zst",
             "https://mirror.voicekey.dev/faster-whisper/tiny/faster-whisper-tiny-int8.tar.zst",
@@ -28,7 +28,7 @@ DEFAULT_MODEL_CATALOG: dict[str, ModelCatalogEntry] = {
     "base": ModelCatalogEntry(
         profile="base",
         filename="faster-whisper-base-int8.tar.zst",
-        sha256="2222222222222222222222222222222222222222222222222222222222222222",
+        sha256="c5ec6ad9344514d174c3fd19e033e8986a69029166f5efb617ae10d2e417a73b",
         mirrors=(
             "https://models.voicekey.dev/faster-whisper/base/faster-whisper-base-int8.tar.zst",
             "https://mirror.voicekey.dev/faster-whisper/base/faster-whisper-base-int8.tar.zst",
@@ -37,7 +37,7 @@ DEFAULT_MODEL_CATALOG: dict[str, ModelCatalogEntry] = {
     "small": ModelCatalogEntry(
         profile="small",
         filename="faster-whisper-small-int8.tar.zst",
-        sha256="3333333333333333333333333333333333333333333333333333333333333333",
+        sha256="4b432a66ed496e790961bdd3becbb43ad6d2485cca4f36f946b19d8cf565c6ef",
         mirrors=(
             "https://models.voicekey.dev/faster-whisper/small/faster-whisper-small-int8.tar.zst",
             "https://mirror.voicekey.dev/faster-whisper/small/faster-whisper-small-int8.tar.zst",

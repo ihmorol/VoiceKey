@@ -43,7 +43,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--timestamp-url",
-        default=os.getenv("VOICEKEY_SIGN_TIMESTAMP_URL", "http://timestamp.digicert.com"),
+        default=os.getenv("VOICEKEY_SIGN_TIMESTAMP_URL", "https://timestamp.digicert.com"),
         help="RFC3161 timestamp URL for signing.",
     )
     return parser.parse_args()
