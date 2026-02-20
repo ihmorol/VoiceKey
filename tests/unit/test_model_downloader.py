@@ -96,3 +96,77 @@ def test_download_profile_raises_when_all_mirrors_fail(tmp_path) -> None:
 
     with pytest.raises(ModelDownloadError):
         downloader.download_profile(profile="base", model_dir=tmp_path / "models", entry=entry)
+
+
+def test_download_profile_rejects_http_url_as_security_violation(tmp_path) -> None:
+    """Security: HTTP URLs must be rejected to prevent MITM attacks."""
+    entry = ModelCatalogEntry(
+        profile="base",
+        filename="model.bin",
+        sha256="a" * 64,
+        mirrors=("http://insecure.example.com/model.bin",),
+    )
+
+    downloader = ModelDownloader()
+
+    with pytest.raises(ModelDownloadError) as exc_info:
+        downloader.download_profile(profile="base", model_dir=tmp_path / "models", entry=entry)
+
+    assert "HTTPS" in str(exc_info.value)
+    assert "insecure" in str(exc_info.value).lower()
+
+
+def test_download_profile_rejects_http_url_with_uppercase_scheme(tmp_path) -> None:
+    """Security: HTTP URLs with any casing must be rejected."""
+    entry = ModelCatalogEntry(
+        profile="base",
+        filename="model.bin",
+        sha256="a" * 64,
+        mirrors=("HTTP://insecure.example.com/model.bin",),
+    )
+
+    downloader = ModelDownloader()
+
+    with pytest.raises(ModelDownloadError) as exc_info:
+        downloader.download_profile(profile="base", model_dir=tmp_path / "models", entry=entry)
+
+    assert "HTTPS" in str(exc_info.value)
+
+
+def test_download_profile_accepts_https_url(tmp_path) -> None:
+    """Security: HTTPS URLs should be accepted (will fail for other reasons here)."""
+    entry = ModelCatalogEntry(
+        profile="base",
+        filename="model.bin",
+        sha256="a" * 64,
+        mirrors=("https://secure.example.com/model.bin",),
+    )
+
+    downloader = ModelDownloader()
+
+    # Should fail due to network/missing file, NOT due to HTTPS rejection
+    with pytest.raises(ModelDownloadError) as exc_info:
+        downloader.download_profile(profile="base", model_dir=tmp_path / "models", entry=entry)
+
+    # Should NOT contain HTTP rejection message
+    assert "Security: model downloads require HTTPS" not in str(exc_info.value)
+
+
+def test_download_profile_accepts_file_url_for_local_testing(tmp_path) -> None:
+    """Security: file:// URLs are allowed for local files (no MITM risk)."""
+    payload = b"local-model"
+    source = tmp_path / "local-model.bin"
+    source.write_bytes(payload)
+
+    entry = ModelCatalogEntry(
+        profile="local",
+        filename="local.bin",
+        sha256=_sha256_for_bytes(payload),
+        mirrors=(source.as_uri(),),  # file:// URL
+    )
+
+    downloader = ModelDownloader()
+    result = downloader.download_profile(profile="local", model_dir=tmp_path / "models", entry=entry)
+
+    assert result.reused_existing is False
+    assert result.target_path.read_bytes() == payload

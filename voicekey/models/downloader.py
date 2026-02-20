@@ -105,8 +105,15 @@ class ModelDownloader:
         )
 
     def _download_url_to_file(self, url: str, target_path: Path) -> None:
+        # Security: Only allow HTTPS for remote downloads. file:// URLs are allowed
+        # for local files which don't pose a MITM risk.
+        url_lower = url.lower()
+        if url_lower.startswith("http://"):
+            raise ModelDownloadError(
+                f"Security: model downloads require HTTPS. Rejected insecure URL: {url}"
+            )
         request = Request(url, headers={"User-Agent": "voicekey-model-downloader/1"})
-        with urlopen(request, timeout=self._timeout_seconds) as response:  # noqa: S310
+        with urlopen(request, timeout=self._timeout_seconds) as response:
             with target_path.open("wb") as handle:
                 while True:
                     chunk = response.read(self._chunk_size)
