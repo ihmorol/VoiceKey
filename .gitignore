@@ -55,3 +55,4 @@ voicekey/models/*.pt
 .agent
 .kilo
 .opencode
+analysis

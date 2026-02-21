@@ -123,6 +123,13 @@ def list_devices() -> list[dict]:
         - sample_rate: Supported sample rates
         - default: Whether this is the system default
     """
+    # Check if sounddevice is available (PortAudio installed)
+    if sd is None:
+        logger.error("sounddevice not available: PortAudio library not found. "
+                     "Install with: sudo apt install libportaudio2 portaudio19-dev (Linux) "
+                     "or download from https://www.portaudio.com/ (Windows)")
+        return []
+    
     try:
         devices = sd.query_devices(kind="input")
         # Handle single device or multiple devices
@@ -155,11 +162,19 @@ def get_default_device() -> Optional[dict]:
     Returns:
         Dictionary with device information or None if no default found
     """
+    # Check if sounddevice is available
+    if sd is None:
+        logger.warning("sounddevice not available: PortAudio library not found")
+        return None
+    
     try:
         default_info = sd.query_devices(kind="input")
         if default_info is None:
             return None
-        return _format_device_info(default_info, default_info.get("default_input"), is_default=True)
+        default_index = default_info.get("default_input", 0)
+        if default_index is None:
+            default_index = 0
+        return _format_device_info(default_info, default_index, is_default=True)
     except Exception as e:
         logger.warning("Could not get default device: %s", e)
         return None
@@ -209,8 +224,8 @@ class AudioCapture:
         # Audio queue with backpressure
         self._audio_queue: queue.Queue[AudioFrame] = queue.Queue(maxsize=queue_size)
 
-        # Stream handle
-        self._stream: Optional[sd.InputStream] = None
+        # Stream handle (type depends on sounddevice availability)
+        self._stream = None  # Will be sd.InputStream when available
 
         # Device info cache
         self._device_info: Optional[dict] = None
@@ -225,14 +240,20 @@ class AudioCapture:
         Raises:
             AudioDeviceNotFoundError: Device doesn't exist
             AudioDeviceBusyError: Device is busy
+            RuntimeError: sounddevice not available
         """
+        # Check if sounddevice is available
+        if sd is None:
+            raise RuntimeError("sounddevice not available: PortAudio library not found. "
+                             "Install with: sudo apt install libportaudio2 portaudio19-dev (Linux)")
+        
         try:
             devices = sd.query_devices(device_index)
             if devices is None:
                 raise AudioDeviceNotFoundError(device_index)
             if devices.get("max_input_channels", 0) < 1:
                 raise AudioDeviceNotFoundError(device_index, "Device has no input channels")
-        except sd.PortAudioError as e:
+        except Exception as e:
             if "Invalid device" in str(e):
                 raise AudioDeviceNotFoundError(device_index) from e
             raise AudioDeviceBusyError(device_index, str(e)) from e
@@ -244,7 +265,13 @@ class AudioCapture:
             AudioDeviceNotFoundError: No microphone found
             AudioDeviceBusyError: Device is in use
             AudioDeviceDisconnectedError: Device removed during operation
+            RuntimeError: sounddevice not available
         """
+        # Check if sounddevice is available
+        if sd is None:
+            raise RuntimeError("sounddevice not available: PortAudio library not found. "
+                             "Install with: sudo apt install libportaudio2 portaudio19-dev (Linux)")
+        
         with self._lock:
             if self._is_running:
                 logger.warning("AudioCapture already running")
@@ -274,7 +301,8 @@ class AudioCapture:
                     callback=self._audio_callback,
                 )
 
-                assert self._stream is not None
+                if self._stream is None:
+                    raise AudioDeviceNotFoundError(message="Failed to create audio stream")
                 self._stream.start()
                 self._is_running = True
                 logger.info(
@@ -285,7 +313,7 @@ class AudioCapture:
                     self._frames_per_chunk,
                 )
 
-            except sd.PortAudioError as e:
+            except Exception as e:
                 error_msg = str(e).lower()
                 if "invalid device" in error_msg or "device not found" in error_msg:
                     raise AudioDeviceNotFoundError(self._device_index) from e
@@ -294,10 +322,8 @@ class AudioCapture:
                 elif "disconnected" in error_msg or "unexpectedly" in error_msg:
                     raise AudioDeviceDisconnectedError(str(e)) from e
                 else:
+                    logger.error("Failed to start audio capture: %s", e)
                     raise
-            except Exception as e:
-                logger.error("Failed to start audio capture: %s", e)
-                raise
 
     def stop(self) -> None:
         """Stop audio capture streaming.
