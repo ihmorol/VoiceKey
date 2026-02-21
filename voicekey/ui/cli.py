@@ -27,7 +27,15 @@ from voicekey.config.manager import (
 )
 from voicekey.config.schema import default_config, validate_with_fallback
 from voicekey.platform.keyboard_base import KeyboardBackend
-from voicekey.platform.keyboard_linux import LinuxKeyboardBackend
+
+# Platform-specific keyboard backend import
+if sys.platform == "linux":
+    from voicekey.platform.keyboard_linux import LinuxKeyboardBackend
+elif sys.platform == "win32":
+    from voicekey.platform.keyboard_windows import WindowsKeyboardBackend as LinuxKeyboardBackend
+else:
+    LinuxKeyboardBackend = None  # type: ignore
+
 from voicekey.ui.daemon import resolve_daemon_start_behavior
 from voicekey.ui.exit_codes import ExitCode
 from voicekey.ui.onboarding import run_onboarding
@@ -110,7 +118,7 @@ def _create_tray_handlers() -> TrayActionHandlers:
 
 def _start_tray_update_thread() -> None:
     """Start background thread to sync tray state with coordinator."""
-    global _tray_controller, _tray_backend, _tray_stop_event
+    global _tray_controller, _tray_backend, _tray_stop_event, _tray_update_thread
 
     if _tray_controller is None or _tray_backend is None:
         return
@@ -118,17 +126,19 @@ def _start_tray_update_thread() -> None:
     _tray_stop_event = threading.Event()
 
     def update_loop() -> None:
-        while not _tray_stop_event.is_set():
+        while _tray_stop_event is not None and not _tray_stop_event.is_set():
             if _tray_controller is not None and _coordinator is not None:
                 # Sync state from coordinator to tray
                 try:
                     _tray_controller.set_runtime_state(_coordinator.state)
                     _tray_controller.set_runtime_active(_coordinator.is_running)
-                    _tray_backend.update_icon()
+                    if _tray_backend is not None:
+                        _tray_backend.update_icon()
                 except Exception:
                     pass  # Ignore sync errors
 
-            _tray_stop_event.wait(0.5)  # Update every 500ms
+            if _tray_stop_event is not None:
+                _tray_stop_event.wait(0.5)  # Update every 500ms
 
     _tray_update_thread = threading.Thread(target=update_loop, daemon=True)
     _tray_update_thread.start()
@@ -136,7 +146,7 @@ def _start_tray_update_thread() -> None:
 
 def _stop_tray_update_thread() -> None:
     """Stop the tray state update thread."""
-    global _tray_stop_event
+    global _tray_stop_event, _tray_update_thread
     if _tray_stop_event is not None:
         _tray_stop_event.set()
     if _tray_update_thread is not None:
@@ -347,10 +357,13 @@ def start_command(
 
     # Create keyboard backend
     keyboard_backend: KeyboardBackend | None = None
-    try:
-        keyboard_backend = LinuxKeyboardBackend()
-    except Exception as e:
-        click.echo(f"Warning: Could not initialize keyboard backend: {e}", err=True)
+    if LinuxKeyboardBackend is not None:
+        try:
+            keyboard_backend = LinuxKeyboardBackend()
+        except Exception as e:
+            click.echo(f"Warning: Could not initialize keyboard backend: {e}", err=True)
+    else:
+        click.echo(f"Warning: Keyboard backend not available for platform: {sys.platform}", err=True)
 
     # Create and start coordinator
     runtime_state = "stub"
