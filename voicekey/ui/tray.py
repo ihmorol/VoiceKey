@@ -5,8 +5,12 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 from enum import StrEnum
+from typing import TYPE_CHECKING
 
 from voicekey.app.state_machine import AppState
+
+if TYPE_CHECKING:
+    from pystray import Icon
 
 
 class TrayIndicatorState(StrEnum):
@@ -88,7 +92,7 @@ class TrayController:
     @property
     def indicator_state(self) -> TrayIndicatorState:
         """Current tray indicator state mapped from runtime state."""
-        return _APP_STATE_TO_TRAY_STATE[self._runtime_state]
+        return _APP_STATE_TO_TRAY_STATE.get(self._runtime_state, TrayIndicatorState.ERROR)
 
     def set_runtime_state(self, state: AppState) -> None:
         """Update runtime state reflected by tray indicator/menu labels."""
@@ -153,9 +157,9 @@ class TrayController:
 
 # Optional dependency - pystray for system tray icon
 _pystray_available: bool = False
-_Icon: "type" | None = None
-_Menu: "type" | None = None
-_Item: "type" | None = None
+_Icon = None  # type: ignore[misc,assignment]
+_Menu = None  # type: ignore[misc,assignment]
+_Item = None  # type: ignore[misc,assignment]
 
 try:
     from pystray import Icon, Menu, MenuItem
@@ -184,7 +188,7 @@ class TrayIconBackend:
         self._controller = controller
         self._app_name = app_name
         self._icon_path = icon_path
-        self._icon: Icon | None = None
+        self._icon = None  # pystray.Icon instance
         self._running = False
 
     @classmethod
@@ -196,14 +200,13 @@ class TrayIconBackend:
         # (e.g., checking for DISPLAY on Linux)
         return True
 
-    def _create_icon(self) -> Icon | None:
+    def _create_icon(self):  # type: ignore[no-untyped-def]
         """Create a pystray Icon instance with menu items."""
         if not self.is_available():
             return None
 
-        assert _Icon is not None
-        assert _Menu is not None
-        assert _Item is not None
+        if _Icon is None or _Menu is None or _Item is None:
+            return None
 
         def on_start_stop() -> None:
             self._controller.trigger_action(TrayAction.START_OR_STOP)
