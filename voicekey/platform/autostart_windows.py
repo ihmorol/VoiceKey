@@ -19,7 +19,9 @@ DirectoryProbeFn = Callable[[Path], DirectoryProbe]
 class WindowsAutostartAdapter:
     """Validate Windows autostart prerequisites with deterministic diagnostics."""
 
-    _RUN_KEY = r"HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run"
+    # Registry key path for Windows Run (autostart)
+    # Using normal string with escaped backslashes (not raw string with double backslashes)
+    _RUN_KEY = "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run"
 
     def __init__(
         self,
