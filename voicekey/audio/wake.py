@@ -149,5 +149,10 @@ class WakeWindowController:
         return True
 
     def _is_expired(self) -> bool:
-        assert self._last_activity_at is not None
+        """Check if the wake window has expired.
+        
+        Returns True if expired or if _last_activity_at is None (no activity recorded).
+        """
+        if self._last_activity_at is None:
+            return True
         return (self._time_provider() - self._last_activity_at) >= self._timeout_seconds
