@@ -36,9 +36,9 @@ detect_os() {
 check_python() {
     log "Checking Python installation..."
     
-    if command -v python3 &> /dev/null && command -v python3 -m venv &> /dev/null; then
+    if command -v python3 &> /dev/null && python3 -m venv --help &> /dev/null; then
         PYTHON_CMD="python3"
-    elif command -v python &> /dev/null && command -v python -m venv &> /dev/null; then
+    elif command -v python &> /dev/null && python -m venv --help &> /dev/null; then
         PYTHON_CMD="python"
     else
         error "Python not found. Please install Python 3.11+."
@@ -53,17 +53,20 @@ check_python() {
     fi
     
     log "Python version: $PYTHON_VERSION"
-    
-    if [[ "$PYTHON_MAJOR" -eq 3 ]] && [[ "$PYTHON_MINOR" -ge 11 ]]; then
-        log "System Python is sufficient - skipping system dependency install."
-        SKIP_SYSTEM_DEPS=1
-    fi
 }
 
 check_linux_deps() {
-    if [ "$SKIP_SYSTEM_DEPS" -eq 1 ]; then
+    # Check for PortAudio - required for audio capture
+    if pkg-config --exists portaudio-2.0 2>/dev/null; then
+        log "PortAudio is already installed."
         return 0
     fi
+    # Also check for the library directly
+    if ldconfig -p 2>/dev/null | grep -q "libportaudio"; then
+        log "PortAudio library found."
+        return 0
+    fi
+    log "PortAudio not found - will need to install system dependencies."
     return 1
 }
 
