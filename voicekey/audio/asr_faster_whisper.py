@@ -21,6 +21,7 @@ from queue import Queue
 from typing import AsyncGenerator, Dict, List, Optional
 
 import numpy as np
+from scipy import signal as scipy_signal
 
 logger = logging.getLogger(__name__)
 
@@ -395,6 +396,13 @@ class ASREngine:
         if audio.ndim > 1:
             audio = audio.mean(axis=1)
 
+        # Resample to 16kHz if needed (faster-whisper expects 16kHz)
+        target_sample_rate = 16000
+        if self._sample_rate != target_sample_rate:
+            original_length = len(audio)
+            target_length = int(original_length * target_sample_rate / self._sample_rate)
+            audio = scipy_signal.resample_poly(audio, target_length, original_length).astype(np.float32)
+
         # If timeout is disabled (0), run directly
         if self._transcription_timeout <= 0:
             return self._transcribe_internal(audio)
@@ -442,12 +450,19 @@ class ASREngine:
         Raises:
             TranscriptionError: If transcription fails
         """
+        # Resample to 16kHz if needed (faster-whisper expects 16kHz)
+        target_sample_rate = 16000
+        if self._sample_rate != target_sample_rate:
+            original_length = len(audio)
+            target_length = int(original_length * target_sample_rate / self._sample_rate)
+            audio = scipy_signal.resample_poly(audio, target_length, original_length).astype(np.float32)
+
         try:
             # Run transcription
             segments, info = self._model.transcribe(
                 audio,
                 beam_size=5,
-                vad_filter=True,
+                vad_filter=False,
                 vad_parameters=dict(min_silence_duration_ms=500),
             )
 
@@ -611,7 +626,7 @@ class ASREngine:
             segments, info = self._model.transcribe(
                 audio,
                 beam_size=5,
-                vad_filter=True,
+                vad_filter=False,
                 vad_parameters=dict(min_silence_duration_ms=500),
             )
 
