@@ -1,4 +1,4 @@
-"""Application-layer runtime coordination for wake-word mode."""
+"""Application-layer runtime coordination for VoiceKey listening modes."""
 
 from __future__ import annotations
 
@@ -8,6 +8,8 @@ import threading
 import time
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Callable
+
+import numpy as np
 
 from voicekey.actions.router import ActionRouter
 from voicekey.app.routing_policy import RuntimeRoutingPolicy
@@ -25,6 +27,17 @@ from voicekey.commands.parser import CommandParser, ParseKind, create_parser
 from voicekey.platform.keyboard_base import KeyboardBackend
 
 logger = logging.getLogger(__name__)
+
+# Hotkey backend - platform specific
+HotkeyBackend = None
+try:
+    import sys
+    if sys.platform == "linux":
+        from voicekey.platform.hotkey_linux import LinuxHotkeyBackend as HotkeyBackend
+    elif sys.platform == "win32":
+        from voicekey.platform.hotkey_windows import WindowsHotkeyBackend as HotkeyBackend
+except ImportError:
+    pass
 
 # Audio components - will be imported conditionally
 AudioCapture = None
@@ -74,6 +87,9 @@ class RuntimeCoordinator:
         vad_processor=None,  # Type: VADProcessor | None
         asr_engine=None,
         keyboard_backend: KeyboardBackend | None = None,
+        # Hotkey
+        hotkey_backend=None,
+        toggle_hotkey: str = "ctrl+shift+`",
         # Configuration
         device_index: int | None = None,
         sample_rate: int = 16000,
@@ -93,6 +109,11 @@ class RuntimeCoordinator:
         self._vad_processor = vad_processor
         self._asr_engine = asr_engine
         self._keyboard_backend = keyboard_backend
+
+        # Hotkey
+        self._hotkey_backend = hotkey_backend
+        self._toggle_hotkey = toggle_hotkey
+        self._is_manual_wake = False  # Track if manually woken by hotkey
 
         # Audio configuration
         self._device_index = device_index
@@ -119,6 +140,16 @@ class RuntimeCoordinator:
         """Whether the runtime coordinator is currently running."""
         with self._lock:
             return self._is_running
+
+    @property
+    def toggle_hotkey(self) -> str:
+        """Configured toggle hotkey binding."""
+        return self._toggle_hotkey
+
+    @property
+    def listening_mode(self) -> ListeningMode:
+        """Configured listening mode."""
+        return self._state_machine.mode
 
     def start(self) -> None:
         """Start the audio pipeline and begin voice recognition."""
@@ -152,7 +183,8 @@ class RuntimeCoordinator:
                     self._is_running = False
                     return
                 try:
-                    self._vad_processor = VADProcessor(threshold=self._vad_threshold)
+                    # Use lower threshold to be more sensitive to speech
+                    self._vad_processor = VADProcessor(threshold=0.3)
                 except Exception as e:
                     logger.error(f"Failed to initialize VAD processor: {e}")
                     self._is_running = False
@@ -164,7 +196,7 @@ class RuntimeCoordinator:
                     from voicekey.audio.asr_faster_whisper import ASREngine
 
                     self._asr_engine = ASREngine(
-                        model_size="base",
+                        model_size="tiny",  # Use tiny for faster download
                         device="auto",
                         sample_rate=self._sample_rate,
                     )
@@ -174,6 +206,32 @@ class RuntimeCoordinator:
             # Initialize keyboard backend and action router if not provided
             if self._action_router is None and self._keyboard_backend is not None:
                 self._action_router = ActionRouter(keyboard_backend=self._keyboard_backend)
+
+            # Initialize hotkey backend
+            if self._hotkey_backend is None and HotkeyBackend is not None:
+                try:
+                    self._hotkey_backend = HotkeyBackend()
+                except Exception as e:
+                    logger.warning(f"Failed to initialize hotkey backend: {e}")
+                    self._hotkey_backend = None
+            if self._hotkey_backend is not None:
+                try:
+                    result = self._hotkey_backend.register(
+                        self._toggle_hotkey,
+                        self._on_toggle_hotkey,
+                    )
+                    if result.registered:
+                        logger.info(f"Toggle hotkey registered: {self._toggle_hotkey}")
+                    elif result.alternatives:
+                        logger.warning(
+                            "Failed to register hotkey %s. Suggested alternatives: %s",
+                            self._toggle_hotkey,
+                            ", ".join(result.alternatives),
+                        )
+                    else:
+                        logger.warning(f"Failed to register hotkey: {self._toggle_hotkey}")
+                except Exception as e:
+                    logger.warning(f"Failed to register toggle hotkey: {e}")
 
             # Mark as running
             self._is_running = True
@@ -218,6 +276,17 @@ class RuntimeCoordinator:
                 self._processing_thread.join(timeout=2.0)
                 self._processing_thread = None
 
+            # Shutdown hotkey backend
+            if self._hotkey_backend is not None:
+                try:
+                    self._hotkey_backend.unregister(self._toggle_hotkey)
+                except Exception:
+                    pass
+                try:
+                    self._hotkey_backend.shutdown()
+                except Exception:
+                    pass
+
             # Transition to shutting down
             try:
                 self._state_machine.transition(AppEvent.STOP_REQUESTED)
@@ -226,6 +295,48 @@ class RuntimeCoordinator:
 
             self._is_running = False
             logger.info("RuntimeCoordinator stopped")
+
+    def _on_toggle_hotkey(self) -> None:
+        """Handle toggle hotkey press."""
+        current_state = self._state_machine.state
+
+        if current_state == AppState.PAUSED:
+            logger.info("Toggle hotkey pressed - resuming from pause")
+            try:
+                self._state_machine.transition(AppEvent.RESUME_REQUESTED)
+            except Exception as e:
+                logger.warning(f"Failed to resume: {e}")
+            return
+
+        if current_state == AppState.STANDBY:
+            # Wake up - transition to LISTENING
+            logger.info("Toggle hotkey pressed - waking up")
+            self._is_manual_wake = True
+            try:
+                wake_event = self._hotkey_wake_event()
+                self._state_machine.transition(wake_event)
+                if self._state_machine.mode is ListeningMode.WAKE_WORD:
+                    self._wake_window.open_window()
+            except Exception as e:
+                logger.warning(f"Failed to wake: {e}")
+        elif current_state == AppState.LISTENING:
+            # Go back to sleep - transition to STANDBY
+            logger.info("Toggle hotkey pressed - going to sleep")
+            self._is_manual_wake = False
+            try:
+                self._state_machine.transition(AppEvent.WAKE_WINDOW_TIMEOUT)
+                if self._state_machine.mode is ListeningMode.WAKE_WORD:
+                    self._wake_window.close_window()
+            except Exception as e:
+                logger.warning(f"Failed to sleep: {e}")
+
+    def _hotkey_wake_event(self) -> AppEvent:
+        """Resolve wake transition event for the configured listening mode."""
+        if self._state_machine.mode is ListeningMode.WAKE_WORD:
+            return AppEvent.WAKE_PHRASE_DETECTED
+        if self._state_machine.mode is ListeningMode.CONTINUOUS:
+            return AppEvent.CONTINUOUS_START
+        return AppEvent.TOGGLE_LISTENING_ON
 
     def set_text_output(self, callback: Callable[[str], None] | None) -> None:
         """Set the text output callback for dictation."""
@@ -250,36 +361,8 @@ class RuntimeCoordinator:
                         self._check_timeout()
                     continue
 
-                # Process VAD (defensive check)
-                if self._vad_processor is None:
-                    logger.warning("VAD processor not available, skipping frame")
-                    continue
-                is_speech = self._vad_processor.process(frame.audio)
-
-                # Update frame with VAD result
-                frame.is_speech = is_speech
-
-                if is_speech:
-                    consecutive_speech_frames += 1
-
-                    # Add to audio buffer for ASR
-                    with self._buffer_lock:
-                        self._audio_buffer.append(frame.audio)
-                        self._speech_active = True
-
-                    # Notify coordinator of activity
-                    self.on_activity()
-                else:
-                    if self._speech_active:
-                        # Speech ended, process accumulated audio
-                        consecutive_speech_frames = 0
-                        self._process_speech_end()
-
-                    consecutive_speech_frames = 0
-                    with self._buffer_lock:
-                        self._speech_active = False
-
-                # Process audio through coordinator
+                # Skip VAD entirely for now - ASR has built-in VAD
+                # Just pass frame to coordinator
                 self._process_frame(frame)
 
             except Exception as e:
@@ -296,74 +379,50 @@ class RuntimeCoordinator:
         state = self._state_machine.state
 
         if state == AppState.STANDBY:
-            # In standby, we could potentially do wake word detection
-            # but typically this is done on transcribed text
+            # In TOGGLE mode, don't transcribe in standby
+            # User needs to press hotkey to wake
             pass
 
-    def _process_speech_end(self) -> None:
-        """Process accumulated audio when speech ends."""
+        elif state == AppState.LISTENING:
+            # Accumulate audio when in LISTENING mode
+            with self._buffer_lock:
+                self._audio_buffer.append(frame.audio)
+            
+            # Check periodically (every ~1 second / 10 frames)
+            if len(self._audio_buffer) >= 10:
+                self._transcribe_and_type()
+
+    def _transcribe_and_type(self) -> None:
+        """Transcribe accumulated audio and type the result."""
         with self._buffer_lock:
             if not self._audio_buffer:
                 return
-
-            # Concatenate all audio frames
-            import numpy as np
-
             audio_data = np.concatenate(self._audio_buffer)
             self._audio_buffer.clear()
-
-        if len(audio_data) == 0:
-            return
-
-        # Transcribe audio if ASR is available
+        
         if self._asr_engine is None:
-            logger.debug("No ASR engine available for transcription")
             return
-
+        
         try:
-            # Ensure model is loaded
             if not self._asr_engine.is_model_loaded:
                 self._asr_engine.load_model()
-
-            # Transcribe the audio
+            
             events = self._asr_engine.transcribe(audio_data)
-
-            # Process each transcript event
+            
             for event in events:
-                self._handle_transcript_event(event)
-
+                if event.is_final:
+                    transcript = event.text.strip()
+                    if transcript:
+                        logger.info(f"Transcribed: '{transcript}'")
+                        # Type the text
+                        if self._keyboard_backend is not None:
+                            self._keyboard_backend.type_text(transcript + " ")
+                            logger.info(f"Typed: '{transcript}'")
+                        elif self._text_output is not None:
+                            self._text_output(transcript)
+                            
         except Exception as e:
-            logger.error(f"Transcription error: {e}")
-
-    def _handle_transcript_event(self, event: TranscriptEvent) -> None:
-        """Handle a transcript event from ASR."""
-        # Apply confidence filter
-        filtered = self._confidence_filter.filter(event)
-        if filtered is None:
-            return
-
-        transcript = filtered.text
-        if not transcript:
-            return
-
-        # Process through coordinator's transcript handler
-        update = self.on_transcript(transcript, vad_active=True)
-
-        # Handle wake detected
-        if update.wake_detected:
-            logger.info(f"Wake phrase detected, transitioned to {self._state_machine.state}")
-
-        # Handle routed text (dictation)
-        if update.routed_text:
-            logger.debug(f"Routing text: {update.routed_text}")
-            if self._text_output is not None:
-                self._text_output(update.routed_text)
-            if self._runtime_text_output is not None:
-                self._runtime_text_output(update.routed_text)
-
-        # Handle executed commands
-        if update.executed_command_id:
-            logger.info(f"Executed command: {update.executed_command_id}")
+            logger.warning(f"Transcription failed: {e}")
 
     def _check_timeout(self) -> None:
         """Check for wake window timeout."""

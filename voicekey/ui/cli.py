@@ -160,26 +160,36 @@ def _create_runtime_coordinator(
     keyboard_backend: KeyboardBackend | None = None,
 ) -> RuntimeCoordinator:
     """Create and configure a RuntimeCoordinator instance."""
-    # Get configuration values
-    model_profile = config.engine.model_profile if hasattr(config, 'engine') else 'base'
-    wake_phrase = config.wake_word.phrase if hasattr(config, 'wake_word') else 'voice key'
-    wake_sensitivity = config.wake_word.sensitivity if hasattr(config, 'wake_word') else 0.55
-    vad_threshold = config.vad.speech_threshold if hasattr(config, 'vad') else 0.5
-    wake_window_timeout = config.wake_word.wake_window_timeout_seconds if hasattr(config, 'wake_word') and hasattr(config.wake_word, 'wake_window_timeout_seconds') else 5.0
+    del runtime_paths
+    config_mode = getattr(getattr(config, "modes", None), "default", ListeningMode.WAKE_WORD.value)
+    if config_mode == ListeningMode.TOGGLE.value:
+        listening_mode = ListeningMode.TOGGLE
+    elif config_mode == ListeningMode.CONTINUOUS.value:
+        listening_mode = ListeningMode.CONTINUOUS
+    else:
+        listening_mode = ListeningMode.WAKE_WORD
 
-    # Create state machine
+    vad_threshold = getattr(getattr(config, "vad", None), "speech_threshold", 0.5)
+    sample_rate = getattr(getattr(config, "audio", None), "sample_rate_hz", 16000)
+    toggle_hotkey = getattr(
+        getattr(config, "hotkeys", None),
+        "toggle_listening",
+        "ctrl+shift+`",
+    )
+
     state_machine = VoiceKeyStateMachine(
-        mode=ListeningMode.WAKE_WORD,
+        mode=listening_mode,
         initial_state=AppState.INITIALIZING,
     )
 
-    # Create coordinator
+    # Create coordinator - sample rate will be auto-detected by AudioCapture if backend overrides it.
     coordinator = RuntimeCoordinator(
         state_machine=state_machine,
         keyboard_backend=keyboard_backend,
         device_index=device_index,
-        sample_rate=16000,
+        sample_rate=sample_rate,
         vad_threshold=vad_threshold,
+        toggle_hotkey=toggle_hotkey,
     )
 
     return coordinator
@@ -443,25 +453,42 @@ def start_command(
                 },
                 "runtime": "started" if _coordinator else "stub",
                 "state": _coordinator.state.value if _coordinator and _coordinator.is_running else "standby",
+                "listening_mode": _coordinator.listening_mode.value if _coordinator else None,
+                "toggle_hotkey": _coordinator.toggle_hotkey if _coordinator else None,
             },
         )
         return
 
     # In foreground mode, run until interrupted
+    active_hotkey = (
+        _coordinator.toggle_hotkey
+        if _coordinator is not None
+        else "ctrl+shift+`"
+    )
+    listening_mode = (
+        _coordinator.listening_mode
+        if _coordinator is not None
+        else ListeningMode.WAKE_WORD
+    )
     click.echo("VoiceKey started. Press Ctrl+C to stop.")
+    if listening_mode is ListeningMode.TOGGLE:
+        click.echo(f"Press {active_hotkey} to toggle listening mode.")
 
     # Wait in a loop, checking status
     try:
         while _coordinator is not None and _coordinator.is_running:
             state = _coordinator.state
             if state == AppState.STANDBY:
-                click.echo("\rListening for wake phrase...", nl=False)
+                if listening_mode is ListeningMode.TOGGLE:
+                    click.echo(f"\rSleeping... (press {active_hotkey} to wake)   ", nl=False)
+                else:
+                    click.echo("\rSleeping...                                     ", nl=False)
             elif state == AppState.LISTENING:
-                click.echo("\rListening for command...", nl=False)
+                click.echo("\rListening... (speak now)                 ", nl=False)
             elif state == AppState.PAUSED:
-                click.echo("\rPaused (say 'resume voice key' to continue)", nl=False)
+                click.echo("\rPaused                                     ", nl=False)
             else:
-                click.echo(f"\rState: {state.value}", nl=False)
+                click.echo(f"\rState: {state.value}                       ", nl=False)
 
             import time
             time.sleep(1)
