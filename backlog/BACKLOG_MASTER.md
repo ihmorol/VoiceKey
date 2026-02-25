@@ -10,7 +10,7 @@ Priority legend:
 
 ## Execution Status (Live)
 
-- Last updated: 2026-02-20
+- Last updated: 2026-02-25
 - E00-S01: complete (governance files and templates committed)
 - E00-S02: complete (semver/changelog policy documented in contribution flow)
 - E00-S03: complete (security disclosure SLA documented)
@@ -30,6 +30,7 @@ Priority legend:
 - E03-S05: complete (single-instance runtime lock and shutdown queue-drain timeout/discard safeguards verified)
 - E04-S01: complete (Linux/Windows keyboard adapters now share a typed contract with deterministic capability self-check and degraded-state reporting)
 - E04-S02: complete (hotkey register/unregister abstraction implemented with deterministic conflict alternatives)
+- E04-S02 maintenance: complete (runtime now honors configured `hotkeys.toggle_listening`, registers injected hotkey backends, and supports paused-state hotkey resume path)
 - E04-S03: complete (startup compatibility report now includes Wayland best-effort warnings, Windows admin guidance, and autostart adapter diagnostics)
 - E04-S04: complete (window backend contracts/adapters and dispatch mapping implemented; parser gate keeps window commands disabled by default)
 - E05-S01: complete (CLI now exposes required command surface with deterministic text/json output and stable usage error handling)

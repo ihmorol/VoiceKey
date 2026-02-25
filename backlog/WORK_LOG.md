@@ -1,5 +1,33 @@
 # Backlog Work Log
 
+## 2026-02-25
+
+- Debugged hotkey toggle runtime path and fixed configuration/runtime wiring mismatches for baseline feature usability.
+- Updated `voicekey/app/main.py`:
+  - added runtime hotkey metadata properties (`toggle_hotkey`, `listening_mode`) for UI/CLI visibility.
+  - ensured hotkey registration runs even when a hotkey backend is injected.
+  - added paused-state hotkey resume behavior (`PAUSED -> RESUME_REQUESTED`) per paused control-channel requirements.
+  - added deterministic unregister + shutdown sequencing for hotkey backend during runtime stop.
+- Updated `voicekey/ui/cli.py`:
+  - runtime coordinator creation now reads listening mode from `config.modes.default`.
+  - toggle hotkey now reads from `config.hotkeys.toggle_listening` instead of hardcoded keybind.
+  - startup output/status loop now displays active configured hotkey in toggle mode.
+  - daemon/start JSON payload now includes `listening_mode` and `toggle_hotkey`.
+- Updated `voicekey/ui/tray.py` to degrade safely in headless environments when `pystray` raises non-ImportError exceptions during import.
+- Added regression coverage:
+  - `tests/unit/test_runtime_coordinator.py` for toggle hotkey standby/listening transitions, paused hotkey resume, and injected backend register/unregister lifecycle.
+  - `tests/unit/test_cli.py` for config-driven mode/hotkey runtime coordinator wiring.
+- Added mode-aware hotkey wake behavior for `wake_word` and `continuous` listening modes so hotkey wake no longer depends on `toggle`-only transition events.
+- Added wake-word hotkey regression test in `tests/unit/test_runtime_coordinator.py` validating wake window open/close on hotkey wake/sleep transitions.
+- Updated backlog and traceability status/details for FR-M02 and FR-M07 coverage evidence.
+- Verification commands/evidence:
+  - `./.venv/bin/python -m pytest -q tests/unit/test_runtime_coordinator.py --confcutdir=tests/unit` => PASS (21 passed)
+  - `./.venv/bin/python -m pytest -q tests/unit/test_cli.py::test_runtime_coordinator_uses_configured_mode_and_hotkey --confcutdir=tests/unit` => PASS (1 passed)
+  - `./.venv/bin/python -m pytest -q tests/unit/test_hotkey_backends.py --confcutdir=tests/unit` => PASS (14 passed)
+  - `./.venv/bin/python -m pytest -q tests/unit/test_tray.py --confcutdir=tests/unit` => PASS (12 passed)
+  - `./.venv/bin/python -m pytest -q tests/unit/test_runtime_coordinator.py --confcutdir=tests/unit` (post mode-aware hotkey patch) => PASS (22 passed)
+  - `./.venv/bin/python -m py_compile voicekey/app/main.py voicekey/ui/cli.py voicekey/ui/tray.py tests/unit/test_runtime_coordinator.py tests/unit/test_cli.py` => PASS
+
 ## 2026-02-19
 
 - Created `AGENTS.md` with repository-specific operational rules for agentic developers.
