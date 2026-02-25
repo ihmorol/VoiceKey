@@ -56,3 +56,4 @@ voicekey/models/*.pt
 .kilo
 .opencode
 analysis
+.codex
