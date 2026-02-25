@@ -100,10 +100,10 @@ class ModelDownloadManager:
         # Silero VAD auto-downloads from the package
         # We check if the silero-vad package can be loaded
         try:
-            from silero import vad as silero_vad_loader
+            from silero_vad import load_silero_vad
 
             # Try to load the model (this triggers download if needed)
-            silero_vad_loader()
+            load_silero_vad()
             return ModelStatus(name="vad", installed=True, profile="silero-vad")
         except ImportError:
             return ModelStatus(name="vad", installed=False, profile="silero-vad")
