@@ -13,17 +13,20 @@ from dataclasses import dataclass
 from typing import Optional
 
 import numpy as np
+import torch
+from scipy import signal as scipy_signal
 
 logger = logging.getLogger(__name__)
 
 # Try to import silero-vad, provide graceful fallback.
 # Keep the loader in a mutable name so tests/runtime can patch availability.
 try:
-    from silero import vad as silero_vad_loader
+    from silero_vad import load_silero_vad, get_speech_timestamps
 
     SILERO_VAD_AVAILABLE = True
 except ImportError:
-    silero_vad_loader = None
+    load_silero_vad = None
+    get_speech_timestamps = None
     SILERO_VAD_AVAILABLE = False
     logger.warning("silero-vad not available, VAD functionality will be limited")
 
@@ -85,35 +88,10 @@ class VADProcessor:
 
     def _load_model(self) -> None:
         """Load Silero VAD model."""
-        global silero_vad_loader
-
-        loader = silero_vad_loader
-        if loader is None:
-            try:
-                from silero import vad as runtime_loader
-
-                loader = runtime_loader
-                silero_vad_loader = runtime_loader
-                # Runtime refresh in case module availability changed after import.
-                globals()["SILERO_VAD_AVAILABLE"] = True
-            except ImportError:
-                loader = None
-
-        if loader is None:
-            logger.warning("Silero VAD not available, using fallback")
-            self._model_loaded = False
-            return
-
-        try:
-            self._model, _ = loader()
-            if self._model is None:
-                raise RuntimeError("Silero VAD loader returned None model")
-            self._model_loaded = True
-            logger.info("Silero VAD model loaded successfully")
-        except Exception as e:
-            logger.error(f"Failed to load Silero VAD model: {e}")
-            self._model = None
-            self._model_loaded = False
+        # Skip Silero VAD loading - use energy-based fallback instead
+        # This is more reliable for real-time processing
+        logger.info("Using energy-based VAD (fallback)")
+        self._model_loaded = False
 
     @property
     def threshold(self) -> float:
@@ -169,18 +147,26 @@ class VADProcessor:
             True if speech detected
         """
         try:
-            # Silero VAD expects audio as a torch tensor or list
-            # The model returns a list of speech segments
-            audio_list = audio.tolist()
-
-            # Get speech timestamps
-            speech_timestamps = self._model(
-                audio_list,
-                sampling_rate=sample_rate,
+            # Downsample to 16kHz for VAD (Silero expects 16kHz)
+            if sample_rate != 16000:
+                original_length = len(audio)
+                target_length = int(original_length * 16000 / sample_rate)
+                audio = scipy_signal.resample_poly(audio, target_length, original_length).astype(np.float32)
+            
+            # Silero VAD expects torch tensor at 16kHz with exactly 512 samples
+            if len(audio) != 512:
+                audio = np.resize(audio, 512)
+            
+            audio_tensor = torch.tensor(audio, dtype=torch.float32)
+            
+            # Get speech timestamps using the utility function
+            speech_timestamps = get_speech_timestamps(
+                audio_tensor, 
+                self._model, 
+                sampling_rate=16000
             )
-
+            
             # If we have any speech timestamps, speech is detected
-            # The threshold controls sensitivity internally in Silero
             return bool(len(speech_timestamps) > 0)
 
         except Exception as e:
@@ -261,15 +247,17 @@ class StreamingVAD:
 
     def _load_model(self) -> None:
         """Load Silero VAD model."""
-        global silero_vad_loader
+        global load_silero_vad, get_speech_timestamps
 
-        loader = silero_vad_loader
+        loader = load_silero_vad
         if loader is None:
             try:
-                from silero import vad as runtime_loader
+                from silero_vad import load_silero_vad as runtime_loader
 
                 loader = runtime_loader
-                silero_vad_loader = runtime_loader
+                load_silero_vad = runtime_loader
+                from silero_vad import get_speech_timestamps as gst
+                get_speech_timestamps = gst
                 globals()["SILERO_VAD_AVAILABLE"] = True
             except ImportError:
                 loader = None
@@ -280,7 +268,7 @@ class StreamingVAD:
             return
 
         try:
-            self._model, _ = loader()
+            self._model = loader()
             if self._model is None:
                 raise RuntimeError("Silero VAD loader returned None model")
             self._model_loaded = True
@@ -320,12 +308,18 @@ class StreamingVAD:
     def _process_chunk_silero(self, audio: np.ndarray) -> VADResult:
         """Process chunk using Silero VAD."""
         try:
-            audio_list = audio.tolist()
-
-            # Get speech timestamps
-            speech_timestamps = self._model(
-                audio_list,
-                sampling_rate=self._sample_rate,
+            # Silero VAD expects torch tensor with shape [1, num_samples]
+            # At 16kHz, expects exactly 512 samples
+            if len(audio) != 512:
+                audio = np.resize(audio, 512)
+            
+            audio_tensor = torch.tensor(audio, dtype=torch.float32)
+            
+            # Get speech timestamps using utility function
+            speech_timestamps = get_speech_timestamps(
+                audio_tensor,
+                self._model,
+                sampling_rate=self._sample_rate
             )
 
             if speech_timestamps:
