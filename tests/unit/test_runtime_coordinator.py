@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import queue
 import pytest
 from typing import Any, cast
 
@@ -17,6 +18,7 @@ from voicekey.app.state_machine import (
 )
 from voicekey.audio.asr_faster_whisper import TranscriptEvent
 from voicekey.audio.wake import WakeWindowController
+from voicekey.platform.hotkey_base import HotkeyRegistrationResult
 
 
 class RecordingKeyboardBackend:
@@ -47,6 +49,38 @@ class FakeClock:
 
     def tick(self, seconds: float) -> None:
         self._now += seconds
+
+
+class StubAudioCapture:
+    def __init__(self) -> None:
+        self._queue: queue.Queue[Any] = queue.Queue()
+
+    def start(self) -> None:
+        return
+
+    def stop(self) -> None:
+        return
+
+    def get_audio_queue(self) -> queue.Queue[Any]:
+        return self._queue
+
+
+class RecordingHotkeyBackend:
+    def __init__(self) -> None:
+        self.registered: list[str] = []
+        self.unregistered: list[str] = []
+        self.shutdown_calls = 0
+
+    def register(self, hotkey: str, callback: Any) -> HotkeyRegistrationResult:
+        self.registered.append(hotkey)
+        self._callback = callback
+        return HotkeyRegistrationResult(hotkey=hotkey, registered=True)
+
+    def unregister(self, hotkey: str) -> None:
+        self.unregistered.append(hotkey)
+
+    def shutdown(self) -> None:
+        self.shutdown_calls += 1
 
 
 def test_wake_phrase_transitions_standby_to_listening_and_opens_window() -> None:
@@ -377,3 +411,66 @@ def test_low_confidence_transcript_event_is_dropped_before_routing() -> None:
     assert update.transition is None
     assert update.routed_text is None
     assert routed_texts == []
+
+
+def test_toggle_hotkey_transitions_between_standby_and_listening_in_toggle_mode() -> None:
+    machine = VoiceKeyStateMachine(
+        mode=ListeningMode.TOGGLE,
+        initial_state=AppState.STANDBY,
+    )
+    coordinator = RuntimeCoordinator(state_machine=machine)
+
+    coordinator._on_toggle_hotkey()
+    assert coordinator.state is AppState.LISTENING
+
+    coordinator._on_toggle_hotkey()
+    assert coordinator.state is AppState.STANDBY
+
+
+def test_toggle_hotkey_transitions_in_wake_word_mode() -> None:
+    machine = VoiceKeyStateMachine(
+        mode=ListeningMode.WAKE_WORD,
+        initial_state=AppState.STANDBY,
+    )
+    coordinator = RuntimeCoordinator(state_machine=machine)
+
+    coordinator._on_toggle_hotkey()
+    assert coordinator.state is AppState.LISTENING
+    assert coordinator.is_wake_window_open is True
+
+    coordinator._on_toggle_hotkey()
+    assert coordinator.state is AppState.STANDBY
+    assert coordinator.is_wake_window_open is False
+
+
+def test_toggle_hotkey_resumes_when_paused() -> None:
+    machine = VoiceKeyStateMachine(
+        mode=ListeningMode.WAKE_WORD,
+        initial_state=AppState.PAUSED,
+    )
+    coordinator = RuntimeCoordinator(state_machine=machine)
+
+    coordinator._on_toggle_hotkey()
+    assert coordinator.state is AppState.STANDBY
+
+
+def test_start_registers_and_stop_unregisters_injected_hotkey_backend() -> None:
+    machine = VoiceKeyStateMachine(
+        mode=ListeningMode.TOGGLE,
+        initial_state=AppState.INITIALIZING,
+    )
+    hotkey_backend = RecordingHotkeyBackend()
+    coordinator = RuntimeCoordinator(
+        state_machine=machine,
+        audio_capture=StubAudioCapture(),
+        vad_processor=object(),
+        asr_engine=object(),
+        hotkey_backend=hotkey_backend,
+    )
+
+    coordinator.start()
+    coordinator.stop()
+
+    assert hotkey_backend.registered == ["ctrl+shift+`"]
+    assert hotkey_backend.unregistered == ["ctrl+shift+`"]
+    assert hotkey_backend.shutdown_calls == 1

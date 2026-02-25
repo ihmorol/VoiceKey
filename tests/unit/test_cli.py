@@ -6,7 +6,9 @@ import json
 
 from click.testing import CliRunner
 
-from voicekey.ui.cli import cli
+from voicekey.app.state_machine import ListeningMode
+from voicekey.config.schema import default_config
+from voicekey.ui.cli import _create_runtime_coordinator, cli
 from voicekey.ui.exit_codes import ExitCode
 
 
@@ -247,3 +249,19 @@ def test_config_edit_spawns_editor(monkeypatch, tmp_path) -> None:
     assert captured["filename"] == str(config_path)
     assert captured["editor"] == "nano"
     assert captured["require_save"] is False
+
+
+def test_runtime_coordinator_uses_configured_mode_and_hotkey() -> None:
+    config = default_config()
+    config.modes.default = "toggle"
+    config.hotkeys.toggle_listening = "ctrl+alt+k"
+    config.audio.sample_rate_hz = 48000
+
+    coordinator = _create_runtime_coordinator(
+        config=config,
+        runtime_paths=object(),
+        keyboard_backend=None,
+    )
+
+    assert coordinator.listening_mode is ListeningMode.TOGGLE
+    assert coordinator.toggle_hotkey == "ctrl+alt+k"
