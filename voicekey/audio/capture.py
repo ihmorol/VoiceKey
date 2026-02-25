@@ -26,7 +26,7 @@ except OSError:
 logger = logging.getLogger(__name__)
 
 # Queue configuration
-DEFAULT_QUEUE_SIZE = 32  # Bounded queue max size
+DEFAULT_QUEUE_SIZE = 128  # Bounded queue max size (increased for slower ASR)
 DEFAULT_CHUNK_DURATION = 0.1  # 100ms chunks for low latency
 
 # Metrics counters for audio validation
@@ -281,15 +281,47 @@ class AudioCapture:
                 # Determine device to use
                 device = self._device_index
                 if device is None:
-                    default = get_default_device()
-                    if default:
-                        device = default["index"]
+                    # Find a working input device
+                    working_device = None
+                    devices = list(sd.query_devices())
+                    for d in devices:
+                        if d["max_input_channels"] > 0:
+                            try:
+                                test_stream = sd.InputStream(
+                                    device=int(d["index"]),
+                                    channels=1,
+                                    samplerate=44100,
+                                    blocksize=441,
+                                    dtype=np.float32
+                                )
+                                test_stream.close()
+                                working_device = int(d["index"])
+                                break
+                            except Exception:
+                                continue
+                    
+                    if working_device is not None:
+                        device = working_device
+                        logger.info(f"Auto-selected working audio device: {device}")
                     else:
-                        raise AudioDeviceNotFoundError()
+                        default = get_default_device()
+                        if default:
+                            device = default["index"]
+                        else:
+                            raise AudioDeviceNotFoundError()
 
                 # Get device info
                 device_info = sd.query_devices(device)
                 self._device_info = _format_device_info(device_info, device, is_default=True)
+
+                # Use device's default sample rate (typically 44100 on Linux)
+                actual_sample_rate = 44100  # Default for most devices
+                if device_info.get("default_samplerate"):
+                    actual_sample_rate = int(device_info["default_samplerate"])
+                
+                # Recalculate frames per chunk with actual sample rate
+                self._frames_per_chunk = int(actual_sample_rate * self._chunk_duration)
+                self._sample_rate = actual_sample_rate
 
                 # Create input stream with callback
                 self._stream = sd.InputStream(
@@ -388,7 +420,8 @@ class AudioCapture:
         self,
         indata: np.ndarray,
         frames: int,
-        time_info: sd.CallbackInfo,
+        time_info,
+        status,
     ) -> None:
         """Audio input callback from sounddevice.
 
@@ -418,7 +451,7 @@ class AudioCapture:
         frame = AudioFrame(
             audio=audio_data,
             sample_rate=self._sample_rate,
-            timestamp=time_info.input_buffer_adc_time,
+            timestamp=time_info.inputBufferAdcTime,
         )
 
         # Put frame in queue with non-blocking to provide backpressure
