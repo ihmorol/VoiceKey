@@ -24,12 +24,12 @@ This matrix provides 100% requirement coverage from specification to backlog and
 | FR-C04 | E02-S03 | fuzzy on/off guardrail tests |
 | FR-C05 | E02-S04, E03-S03 | special phrase control-plane tests |
 | FR-M01 | E03-S01 | mode default transition tests |
-| FR-M02 | E03-S01, E04-S02 | toggle hotkey tests |
+| FR-M02 | E03-S01, E04-S02 | toggle hotkey backend + runtime coordinator hotkey transition tests |
 | FR-M03 | E03-S01, E03-S02 | continuous-mode warning/behavior tests |
 | FR-M04 | E03-S02 | inactivity auto-pause tests |
 | FR-M05 | E03-S02 | timer default/config tests |
 | FR-M06 | E03-S03 | paused output suppression tests |
-| FR-M07 | E03-S03 | paused resume channel tests |
+| FR-M07 | E03-S03 | paused resume phrase + hotkey resume channel tests |
 | FR-S01 | E05-S03, E10-S02 | tray-daemon startup tests + integration harness (`tests/integration/test_tray_integration.py`) |
 | FR-S02 | E05-S02, E05-S03, E10-S02 | indicator state mapping tests + tray state synchronization tests (`tests/integration/test_tray_integration.py`) |
 | FR-S03 | E05-S03, E10-S02 | tray action integration tests + full lifecycle tray state transitions (`tests/integration/test_tray_integration.py`) |
