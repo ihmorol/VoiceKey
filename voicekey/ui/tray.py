@@ -168,7 +168,8 @@ try:
     _Icon = Icon
     _Menu = Menu
     _Item = MenuItem
-except ImportError:
+except Exception:
+    # pystray can raise non-ImportError exceptions in headless environments.
     pass
 
 

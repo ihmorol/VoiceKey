@@ -21,6 +21,8 @@ try:
     from pynput.keyboard import GlobalHotKeys, Key
 
     _pynput_available = True
+    _GlobalHotKeys = GlobalHotKeys
+    _Key = Key
 except ImportError:
     pass
 
