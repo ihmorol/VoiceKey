@@ -1,7 +1,7 @@
 # VoiceKey Risk Assessment and Mitigation Plan
 
-> Version: 2.0 (Aligned)
-> Date: 2026-02-19
+> Version: 2.1 (Hybrid ASR-aligned)
+> Date: 2026-02-26
 
 ---
 
@@ -16,6 +16,7 @@
 | R-05 | Wake false triggers in noisy environments | Medium | Medium | P1 |
 | R-06 | Wayland feature limitations | Medium | High | P1 |
 | R-07 | Config drift and migration errors | Medium | Low | P1 |
+| R-08 | Cloud ASR outage/auth/rate-limit in hybrid mode | Medium | Medium | P1 |
 
 ---
 
@@ -27,6 +28,7 @@
 - VAD gating to reduce unnecessary ASR workload
 - bounded chunk sizes (80-200ms)
 - hot-path queue optimization and model warm-up
+- hybrid fallback path for local ASR timeout/failure scenarios
 
 Acceptance:
 
@@ -70,6 +72,12 @@ Acceptance:
 - backup-before-migrate
 - safe defaults on parse/validation failures
 
+### 2.8 Hybrid Cloud Dependency Safety (R-08)
+
+- keep local backend available when hybrid mode is enabled
+- bounded retry and timeout for cloud requests
+- fail closed with actionable error if cloud-only mode lacks valid credentials
+
 ---
 
 ## 3. Operational Playbooks
@@ -85,6 +93,7 @@ Acceptance:
 1. block start of recognition
 2. verify checksum
 3. trigger controlled re-download path
+4. if hybrid mode is enabled, route transcription to cloud fallback until local recovery
 
 ### 3.3 Hotkey Conflict
 
@@ -106,5 +115,5 @@ All metrics remain local unless users explicitly export debug reports.
 
 ---
 
-*Document Version: 2.0*  
-*Last Updated: 2026-02-19*
+*Document Version: 2.1*  
+*Last Updated: 2026-02-26*

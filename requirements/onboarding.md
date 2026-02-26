@@ -1,7 +1,7 @@
 # VoiceKey Onboarding Specification
 
-> Version: 1.0
-> Date: 2026-02-19
+> Version: 1.1
+> Date: 2026-02-26
 
 ---
 
@@ -18,7 +18,8 @@ Enable a new user to complete setup and type first sentence in under 5 minutes.
 3. Wake phrase test (`voice key`)
 4. Hotkey confirmation (`ctrl+shift+`` default)
 5. Autostart preference
-6. Quick tutorial
+6. ASR mode preference (local-only, hybrid fallback, cloud-primary)
+7. Quick tutorial
 
 ---
 
@@ -29,6 +30,7 @@ Wizard success requires:
 - at least one valid microphone
 - successful wake phrase detection at least once
 - config persisted
+- if hybrid/cloud mode selected: cloud API endpoint and key validation succeeds or user is returned to local-only with warning
 
 If onboarding is skipped, safe defaults are written.
 
@@ -55,5 +57,5 @@ Prompt sequence:
 
 ---
 
-*Document Version: 1.0*  
-*Last Updated: 2026-02-19*
+*Document Version: 1.1*  
+*Last Updated: 2026-02-26*
