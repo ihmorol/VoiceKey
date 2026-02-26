@@ -14,6 +14,7 @@ This matrix provides 100% requirement coverage from specification to backlog and
 | FR-A04 | E01-S03 | transcript event contract tests |
 | FR-A05 | E01-S04 | threshold behavior tests |
 | FR-A06 | E01-S03 | model profile switch tests |
+| FR-A07 | E01-S05 | config schema tests for explicit opt-in cloud fallback controls |
 | FR-W01 | E02-S01 | wake phrase config tests |
 | FR-W02 | E02-S01 | wake-no-type safety tests |
 | FR-W03 | E02-S01, E03-S02 | wake timeout timer tests |
@@ -89,7 +90,7 @@ This matrix provides 100% requirement coverage from specification to backlog and
 | Performance targets (wake, ASR, parse, p50/p95) | E10-S03 | complete - `tests/perf/benchmark_runner.py` measures latency for wake detection (p50<1ms), command parsing (p50<1ms), ASR simulated (p50<1ms), state machine (p50<0.1ms); all pass p50<=200ms, p95<=350ms thresholds; 29 perf tests + 11 integration tests passing |
 | Resource budgets (CPU/memory/disk) | E10-S03 | complete - `tests/perf/resource_monitor.py` measures CPU/memory during idle/active states; validates idle CPU<=5%, active CPU<=35%, memory<=300MB budgets; resource budget tests passing |
 | Reliability bullets (single-instance, reconnect, crash-safe shutdown, bounded retries) | E03-S04, E03-S05, E10-S05 | complete - E03-S04 resilience tests (`tests/unit/test_runtime_resilience.py`); E03-S05 single-instance/shutdown tests (`tests/unit/test_single_instance.py`, `tests/unit/test_shutdown.py`); E10-S05 reliability/soak tests (`tests/integration/test_reliability.py`, `tests/perf/test_soak.py`, 44 tests covering reconnect, rapid toggles, paused-resume race conditions, state machine stress, memory leak detection, long-duration operation simulation) |
-| Privacy bullets (offline runtime, no telemetry, no raw audio persistence, no transcript logs by default) | E09-S01, E09-S02, E09-S03 | complete - E09-S01 privacy regression tests (`tests/unit/test_privacy_defaults.py`); E09-S02 secure diagnostics with redaction-by-default (`tests/unit/test_diagnostics_security.py`, 40 tests); E09-S03 egress guardrails (`voicekey/security/egress_guard.py`, `voicekey/security/privacy_assertions.py`) + offline/telemetry migration tests (`tests/unit/test_offline_runtime.py`, `tests/unit/test_telemetry_migration.py`, 62 tests) |
+| Privacy bullets (offline-default runtime, opt-in cloud fallback, no telemetry, no raw audio persistence, no transcript logs by default) | E09-S01, E09-S02, E09-S03, E01-S05 | complete for offline-default/privacy controls; cloud-fallback policy/config controls introduced in E01-S05 and remains opt-in by default |
 | Incident response flow (redacted diagnostics, pause/disable autostart) | E09-S02 | `docs/incident-response.md` + diagnostics security tests |
 | Usability targets (first setup <=5 min, first sentence <=2 min) | E06-S03, E10-S02 | complete - onboarding timing evidence exists; integration harness tests validate end-to-end pipeline flow (`tests/integration/test_pipeline_integration.py`) |
 | Linux support target (Ubuntu 22.04/24.04 x64, X11 full, Wayland best-effort) | E04-S03, E10-S04 | complete - adapter diagnostics + distribution verification tests (`tests/integration/test_distribution_verification.py`, 25 tests for AppImage naming, checksums, x86_64 targeting) |

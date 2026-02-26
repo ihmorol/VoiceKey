@@ -10,7 +10,7 @@ Priority legend:
 
 ## Execution Status (Live)
 
-- Last updated: 2026-02-25
+- Last updated: 2026-02-26
 - E00-S01: complete (governance files and templates committed)
 - E00-S02: complete (semver/changelog policy documented in contribution flow)
 - E00-S03: complete (security disclosure SLA documented)
@@ -18,6 +18,7 @@ Priority legend:
 - E01-S02: complete (VAD unit verification passed)
 - E01-S03: complete (ASR unit verification passed)
 - E01-S04: complete (final-transcript confidence filtering verified)
+- E01-S05: complete (optional cloud ASR fallback requirement introduced with explicit opt-in policy, default-off config schema controls, and security/config documentation updates)
 - E02-S01: complete (wake detector bound to FSM wake_word transitions; timeout/reset coordinator verified)
 - E02-S02: complete (parser command-suffix + unknown-literal fallback + alias matching verified)
 - E02-S03: complete (optional fuzzy matcher added with default-off behavior and threshold-bounded command resolution)
@@ -116,7 +117,7 @@ Priority legend:
 ## Epic E01 - Audio, VAD, and ASR Core Pipeline (P0)
 
 - Objective: implement low-latency local speech pipeline with robust model/runtime controls.
-- Requirement IDs: FR-A01, FR-A02, FR-A03, FR-A04, FR-A05, FR-A06, FR-W04
+- Requirement IDs: FR-A01, FR-A02, FR-A03, FR-A04, FR-A05, FR-A06, FR-A07, FR-W04
 - Dependencies: E00
 
 ### Story E01-S01 - Real-time microphone capture
@@ -166,6 +167,18 @@ Priority legend:
 - Tasks:
   - E01-S04-T01 Apply threshold in transcript-to-action boundary.
   - E01-S04-T02 Add metrics/log counters for dropped transcripts.
+
+### Story E01-S05 - Optional cloud ASR fallback (opt-in)
+
+- Requirement IDs: FR-A07
+- Acceptance criteria:
+  - local ASR remains default path.
+  - cloud ASR fallback is disabled by default and requires explicit configuration.
+  - security/privacy docs and runtime config schema clearly expose opt-in behavior.
+- Tasks:
+  - E01-S05-T01 Define cloud fallback policy and security constraints in requirements/spec docs.
+  - E01-S05-T02 Extend config schema/defaults for cloud fallback toggles and provider settings.
+  - E01-S05-T03 Validate local-first behavior remains default in unit/integration startup and CLI contract tests.
 
 ---
 
