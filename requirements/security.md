@@ -1,7 +1,7 @@
 # VoiceKey Security and Privacy Specification
 
-> Version: 1.1
-> Date: 2026-02-19
+> Version: 1.2
+> Date: 2026-02-26
 
 ---
 
@@ -19,7 +19,8 @@
 - raw microphone audio must not be persisted by default
 - recognized text must not be logged by default
 - debug mode must redact transcript unless user explicitly disables redaction
-- no runtime cloud transmission after model download
+- no runtime cloud transmission by default after model download
+- cloud transcription may run only when explicitly enabled by user configuration
 
 ---
 
@@ -69,5 +70,5 @@ If unexpected typing is observed:
 
 ---
 
-*Document Version: 1.1*  
-*Last Updated: 2026-02-19*
+*Document Version: 1.2*  
+*Last Updated: 2026-02-26*

@@ -1,7 +1,7 @@
 # VoiceKey Configuration Specification
 
-> Version: 2.0 (Aligned)
-> Date: 2026-02-19
+> Version: 2.1 (Aligned)
+> Date: 2026-02-26
 
 ---
 
@@ -25,10 +25,14 @@ Overrides:
 version: 3
 
 engine:
-  asr_backend: "faster-whisper"
+  asr_backend: "faster-whisper" # faster-whisper | openai-api-compatible
   model_profile: "base"          # tiny | base | small
   compute_type: "int8"           # int8 | int16 | float16 (platform dependent)
   language: "en"
+  network_fallback_enabled: false
+  cloud_model: "gpt-4o-mini-transcribe"
+  cloud_api_base: null
+  cloud_timeout_seconds: 30
 
 audio:
   sample_rate_hz: 16000
@@ -112,6 +116,8 @@ voicekey config --edit
 | Key | Constraint |
 |-----|------------|
 | `audio.sample_rate_hz` | must be one of `8000, 16000, 32000, 44100, 48000` |
+| `engine.asr_backend` | `faster-whisper` or `openai-api-compatible` |
+| `engine.network_fallback_enabled` | boolean |
 | `audio.chunk_ms` | `80..300` |
 | `wake_word.sensitivity` | `0.0..1.0` |
 | `modes.inactivity_auto_pause_seconds` | `5..300` |
@@ -143,8 +149,9 @@ Invalid config values must:
 | `VOICEKEY_MODEL_DIR` | model storage path override |
 | `VOICEKEY_LOG_LEVEL` | runtime log level |
 | `VOICEKEY_DISABLE_TRAY` | force tray off |
+| `VOICEKEY_OPENAI_API_KEY` | API key for optional cloud transcription fallback |
 
 ---
 
-*Document Version: 2.0*  
-*Last Updated: 2026-02-19*
+*Document Version: 2.1*  
+*Last Updated: 2026-02-26*
