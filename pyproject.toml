@@ -7,7 +7,7 @@ name = "voicekey"
 version = "0.1.0"
 description = "Privacy-first offline voice-to-keyboard for Linux and Windows"
 readme = "README.md"
-license = "MIT"
+license = { text = "MIT" }
 authors = [
     { name = "VoiceKey Team", email = "team@voicekey.app" }
 ]
