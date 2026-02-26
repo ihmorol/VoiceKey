@@ -30,6 +30,9 @@ except ImportError:
     SILERO_VAD_AVAILABLE = False
     logger.warning("silero-vad not available, VAD functionality will be limited")
 
+# Backward-compatible loader alias for tests and runtime patching.
+silero_vad_loader = load_silero_vad
+
 
 @dataclass
 class VADResult:
@@ -88,10 +91,42 @@ class VADProcessor:
 
     def _load_model(self) -> None:
         """Load Silero VAD model."""
-        # Skip Silero VAD loading - use energy-based fallback instead
-        # This is more reliable for real-time processing
-        logger.info("Using energy-based VAD (fallback)")
-        self._model_loaded = False
+        global silero_vad_loader, load_silero_vad, get_speech_timestamps
+
+        loader = silero_vad_loader or load_silero_vad
+        if loader is None:
+            try:
+                from silero_vad import (
+                    get_speech_timestamps as runtime_get_speech_timestamps,
+                    load_silero_vad as runtime_loader,
+                )
+
+                loader = runtime_loader
+                silero_vad_loader = runtime_loader
+                load_silero_vad = runtime_loader
+                get_speech_timestamps = runtime_get_speech_timestamps
+                globals()["SILERO_VAD_AVAILABLE"] = True
+            except ImportError:
+                loader = None
+
+        if loader is None:
+            logger.info("Using energy-based VAD fallback (silero unavailable)")
+            self._model = None
+            self._model_loaded = False
+            return
+
+        try:
+            loaded = loader()
+            model = loaded[0] if isinstance(loaded, tuple) else loaded
+            if model is None:
+                raise RuntimeError("Silero VAD loader returned None model")
+            self._model = model
+            self._model_loaded = True
+            logger.info("Silero VAD model loaded")
+        except Exception as e:
+            logger.warning("Falling back to energy-based VAD: %s", e)
+            self._model = None
+            self._model_loaded = False
 
     @property
     def threshold(self) -> float:
@@ -247,17 +282,20 @@ class StreamingVAD:
 
     def _load_model(self) -> None:
         """Load Silero VAD model."""
-        global load_silero_vad, get_speech_timestamps
+        global silero_vad_loader, load_silero_vad, get_speech_timestamps
 
-        loader = load_silero_vad
+        loader = silero_vad_loader or load_silero_vad
         if loader is None:
             try:
-                from silero_vad import load_silero_vad as runtime_loader
+                from silero_vad import (
+                    get_speech_timestamps as runtime_get_speech_timestamps,
+                    load_silero_vad as runtime_loader,
+                )
 
                 loader = runtime_loader
+                silero_vad_loader = runtime_loader
                 load_silero_vad = runtime_loader
-                from silero_vad import get_speech_timestamps as gst
-                get_speech_timestamps = gst
+                get_speech_timestamps = runtime_get_speech_timestamps
                 globals()["SILERO_VAD_AVAILABLE"] = True
             except ImportError:
                 loader = None
@@ -268,7 +306,8 @@ class StreamingVAD:
             return
 
         try:
-            self._model = loader()
+            loaded = loader()
+            self._model = loaded[0] if isinstance(loaded, tuple) else loaded
             if self._model is None:
                 raise RuntimeError("Silero VAD loader returned None model")
             self._model_loaded = True
