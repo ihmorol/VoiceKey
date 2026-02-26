@@ -14,10 +14,14 @@ CONFIG_VERSION = 3
 class EngineConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    asr_backend: Literal["faster-whisper"] = "faster-whisper"
+    asr_backend: Literal["faster-whisper", "openai-api-compatible"] = "faster-whisper"
     model_profile: Literal["tiny", "base", "small"] = "base"
     compute_type: Literal["int8", "int16", "float16"] = "int8"
     language: str = "en"
+    network_fallback_enabled: bool = False
+    cloud_model: str = "gpt-4o-mini-transcribe"
+    cloud_api_base: str | None = None
+    cloud_timeout_seconds: int = Field(default=30, ge=5, le=120)
 
 
 class AudioConfig(BaseModel):

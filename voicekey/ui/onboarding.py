@@ -31,6 +31,11 @@ KEYBOARD_INTERACTION_MAP: dict[str, tuple[str, ...]] = {
 }
 
 
+def _fallback_config_path() -> Path:
+    """Return a writable repository-local fallback config path."""
+    return Path.cwd() / ".voicekey" / "config.yaml"
+
+
 class OnboardingStep(StrEnum):
     """Canonical onboarding step identifiers in required order."""
 
@@ -109,7 +114,11 @@ def run_onboarding(
     if skip:
         config = default_config()
         loaded = load_config(explicit_path=config_path)
-        save_config(config, loaded.path)
+        try:
+            save_config(config, loaded.path)
+        except PermissionError:
+            loaded = load_config(explicit_path=_fallback_config_path())
+            save_config(config, loaded.path)
         duration = _duration_seconds(started_at, clock)
         return OnboardingResult(
             completed=False,
@@ -158,7 +167,15 @@ def run_onboarding(
         config.audio.device_id = selected_device_id
         config.hotkeys.toggle_listening = hotkey_value
         config.system.autostart_enabled = autostart_enabled
-        save_config(config, loaded.path)
+        try:
+            save_config(config, loaded.path)
+        except PermissionError:
+            loaded = load_config(explicit_path=_fallback_config_path())
+            config = loaded.config
+            config.audio.device_id = selected_device_id
+            config.hotkeys.toggle_listening = hotkey_value
+            config.system.autostart_enabled = autostart_enabled
+            save_config(config, loaded.path)
         persisted = True
 
     duration = _duration_seconds(started_at, clock)
