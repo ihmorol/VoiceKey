@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 from click.testing import CliRunner
+import yaml
 
 from voicekey.app.state_machine import ListeningMode
 from voicekey.config.schema import default_config
@@ -265,3 +267,41 @@ def test_runtime_coordinator_uses_configured_mode_and_hotkey() -> None:
 
     assert coordinator.listening_mode is ListeningMode.TOGGLE
     assert coordinator.toggle_hotkey == "ctrl+alt+k"
+
+
+def test_start_command_warns_and_runs_local_only_for_hybrid_without_api_key(tmp_path: Path) -> None:
+    runner = CliRunner()
+    config_path = tmp_path / "voicekey" / "config.yaml"
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+
+    config = default_config().model_dump(mode="python")
+    config["engine"]["network_fallback_enabled"] = True
+    config["engine"]["cloud_api_base"] = "https://api.openai.com/v1"
+    config_path.write_text(yaml.safe_dump(config, sort_keys=False), encoding="utf-8")
+
+    result = runner.invoke(cli, ["start", "--config", str(config_path)])
+
+    assert result.exit_code == ExitCode.SUCCESS
+    assert "Warning:" in result.output
+    assert "VOICEKEY_OPENAI_API_KEY" in result.output
+    assert "engine.network_fallback_enabled=true" in result.output
+
+
+def test_start_command_fails_closed_for_cloud_primary_without_api_base(tmp_path: Path) -> None:
+    runner = CliRunner()
+    config_path = tmp_path / "voicekey" / "config.yaml"
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+
+    config = default_config().model_dump(mode="python")
+    config["engine"]["asr_backend"] = "openai-api-compatible"
+    config_path.write_text(yaml.safe_dump(config, sort_keys=False), encoding="utf-8")
+
+    result = runner.invoke(
+        cli,
+        ["start", "--config", str(config_path)],
+        env={"VOICEKEY_OPENAI_API_KEY": "sk-test"},
+    )
+
+    assert result.exit_code == ExitCode.COMMAND_ERROR
+    assert "engine.cloud_api_base" in result.output
+    assert "voicekey config --set engine.cloud_api_base=https://api.openai.com/v1" in result.output
