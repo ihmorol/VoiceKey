@@ -1,20 +1,21 @@
 # Software Requirements Specification - VoiceKey
-## Real-time Offline Voice-to-Keyboard for Linux and Windows
+## Real-time Offline-first Voice-to-Keyboard for Linux and Windows
 
 > Project: VoiceKey  
-> Version: 3.1 (Aligned and Expanded)  
+> Version: 3.2 (Aligned and Expanded)  
 > Platforms: Linux and Windows (Primary), macOS (Out of Scope)  
-> Last Updated: 2026-02-19
+> Last Updated: 2026-02-26
 
 ---
 
 ## 1. Overview
 
-VoiceKey is a privacy-first, offline voice keyboard that captures microphone audio, recognizes speech in real time, and emits keyboard input into the currently focused window.
+VoiceKey is a privacy-first, offline-first voice keyboard that captures microphone audio, recognizes speech in real time, and emits keyboard input into the currently focused window.
 
 This specification incorporates all prior analysis findings and decisions:
 
 - ASR engine: faster-whisper (primary)
+- Optional internet transcription fallback: explicit opt-in only (disabled by default)
 - Pause/resume phrases: `pause voice key`, `resume voice key` (no wake word required)
 - Listening modes: `wake_word` (default), `toggle`, `continuous`
 - Inactivity safety: auto-pause/auto-standby timers to reduce accidental typing
@@ -41,11 +42,11 @@ This specification incorporates all prior analysis findings and decisions:
 - System tray background mode and auto-start integration.
 - First-run onboarding wizard.
 - Configurable safety timers and hotkeys.
+- Optional cloud transcription fallback when explicitly enabled by the user.
 
 ### 3.2 Out of Scope (v3 Core)
 
 - macOS support.
-- Cloud speech services.
 - Mobile companion app.
 
 ---
@@ -62,6 +63,7 @@ This specification incorporates all prior analysis findings and decisions:
 | FR-A04 | Emit partial and final transcript events | P0 |
 | FR-A05 | Apply configurable confidence threshold before typing | P0 |
 | FR-A06 | Support runtime model profile selection (`tiny`, `base`, `small`) | P1 |
+| FR-A07 | Support optional cloud ASR fallback with explicit user opt-in and provider config; default remains local-only | P1 |
 
 ### 4.2 Wake Word and Activation
 
@@ -180,7 +182,8 @@ Note: productivity window command group is feature-gated and disabled by default
 
 ### 5.4 Privacy and Security
 
-- Fully offline after model download.
+- Offline local transcription by default after model download.
+- Optional runtime cloud transmission only when user explicitly enables cloud ASR fallback.
 - No telemetry by default.
 - No raw audio persistence.
 - No transcript logging by default.
@@ -199,7 +202,7 @@ Note: productivity window command group is feature-gated and disabled by default
 
 | Layer | Technology |
 |-------|------------|
-| ASR | faster-whisper (CTranslate2) |
+| ASR | faster-whisper (CTranslate2, default) + optional cloud ASR fallback adapter |
 | Audio Capture | sounddevice (PortAudio) |
 | VAD | Silero VAD or equivalent local VAD |
 | Keyboard Injection | pynput primary, platform fallback adapters |

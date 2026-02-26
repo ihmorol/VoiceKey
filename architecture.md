@@ -1,8 +1,8 @@
 # VoiceKey Architecture Specification
-## World-class Offline Voice Keyboard Architecture
+## World-class Offline-first Voice Keyboard Architecture
 
-> Version: 2.1 (Aligned)
-> Last Updated: 2026-02-19
+> Version: 2.2 (Aligned)
+> Last Updated: 2026-02-26
 
 ---
 
@@ -10,7 +10,7 @@
 
 1. Deliver low-latency voice typing that feels immediate.
 2. Maximize safety against accidental typing.
-3. Run fully offline after model download.
+3. Run offline by default after model download, with optional cloud fallback when explicitly enabled.
 4. Work reliably across Linux and Windows.
 5. Support both CLI users and background tray users.
 
@@ -26,7 +26,7 @@ VoiceKey runs as a local desktop process and interacts with:
 - system tray runtime
 - local model storage
 
-No cloud APIs are used in the runtime speech pipeline.
+Cloud ASR APIs are optional and disabled by default. Local ASR remains the primary runtime path.
 
 ---
 
@@ -86,7 +86,7 @@ flowchart TB
 1. Audio capture callback pushes frames into an in-memory queue.
 2. VAD classifies speech vs silence.
 3. Wake detector listens for `voice key` while in `STANDBY`.
-4. On wake event, ASR engine processes speech chunks.
+4. On wake event, local ASR processes speech chunks (optional cloud fallback may be used only if enabled).
 5. Parser classifies transcript into text/command/system-action.
 6. Action router sends keyboard/window actions to platform backends.
 7. Watchdog resets or expires listening session based on inactivity timers.
@@ -151,7 +151,7 @@ stateDiagram-v2
 
 ### 6.1 Selected Stack
 
-- ASR: faster-whisper (CTranslate2 backend)
+- ASR: faster-whisper (CTranslate2 backend, default) with optional cloud fallback adapter
 - VAD: local VAD (Silero class or equivalent)
 - Audio IO: sounddevice/PortAudio
 
