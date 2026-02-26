@@ -86,6 +86,7 @@ class RuntimeCoordinator:
         audio_capture=None,  # Type: AudioCapture | None
         vad_processor=None,  # Type: VADProcessor | None
         asr_engine=None,
+        asr_engine_factory: Callable[[], object] | None = None,
         keyboard_backend: KeyboardBackend | None = None,
         # Hotkey
         hotkey_backend=None,
@@ -108,6 +109,7 @@ class RuntimeCoordinator:
         self._audio_capture = audio_capture
         self._vad_processor = vad_processor
         self._asr_engine = asr_engine
+        self._asr_engine_factory = asr_engine_factory
         self._keyboard_backend = keyboard_backend
 
         # Hotkey
@@ -191,6 +193,14 @@ class RuntimeCoordinator:
                     return
 
             # Initialize ASR engine if not provided and available
+            if self._asr_engine is None and self._asr_engine_factory is not None:
+                try:
+                    self._asr_engine = self._asr_engine_factory()
+                except Exception as e:
+                    logger.error(f"Failed to initialize ASR engine from config: {e}")
+                    self._is_running = False
+                    return
+
             if self._asr_engine is None:
                 try:
                     from voicekey.audio.asr_faster_whisper import ASREngine
@@ -404,10 +414,23 @@ class RuntimeCoordinator:
             return
         
         try:
-            if not self._asr_engine.is_model_loaded:
-                self._asr_engine.load_model()
-            
-            events = self._asr_engine.transcribe(audio_data)
+            is_model_loaded = bool(getattr(self._asr_engine, "is_model_loaded", True))
+            if not is_model_loaded:
+                model_loader = getattr(self._asr_engine, "load_model", None)
+                if callable(model_loader):
+                    model_loader()
+
+            asr_output = self._asr_engine.transcribe(audio_data)
+            if hasattr(asr_output, "events"):
+                events = asr_output.events
+                if getattr(asr_output, "fallback_used", False):
+                    logger.info(
+                        "ASR fallback active: backend=%s reason=%s",
+                        getattr(asr_output, "backend_used", "unknown"),
+                        getattr(asr_output, "fallback_reason", None),
+                    )
+            else:
+                events = asr_output
             
             for event in events:
                 if event.is_final:
