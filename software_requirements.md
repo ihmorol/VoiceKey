@@ -1,8 +1,8 @@
 # Software Requirements Specification - VoiceKey
-## Real-time Offline-first Voice-to-Keyboard for Linux and Windows
+## Real-time Hybrid Voice-to-Keyboard for Linux and Windows
 
 > Project: VoiceKey  
-> Version: 3.2 (Aligned and Expanded)  
+> Version: 3.3 (Hybrid ASR Update)  
 > Platforms: Linux and Windows (Primary), macOS (Out of Scope)  
 > Last Updated: 2026-02-26
 
@@ -10,12 +10,12 @@
 
 ## 1. Overview
 
-VoiceKey is a privacy-first, offline-first voice keyboard that captures microphone audio, recognizes speech in real time, and emits keyboard input into the currently focused window.
+VoiceKey is a privacy-first, local-first voice keyboard that captures microphone audio, recognizes speech in real time, and emits keyboard input into the currently focused window.
 
 This specification incorporates all prior analysis findings and decisions:
 
-- ASR engine: faster-whisper (primary)
-- Optional internet transcription fallback: explicit opt-in only (disabled by default)
+- ASR strategy: hybrid-capable (local faster-whisper primary + optional realtime API fallback)
+- Cloud transcription: explicit opt-in only (disabled by default)
 - Pause/resume phrases: `pause voice key`, `resume voice key` (no wake word required)
 - Listening modes: `wake_word` (default), `toggle`, `continuous`
 - Inactivity safety: auto-pause/auto-standby timers to reduce accidental typing
@@ -25,7 +25,7 @@ This specification incorporates all prior analysis findings and decisions:
 ## 2. Product Goals
 
 1. Make dictation feel instant for everyday laptop users.
-2. Keep audio/text local and private by default.
+2. Keep audio/text local and private by default, with explicit user-controlled cloud fallback.
 3. Be easy for non-technical users to install, start, and trust.
 4. Work reliably in Linux and Windows desktop workflows.
 5. Remain free and open for community contribution.
@@ -42,7 +42,7 @@ This specification incorporates all prior analysis findings and decisions:
 - System tray background mode and auto-start integration.
 - First-run onboarding wizard.
 - Configurable safety timers and hotkeys.
-- Optional cloud transcription fallback when explicitly enabled by the user.
+- Hybrid ASR routing: local ASR primary with optional realtime API fallback when explicitly enabled.
 
 ### 3.2 Out of Scope (v3 Core)
 
@@ -63,7 +63,7 @@ This specification incorporates all prior analysis findings and decisions:
 | FR-A04 | Emit partial and final transcript events | P0 |
 | FR-A05 | Apply configurable confidence threshold before typing | P0 |
 | FR-A06 | Support runtime model profile selection (`tiny`, `base`, `small`) | P1 |
-| FR-A07 | Support optional cloud ASR fallback with explicit user opt-in and provider config; default remains local-only | P1 |
+| FR-A07 | Support hybrid ASR routing with local faster-whisper as primary and realtime API fallback when explicitly enabled; default remains local-only | P0 |
 
 ### 4.2 Wake Word and Activation
 
@@ -182,8 +182,8 @@ Note: productivity window command group is feature-gated and disabled by default
 
 ### 5.4 Privacy and Security
 
-- Offline local transcription by default after model download.
-- Optional runtime cloud transmission only when user explicitly enables cloud ASR fallback.
+- Local transcription is default after model download.
+- Runtime cloud transmission is permitted only when user explicitly enables hybrid fallback or cloud-only backend.
 - No telemetry by default.
 - No raw audio persistence.
 - No transcript logging by default.
@@ -202,7 +202,7 @@ Note: productivity window command group is feature-gated and disabled by default
 
 | Layer | Technology |
 |-------|------------|
-| ASR | faster-whisper (CTranslate2, default) + optional cloud ASR fallback adapter |
+| ASR | Hybrid routing: faster-whisper (default primary) + OpenAI-compatible realtime API adapter (fallback or cloud-only mode) |
 | Audio Capture | sounddevice (PortAudio) |
 | VAD | Silero VAD or equivalent local VAD |
 | Keyboard Injection | pynput primary, platform fallback adapters |
@@ -259,6 +259,7 @@ Note: productivity window command group is feature-gated and disabled by default
 - Unknown `... command` phrases type literally, not silently dropped.
 - Inactivity in toggle/continuous mode auto-pauses at configured timeout.
 - Tray mode and auto-start work on Linux and Windows.
+- When hybrid fallback is enabled, local ASR failures/timeouts fail over to realtime API without crashing runtime.
 
 ### 9.2 Performance Acceptance
 
@@ -283,7 +284,7 @@ Note: productivity window command group is feature-gated and disabled by default
 
 ### P0 (Must for world-class baseline)
 
-- faster-whisper migration
+- hybrid ASR routing (local primary + realtime API fallback)
 - tray/background mode
 - auto-start integration
 - first-run wizard
@@ -327,7 +328,7 @@ Note: productivity window command group is feature-gated and disabled by default
 | FR-D02 | Publish Windows signed installer and portable zip | P0 |
 | FR-D03 | Publish Linux AppImage and pip package | P0 |
 | FR-D04 | Provide SHA-256 checksums for all release artifacts | P0 |
-| FR-D05 | Keep model download external to installer to avoid oversized binaries | P0 |
+| FR-D05 | Keep model download external to installer to avoid oversized binaries (cloud-only backend may skip local model prefetch) | P0 |
 | FR-D06 | Provide offline-friendly portable mode artifact | P1 |
 
 ### 12.2 Release Integrity
@@ -387,5 +388,5 @@ Note: productivity window command group is feature-gated and disabled by default
 
 ---
 
-*Document Version: 3.1*  
-*Last Updated: 2026-02-19*
+*Document Version: 3.3*  
+*Last Updated: 2026-02-26*

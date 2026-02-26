@@ -1,7 +1,7 @@
 # VoiceKey Architecture Specification
-## World-class Offline-first Voice Keyboard Architecture
+## World-class Hybrid Local-first Voice Keyboard Architecture
 
-> Version: 2.2 (Aligned)
+> Version: 2.3 (Hybrid ASR Routing)
 > Last Updated: 2026-02-26
 
 ---
@@ -10,7 +10,7 @@
 
 1. Deliver low-latency voice typing that feels immediate.
 2. Maximize safety against accidental typing.
-3. Run offline by default after model download, with optional cloud fallback when explicitly enabled.
+3. Run local-first by default after model download, with hybrid realtime API fallback when explicitly enabled.
 4. Work reliably across Linux and Windows.
 5. Support both CLI users and background tray users.
 
@@ -25,8 +25,9 @@ VoiceKey runs as a local desktop process and interacts with:
 - OS global hotkey APIs
 - system tray runtime
 - local model storage
+- optional cloud ASR provider endpoints (allowlisted, opt-in)
 
-Cloud ASR APIs are optional and disabled by default. Local ASR remains the primary runtime path.
+Cloud ASR APIs are optional and disabled by default. In hybrid mode, local ASR remains primary and cloud ASR is fallback.
 
 ---
 
@@ -53,7 +54,9 @@ flowchart TB
         CAP[Audio Capture]
         VAD[VAD Gate]
         WAKE[Wake Word Detector]
-        ASR[faster-whisper Engine]
+        ASR_ROUTE[ASR Router]
+        ASR_LOCAL[faster-whisper Engine]
+        ASR_CLOUD[Realtime API Adapter]
     end
 
     subgraph SYS[Platform Layer]
@@ -70,7 +73,9 @@ flowchart TB
     CFG --> FSM
     FSM --> WATCH
     FSM --> CMD
-    CAP --> VAD --> WAKE --> ASR --> CMD --> ROUTE
+    CAP --> VAD --> WAKE --> ASR_ROUTE --> CMD --> ROUTE
+    ASR_ROUTE --> ASR_LOCAL
+    ASR_ROUTE --> ASR_CLOUD
     ROUTE --> KB
     ROUTE --> WIN
     FSM --> HK
@@ -86,7 +91,7 @@ flowchart TB
 1. Audio capture callback pushes frames into an in-memory queue.
 2. VAD classifies speech vs silence.
 3. Wake detector listens for `voice key` while in `STANDBY`.
-4. On wake event, local ASR processes speech chunks (optional cloud fallback may be used only if enabled).
+4. On wake event, ASR router sends audio to local ASR first; if configured and local ASR fails/times out, router falls back to realtime API.
 5. Parser classifies transcript into text/command/system-action.
 6. Action router sends keyboard/window actions to platform backends.
 7. Watchdog resets or expires listening session based on inactivity timers.
@@ -151,7 +156,7 @@ stateDiagram-v2
 
 ### 6.1 Selected Stack
 
-- ASR: faster-whisper (CTranslate2 backend, default) with optional cloud fallback adapter
+- ASR: hybrid router with faster-whisper local primary and OpenAI-compatible realtime API fallback/cloud-only adapter
 - VAD: local VAD (Silero class or equivalent)
 - Audio IO: sounddevice/PortAudio
 
@@ -278,9 +283,10 @@ Autostart settings are controlled from config and onboarding wizard.
 
 1. No transcript persistence by default.
 2. No raw audio persistence.
-3. No outbound network calls during normal runtime.
+3. No outbound network calls by default runtime policy; outbound ASR traffic is allowed only in explicit hybrid/cloud modes.
 4. Optional debug logging redacts recognized text by default.
 5. Local model checksums verified before activation.
+6. Cloud mode requires explicit API key configuration and endpoint allowlisting.
 
 ---
 
@@ -315,6 +321,7 @@ Autostart settings are controlled from config and onboarding wizard.
 - end-to-end mic -> text -> injected keys
 - tray actions and state synchronization
 - autostart installation/uninstallation per OS
+- hybrid fallback transitions (local failure/timeout -> realtime API)
 
 ### 14.3 Performance
 
@@ -375,6 +382,7 @@ flowchart LR
 - runtime model download with checksum verification
 - optional prefetch command for offline prep
 - model cache kept outside application binaries
+- cloud-only mode may skip local model prefetch, but still must pass API connectivity checks.
 
 ---
 
@@ -390,7 +398,9 @@ voicekey/
     capture.py
     vad.py
     wake.py
+    asr_router.py
     asr_faster_whisper.py
+    asr_openai_compatible.py
   commands/
     parser.py
     registry.py
@@ -433,5 +443,5 @@ voicekey/
 
 ---
 
-*Document Version: 2.1*  
-*Last Updated: 2026-02-19*
+*Document Version: 2.3*  
+*Last Updated: 2026-02-26*
