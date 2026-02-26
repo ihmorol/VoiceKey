@@ -692,3 +692,42 @@ python scripts/release/check_release_gate.py    # READY
   - `./.venv/bin/python scripts/release/check_release_gate.py` => BLOCKED as expected (`E01-S05 (pending)`)
   - `./.venv/bin/python scripts/docs/validate_user_docs.py` => PASS (with non-blocking existing warnings)
   - `./.venv/bin/python scripts/docs/validate_developer_docs.py` => PASS
+
+## 2026-02-26 - E01-S05 Hybrid ASR Runtime Implementation
+
+- Scope:
+  - Implemented hybrid ASR runtime routing (local faster-whisper primary, optional cloud fallback, cloud-primary mode) and fail-closed credential policy for cloud-primary.
+  - Fixed model download correctness blockers that impacted local-mode reliability during install/prefetch.
+- Implemented changes:
+  - `voicekey/audio/asr_openai_compatible.py` (new)
+    - OpenAI-compatible ASR backend with strict config validation and injectable transport.
+  - `voicekey/audio/asr_router.py` (new)
+    - routing modes: `local-only`, `hybrid`, `cloud-primary`,
+    - local failure -> cloud fallback in hybrid mode,
+    - cloud-primary fail-closed when credentials/backend unavailable,
+    - runtime factory helpers from engine config.
+  - `voicekey/audio/__init__.py`
+    - exports for new ASR router/cloud adapter interfaces.
+  - `voicekey/ui/cli.py`
+    - runtime now builds ASR engine via factory from config,
+    - ASR runtime policy enforcement at startup,
+    - hybrid misconfiguration now warns and safely runs local-only,
+    - cloud-primary misconfiguration exits with actionable command error.
+  - `voicekey/app/main.py`
+    - coordinator supports injected ASR factory and router-compatible transcription output.
+  - `voicekey/config/manager.py`
+    - added `resolve_asr_runtime_policy()` with explicit mode resolution and credential checks.
+  - `voicekey/models/catalog.py`
+    - replaced empty model SHA values with valid SHA-256 entries.
+  - `voicekey/models/download_manager.py`
+    - fixed VAD download import path to `silero_vad.load_silero_vad`.
+- Test coverage added/updated:
+  - `tests/unit/test_asr_router.py` (new): local-only, hybrid fallback, cloud-primary validation, env-key routing, empty-audio cloud short-circuit.
+  - `tests/unit/test_cli.py`: hybrid warning/local-only behavior; cloud-primary fail-closed behavior.
+  - `tests/unit/test_config_manager.py`: runtime policy resolution for local-only, hybrid downgrade with warning, cloud-primary credential failure.
+  - `tests/unit/test_model_catalog.py`: enforce non-empty valid SHA256 catalog entries.
+  - `tests/unit/test_model_downloader.py`: regression for VAD loader import path.
+- Verification commands/evidence:
+  - `./.venv/bin/pytest tests/unit/test_asr_router.py tests/unit/test_cli.py tests/unit/test_config_manager.py tests/unit/test_runtime_coordinator.py tests/unit/test_model_catalog.py tests/unit/test_model_downloader.py -q` => PASS (`71 passed`)
+  - `./.venv/bin/pytest tests/unit tests/integration -q` => PASS (`795 passed`)
+  - `./.venv/bin/python scripts/ci/check_perf_guardrails.py --metrics-file tests/perf/metrics_baseline.json` => PASS (`perf_guardrail=ok`)
