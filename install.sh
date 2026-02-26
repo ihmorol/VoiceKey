@@ -1,333 +1,429 @@
 #!/usr/bin/env bash
 #
 # VoiceKey Installation Script
-# Supports: Linux (Ubuntu 22.04/24.04), Windows
+# Supports: Linux, macOS, Windows (Git Bash)
 #
 
-set -e
+set -Eeuo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 INSTALL_LOG="$SCRIPT_DIR/voicekey_install.log"
+
+ASSUME_YES=0
 SKIP_SYSTEM_DEPS=0
+SKIP_MODEL_DOWNLOAD=0
+SKIP_SETUP=0
+ENABLE_AUTOSTART=0
+FORCE_RECREATE_VENV=0
+MODEL_PROFILE="${VOICEKEY_MODEL:-base}"
+VENV_PATH=".venv"
+PYTHON_OVERRIDE=""
+OS_TYPE=""
+PYTHON_CMD=""
 
 log() {
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "$INSTALL_LOG"
+    local message="$1"
+    printf '[%s] %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$message" | tee -a "$INSTALL_LOG"
 }
 
-error() {
-    echo "[ERROR] $1" | tee -a "$INSTALL_LOG"
+warn() {
+    local message="$1"
+    printf '[WARN] %s\n' "$message" | tee -a "$INSTALL_LOG"
+}
+
+fatal() {
+    local message="$1"
+    printf '[ERROR] %s\n' "$message" | tee -a "$INSTALL_LOG"
     exit 1
 }
 
+usage() {
+    cat <<'USAGE_EOF'
+Usage: ./install.sh [options]
+
+Options:
+  -y, --yes                Run non-interactively where possible
+  --skip-system-deps       Skip OS package installation
+  --skip-model-download    Skip model download step
+  --skip-setup             Skip `voicekey setup --skip`
+  --autostart              Enable autostart during setup
+  --model-profile PROFILE  ASR profile to prefetch: tiny|base|small (default: base)
+  --venv-path PATH         Virtualenv path (default: .venv)
+  --python CMD             Python command/path to use
+  --force-recreate-venv    Recreate virtualenv if it already exists
+  -h, --help               Show this help
+USAGE_EOF
+}
+
+confirm() {
+    local prompt="$1"
+    if [[ "$ASSUME_YES" -eq 1 ]]; then
+        return 0
+    fi
+
+    local response
+    read -r -p "$prompt [y/N]: " response
+    [[ "$response" =~ ^[Yy]$ ]]
+}
+
+require_command() {
+    local cmd="$1"
+    command -v "$cmd" >/dev/null 2>&1 || fatal "Required command not found: $cmd"
+}
+
+parse_args() {
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -y|--yes)
+                ASSUME_YES=1
+                ;;
+            --skip-system-deps)
+                SKIP_SYSTEM_DEPS=1
+                ;;
+            --skip-model-download)
+                SKIP_MODEL_DOWNLOAD=1
+                ;;
+            --skip-setup)
+                SKIP_SETUP=1
+                ;;
+            --autostart)
+                ENABLE_AUTOSTART=1
+                ;;
+            --model-profile)
+                shift
+                [[ $# -gt 0 ]] || fatal "--model-profile requires a value"
+                MODEL_PROFILE="$1"
+                ;;
+            --venv-path)
+                shift
+                [[ $# -gt 0 ]] || fatal "--venv-path requires a value"
+                VENV_PATH="$1"
+                ;;
+            --python)
+                shift
+                [[ $# -gt 0 ]] || fatal "--python requires a value"
+                PYTHON_OVERRIDE="$1"
+                ;;
+            --force-recreate-venv)
+                FORCE_RECREATE_VENV=1
+                ;;
+            -h|--help)
+                usage
+                exit 0
+                ;;
+            *)
+                fatal "Unknown option: $1"
+                ;;
+        esac
+        shift
+    done
+}
+
 detect_os() {
-    if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-        if command -v apt-get &> /dev/null; then
-            echo "linux-apt"
-        else
-            echo "linux-other"
-        fi
-    elif [[ "$OSTYPE" == "msys" ]] || [[ "$OSTYPE" == "cygwin" ]] || [[ "$OSTYPE" == "win32" ]]; then
-        echo "windows"
-    else
-        error "Unsupported operating system: $OSTYPE"
-    fi
+    local uname_s
+    uname_s="$(uname -s 2>/dev/null || true)"
+
+    case "$uname_s" in
+        Linux*)
+            if command -v apt-get >/dev/null 2>&1; then
+                OS_TYPE="linux-apt"
+            else
+                OS_TYPE="linux"
+            fi
+            ;;
+        Darwin*)
+            OS_TYPE="macos"
+            ;;
+        MINGW*|MSYS*|CYGWIN*)
+            OS_TYPE="windows"
+            ;;
+        *)
+            fatal "Unsupported operating system: ${uname_s:-unknown}"
+            ;;
+    esac
+
+    log "Detected OS: $OS_TYPE"
 }
 
-check_python() {
+resolve_python() {
     log "Checking Python installation..."
-    
-    if command -v python3 &> /dev/null && python3 -m venv --help &> /dev/null; then
-        PYTHON_CMD="python3"
-    elif command -v python &> /dev/null && python -m venv --help &> /dev/null; then
-        PYTHON_CMD="python"
-    else
-        error "Python not found. Please install Python 3.11+."
-    fi
-    
-    PYTHON_VERSION=$($PYTHON_CMD -c 'import sys; print(".".join(map(str, sys.version_info[:2])))')
-    PYTHON_MAJOR=$($PYTHON_CMD -c 'import sys; print(sys.version_info[0])')
-    PYTHON_MINOR=$($PYTHON_CMD -c 'import sys; print(sys.version_info[1])')
-    
-    if [[ "$PYTHON_MAJOR" -lt 3 ]] || ([[ "$PYTHON_MAJOR" -eq 3 ]] && [[ "$PYTHON_MINOR" -lt 11 ]]); then
-        error "Python 3.11+ required. Found: $PYTHON_VERSION"
-    fi
-    
-    log "Python version: $PYTHON_VERSION"
-}
 
-check_linux_deps() {
-    # Check for PortAudio - required for audio capture
-    if pkg-config --exists portaudio-2.0 2>/dev/null; then
-        log "PortAudio is already installed."
-        return 0
+    if [[ -n "$PYTHON_OVERRIDE" ]]; then
+        PYTHON_CMD="$PYTHON_OVERRIDE"
+    else
+        local candidates=()
+        if [[ "$OS_TYPE" == "windows" ]]; then
+            candidates=(python py python3)
+        else
+            candidates=(python3 python)
+        fi
+
+        local candidate
+        for candidate in "${candidates[@]}"; do
+            if command -v "$candidate" >/dev/null 2>&1 && "$candidate" -m venv --help >/dev/null 2>&1; then
+                PYTHON_CMD="$candidate"
+                break
+            fi
+        done
     fi
-    # Also check for the library directly
-    if ldconfig -p 2>/dev/null | grep -q "libportaudio"; then
-        log "PortAudio library found."
-        return 0
+
+    [[ -n "$PYTHON_CMD" ]] || fatal "Python 3.11+ with venv support is required."
+
+    local py_version
+    py_version="$($PYTHON_CMD -c 'import sys; print(".".join(map(str, sys.version_info[:3])))')"
+    local py_major
+    py_major="$($PYTHON_CMD -c 'import sys; print(sys.version_info[0])')"
+    local py_minor
+    py_minor="$($PYTHON_CMD -c 'import sys; print(sys.version_info[1])')"
+
+    if [[ "$py_major" -lt 3 ]] || [[ "$py_major" -eq 3 && "$py_minor" -lt 11 ]]; then
+        fatal "Python 3.11+ required. Found: $py_version"
     fi
-    log "PortAudio not found - will need to install system dependencies."
-    return 1
+
+    log "Using Python: $PYTHON_CMD ($py_version)"
 }
 
 install_linux_deps() {
-    log "Installing Linux system dependencies..."
-    
-    if ! command -v sudo &> /dev/null; then
-        error "sudo not found. Please install sudo or run as root."
+    if [[ "$SKIP_SYSTEM_DEPS" -eq 1 ]]; then
+        log "Skipping Linux system dependency installation (--skip-system-deps)."
+        return
     fi
-    
-    if check_linux_deps; then
-        log "Skipping apt install - all dependencies present."
-        return 0
+
+    if [[ "$OS_TYPE" != "linux-apt" ]]; then
+        warn "Apt-based dependency installation skipped (non-apt Linux)."
+        warn "Install manually: libportaudio2 portaudio19-dev libasound2-dev ffmpeg"
+        return
     fi
-    
-    sudo apt-get update -qq
-    
-    PYTHON3_VERSION=$(apt-cache search python3.11 python3.12 | grep -oP 'python3\.\d+' | sort -V | tail -1)
-    PYTHON3_PKG="python3"
-    
-    if [ -n "$PYTHON3_VERSION" ]; then
-        PYTHON3_PKG="$PYTHON3_VERSION"
+
+    local deps=(python3-venv python3-pip libportaudio2 portaudio19-dev libasound2-dev ffmpeg)
+    local missing=()
+    local dep
+
+    for dep in "${deps[@]}"; do
+        if ! dpkg -s "$dep" >/dev/null 2>&1; then
+            missing+=("$dep")
+        fi
+    done
+
+    if [[ "${#missing[@]}" -eq 0 ]]; then
+        log "All Linux dependencies are already installed."
+        return
     fi
-    
-    log "Using Python package: $PYTHON3_PKG"
-    
-    sudo apt-get install -y \
-        "$PYTHON3_PKG" \
-        "$PYTHON3_PKG"-venv \
-        "$PYTHON3_PKG"-dev \
-        python3-pip \
-        libportaudio2 \
-        libasound2-dev \
-        portaudio19-dev \
-        ffmpeg \
-        curl \
-        || error "Failed to install system dependencies"
-    
-    log "Linux system dependencies installed."
+
+    log "Missing Linux packages: ${missing[*]}"
+
+    if ! confirm "Install missing packages using apt-get?"; then
+        fatal "Cannot continue without required system dependencies."
+    fi
+
+    local sudo_cmd=()
+    if [[ "$EUID" -ne 0 ]]; then
+        require_command sudo
+        sudo_cmd=(sudo)
+    fi
+
+    "${sudo_cmd[@]}" apt-get update -qq
+    "${sudo_cmd[@]}" apt-get install -y "${missing[@]}"
+    log "Linux dependencies installed."
 }
 
-configure_linux_audio_group() {
-    log "Configuring audio group permissions..."
-    
-    if groups | grep -q "\baudio\b"; then
-        log "User is already in audio group."
-        return 0
+install_macos_deps() {
+    if [[ "$SKIP_SYSTEM_DEPS" -eq 1 ]]; then
+        log "Skipping macOS system dependency installation (--skip-system-deps)."
+        return
     fi
-    
-    log "Adding user to audio group..."
-    if sudo usermod -a -G audio "$USER" 2>/dev/null; then
-        log "User added to audio group. Please log out and back in for changes to take effect."
+
+    if [[ "$OS_TYPE" != "macos" ]]; then
+        return
+    fi
+
+    if ! command -v brew >/dev/null 2>&1; then
+        warn "Homebrew not found. Install manually: portaudio ffmpeg"
+        return
+    fi
+
+    local deps=(portaudio ffmpeg)
+    local missing=()
+    local dep
+
+    for dep in "${deps[@]}"; do
+        if ! brew list --formula "$dep" >/dev/null 2>&1; then
+            missing+=("$dep")
+        fi
+    done
+
+    if [[ "${#missing[@]}" -eq 0 ]]; then
+        log "All macOS dependencies are already installed."
+        return
+    fi
+
+    log "Missing Homebrew packages: ${missing[*]}"
+
+    if ! confirm "Install missing packages using Homebrew?"; then
+        fatal "Cannot continue without required system dependencies."
+    fi
+
+    brew install "${missing[@]}"
+    log "macOS dependencies installed."
+}
+
+create_or_activate_venv() {
+    local venv_abs
+    if [[ "$VENV_PATH" = /* ]]; then
+        venv_abs="$VENV_PATH"
     else
-        log "Warning: Could not add user to audio group. You may need to do this manually:"
-        log "  sudo usermod -a -G audio \$USER"
+        venv_abs="$SCRIPT_DIR/$VENV_PATH"
     fi
-}
 
-install_windows_deps() {
-    log "Checking Windows prerequisites..."
-    
-    if ! command -v python &> /dev/null; then
-        error "Python not found. Please install Python 3.11+ from https://python.org"
+    if [[ -d "$venv_abs" && "$FORCE_RECREATE_VENV" -eq 1 ]]; then
+        log "Removing existing virtualenv: $venv_abs"
+        rm -rf "$venv_abs"
     fi
-    
-    PYTHON_VERSION=$(python -c 'import sys; print(".".join(map(str, sys.version_info[:2])))')
-    PYTHON_MAJOR=$(python -c 'import sys; print(sys.version_info[0])')
-    PYTHON_MINOR=$(python -c 'import sys; print(sys.version_info[1])')
-    
-    if [[ "$PYTHON_MAJOR" -lt 3 ]] || ([[ "$PYTHON_MAJOR" -eq 3 ]] && [[ "$PYTHON_MINOR" -lt 11 ]]); then
-        error "Python 3.11+ required. Found: $PYTHON_VERSION"
-    fi
-    
-    log "Python version: $PYTHON_VERSION"
-    
-    if ! python -m pip --version &> /dev/null; then
-        log "Installing pip..."
-        python -m ensurepip --upgrade
-    fi
-}
 
-create_venv() {
-    log "Creating virtual environment..."
-    
-    if [[ -d ".venv" ]]; then
-        log "Virtual environment already exists. Removing..."
-        rm -rf .venv
+    if [[ ! -d "$venv_abs" ]]; then
+        log "Creating virtualenv: $venv_abs"
+        "$PYTHON_CMD" -m venv "$venv_abs"
+    else
+        log "Reusing existing virtualenv: $venv_abs"
     fi
-    
-    $PYTHON_CMD -m venv .venv
-    
+
+    local activate_path
     if [[ "$OS_TYPE" == "windows" ]]; then
-        source .venv/Scripts/activate
+        activate_path="$venv_abs/Scripts/activate"
     else
-        source .venv/bin/activate
+        activate_path="$venv_abs/bin/activate"
     fi
-    
-    log "Upgrading pip..."
-    pip install --upgrade pip
-    
-    log "Virtual environment ready."
+
+    [[ -f "$activate_path" ]] || fatal "Virtualenv activation script missing: $activate_path"
+
+    # shellcheck disable=SC1090
+    source "$activate_path"
+
+    log "Upgrading pip/setuptools/wheel..."
+    if ! python -m pip install --upgrade pip setuptools wheel; then
+        warn "Could not upgrade pip/setuptools/wheel (possibly offline). Continuing with existing tooling."
+    fi
 }
 
 install_voicekey() {
-    log "Installing VoiceKey..."
-    
-    if [[ "$OS_TYPE" == "linux-apt" ]]; then
-        log "Installing CPU-only PyTorch (faster, smaller download)..."
-        pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+    log "Installing VoiceKey package from source..."
+    if ! python -m pip install -e "$SCRIPT_DIR"; then
+        warn "Editable install with build isolation failed. Retrying with --no-build-isolation..."
+        if ! python -m pip install -e "$SCRIPT_DIR" --no-build-isolation; then
+            fatal "VoiceKey package installation failed. Check network/dependency availability and retry."
+        fi
     fi
-    
-    pip install -e . || error "Failed to install VoiceKey"
-    
-    log "VoiceKey installed successfully."
+    log "VoiceKey installed."
 }
 
 download_models() {
-    log "Downloading speech models..."
-    
-    MODEL_PROFILE="${1:-base}"
-    log "Using model profile: $MODEL_PROFILE"
-    
-    if voicekey download --all 2>&1 | grep -q "success"; then
-        log "Models downloaded successfully."
-    else
-        log "Note: Model download may require internet access on first run."
-        log "Faster-Whisper will download models automatically when first used."
+    if [[ "$SKIP_MODEL_DOWNLOAD" -eq 1 ]]; then
+        log "Skipping model download (--skip-model-download)."
+        return
+    fi
+
+    case "$MODEL_PROFILE" in
+        tiny|base|small)
+            ;;
+        *)
+            warn "Unknown model profile '$MODEL_PROFILE'. Falling back to 'base'."
+            MODEL_PROFILE="base"
+            ;;
+    esac
+
+    log "Downloading model profile '$MODEL_PROFILE' and VAD artifacts..."
+    if ! voicekey download --asr "$MODEL_PROFILE" --vad; then
+        warn "Model download failed. VoiceKey can still run and download on first use."
     fi
 }
 
 run_setup() {
-    log "Running VoiceKey setup..."
-    
-    voicekey setup --skip --autostart || error "Failed to run setup"
-    
+    if [[ "$SKIP_SETUP" -eq 1 ]]; then
+        log "Skipping onboarding setup (--skip-setup)."
+        return
+    fi
+
+    log "Running setup with safe defaults..."
+    if [[ "$ENABLE_AUTOSTART" -eq 1 ]]; then
+        voicekey setup --skip --autostart
+    else
+        voicekey setup --skip --no-autostart
+    fi
     log "Setup completed."
 }
 
 verify_installation() {
-    log "Verifying installation..."
-    
-    log "Checking available devices..."
-    voicekey devices || log "Warning: Could not list devices"
-    
-    log "Checking status..."
-    voicekey status || log "Warning: Could not get status"
-    
-    log "Installation verified."
+    log "Verifying VoiceKey installation..."
+
+    voicekey --help >/dev/null
+    voicekey commands >/dev/null
+
+    if ! voicekey status >/dev/null; then
+        warn "Status check reported an issue. See $INSTALL_LOG for details."
+    fi
+
+    if ! voicekey devices >/dev/null; then
+        warn "Device probe failed. Confirm microphone permissions and audio backend dependencies."
+    fi
+
+    log "Verification complete."
 }
 
-setup_autostart_linux() {
-    log "Setting up autostart..."
-    
-    mkdir -p ~/.config/autostart
-    
-    cat > ~/.config/autostart/voicekey.desktop << 'EOF'
-[Desktop Entry]
-Type=Application
-Name=VoiceKey
-Comment=Privacy-first offline voice-to-keyboard
-Exec=voicekey start --daemon
-Icon=voicekey
-Terminal=false
-Categories=Utility;
-EOF
-    
-    chmod +x ~/.config/autostart/voicekey.desktop
-    
-    log "Autostart configured (desktop file)."
-}
+print_summary() {
+    local activate_cmd
+    if [[ "$OS_TYPE" == "windows" ]]; then
+        activate_cmd="source ${VENV_PATH}/Scripts/activate"
+    else
+        activate_cmd="source ${VENV_PATH}/bin/activate"
+    fi
 
-show_usage() {
-    cat << USAGE_EOF
+    cat <<SUMMARY_EOF
 
 ================================================================================
-                    VoiceKey Installation Complete!
+VoiceKey installation finished
 ================================================================================
 
-USAGE:
-    source .venv/bin/activate
-    
-    # Start VoiceKey
-    voicekey start              # Start with dashboard
-    voicekey start --daemon    # Start in background (tray mode)
-    
-    # Other commands
-    voicekey status             # Show runtime status
-    voicekey devices            # List microphone devices
-    voicekey commands           # List supported commands
-    voicekey config --show     # Show configuration
-    
-    # Configuration
-    voicekey config --set listening_mode=wake_word
-    voicekey config --set wake_word.phrase="voice key"
-    
-MODEL PROFILES:
-    tiny   - Smallest, fastest (~\`250 MB)
-    base   - Good balance (~\`140 MB)  <default>
-    small  - Better accuracy (~\`500 MB)
+Next steps:
+1. Activate environment:
+   $activate_cmd
+2. Run VoiceKey in terminal mode:
+   voicekey start --foreground
+3. Optional background startup contract:
+   voicekey start --daemon
 
-AUTOSTART:
-    Autostart has been configured. VoiceKey will start automatically on login.
-    To disable: rm ~/.config/autostart/voicekey.desktop
+Useful checks:
+- voicekey status
+- voicekey devices
+- voicekey commands
 
-NEXT STEPS:
-    1. Log out and log back in (Linux audio group)
-    2. Test your microphone: voicekey devices
-    3. Say "voice key" to activate
-    4. Speak your command - it will be typed automatically
-    
-    Say "pause voice key" to pause
-    Say "resume voice key" to resume
+Log file:
+$INSTALL_LOG
 
 ================================================================================
-USAGE_EOF
+SUMMARY_EOF
 }
 
 main() {
-    log "Starting VoiceKey installation..."
-    log "Script directory: $SCRIPT_DIR"
-    
+    : > "$INSTALL_LOG"
+    parse_args "$@"
+
+    log "Starting VoiceKey installation in: $SCRIPT_DIR"
     cd "$SCRIPT_DIR"
-    
-    OS_TYPE=$(detect_os)
-    log "Detected OS: $OS_TYPE"
-    
-    MODEL_PROFILE="${VOICEKEY_MODEL:-base}"
-    
-    if [[ "$OS_TYPE" == "linux-apt" ]]; then
-        check_python
-        if ! check_linux_deps; then
-            install_linux_deps
-        fi
-        configure_linux_audio_group
-    elif [[ "$OS_TYPE" == "windows" ]]; then
-        install_windows_deps
-    fi
-    
-    create_venv
-    
-    if [[ "$OS_TYPE" == "windows" ]]; then
-        source .venv/Scripts/activate
-    else
-        source .venv/bin/activate
-    fi
-    
+
+    detect_os
+    resolve_python
+
+    install_linux_deps
+    install_macos_deps
+
+    create_or_activate_venv
     install_voicekey
-    
-    download_models "$MODEL_PROFILE"
-    
     run_setup
-    
-    if [[ "$OS_TYPE" == "linux-apt" ]]; then
-        setup_autostart_linux
-    fi
-    
+    download_models
     verify_installation
-    
-    show_usage
-    
-    log "Installation complete!"
+    print_summary
+
+    log "Installation complete."
 }
 
 main "$@"
