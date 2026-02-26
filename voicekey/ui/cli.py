@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import importlib
 import os
 import signal
 import sys
@@ -22,6 +23,7 @@ from voicekey.config.manager import (
     backup_config,
     load_config,
     parse_startup_env_overrides,
+    resolve_asr_runtime_policy,
     resolve_runtime_paths,
     save_config,
 )
@@ -176,6 +178,7 @@ def _create_runtime_coordinator(
         "toggle_listening",
         "ctrl+shift+`",
     )
+    asr_engine_factory = _build_asr_engine_factory(config=config, sample_rate=sample_rate)
 
     state_machine = VoiceKeyStateMachine(
         mode=listening_mode,
@@ -190,9 +193,80 @@ def _create_runtime_coordinator(
         sample_rate=sample_rate,
         vad_threshold=vad_threshold,
         toggle_hotkey=toggle_hotkey,
+        asr_engine_factory=asr_engine_factory,
     )
 
     return coordinator
+
+
+def _build_asr_engine_factory(config: Any, sample_rate: int) -> Any:
+    """Build lazy ASR engine factory derived from engine config."""
+    engine_config = getattr(config, "engine", None)
+    asr_backend = getattr(engine_config, "asr_backend", "faster-whisper")
+    network_fallback_enabled = bool(getattr(engine_config, "network_fallback_enabled", False))
+    model_profile = getattr(engine_config, "model_profile", "base")
+    compute_type = getattr(engine_config, "compute_type", None)
+    cloud_timeout_seconds = float(getattr(engine_config, "cloud_timeout_seconds", 30))
+
+    def _factory() -> Any:
+        if asr_backend == "faster-whisper" and not network_fallback_enabled:
+            from voicekey.audio.asr_faster_whisper import ASREngine
+
+            return ASREngine(
+                model_size=model_profile,
+                device="auto",
+                compute_type=compute_type,
+                sample_rate=sample_rate,
+                transcription_timeout=cloud_timeout_seconds,
+            )
+        return _build_router_asr_engine(config=config, sample_rate=sample_rate)
+
+    return _factory
+
+
+def _build_router_asr_engine(config: Any, sample_rate: int) -> Any:
+    """Build hybrid/cloud ASR router from available runtime module."""
+    try:
+        router_module = importlib.import_module("voicekey.audio.asr_router")
+    except ImportError as exc:
+        raise RuntimeError(
+            "Hybrid/cloud ASR is configured but `voicekey.audio.asr_router` is unavailable. "
+            "Switch to local-only mode (`engine.asr_backend=faster-whisper` and "
+            "`engine.network_fallback_enabled=false`) or install hybrid ASR components."
+        ) from exc
+
+    engine_config = getattr(config, "engine", None)
+    if hasattr(engine_config, "model_dump"):
+        engine_payload = engine_config.model_dump(mode="python")
+    elif hasattr(engine_config, "dict"):
+        engine_payload = engine_config.dict()  # pragma: no cover - compatibility path
+    else:
+        engine_payload = {}
+
+    factory = getattr(router_module, "create_asr_router_from_config", None)
+    if callable(factory):
+        try:
+            return factory(engine_payload, sample_rate=sample_rate, environ=os.environ)
+        except TypeError:
+            try:
+                return factory(engine_payload, sample_rate=sample_rate)
+            except TypeError:
+                return factory(engine_payload)
+
+    router_class = getattr(router_module, "ASRRouter", None)
+    if callable(router_class):
+        try:
+            return router_class(config=engine_payload, sample_rate=sample_rate)
+        except TypeError:
+            try:
+                return router_class(engine_config=engine_payload, sample_rate=sample_rate)
+            except TypeError:
+                return router_class(engine_payload)
+
+    raise RuntimeError(
+        "Hybrid/cloud ASR is configured but no compatible ASR router factory was found. "
+        "Expected `create_asr_router_from_config(...)` or `ASRRouter`."
+    )
 
 
 def _signal_handler(signum, frame) -> None:
@@ -372,6 +446,13 @@ def start_command(
         config = load_result.config
     except ConfigError as exc:
         raise click.ClickException(f"Failed to load config: {exc}") from exc
+
+    try:
+        asr_runtime_policy = resolve_asr_runtime_policy(config, env=os.environ)
+    except ConfigError as exc:
+        raise click.ClickException(str(exc)) from exc
+    if asr_runtime_policy.warning and output_mode != "json":
+        click.echo(f"Warning: {asr_runtime_policy.warning}", err=True)
 
     # Create keyboard backend
     keyboard_backend: KeyboardBackend | None = None

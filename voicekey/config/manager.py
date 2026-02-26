@@ -8,7 +8,7 @@ from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import yaml
 
@@ -66,6 +66,15 @@ class RuntimePaths:
     data_dir: Path
     model_dir: Path
     portable_mode: bool = False
+
+
+@dataclass(frozen=True)
+class ASRRuntimePolicy:
+    """Resolved runtime ASR mode and cloud-credential requirement state."""
+
+    mode: Literal["local-only", "hybrid", "cloud-primary"]
+    requires_cloud_credentials: bool
+    warning: str | None = None
 
 
 _SAFE_RELOAD_KEYS: tuple[str, ...] = (
@@ -383,6 +392,75 @@ def parse_startup_env_overrides(env: Mapping[str, str] | None = None) -> Startup
     )
 
 
+def resolve_asr_runtime_policy(
+    config: VoiceKeyConfig,
+    env: Mapping[str, str] | None = None,
+) -> ASRRuntimePolicy:
+    """Resolve ASR runtime mode and enforce fail-closed cloud credential checks."""
+    backend = config.engine.asr_backend
+    fallback_enabled = config.engine.network_fallback_enabled
+
+    if backend == "openai-api-compatible":
+        mode: Literal["local-only", "hybrid", "cloud-primary"] = "cloud-primary"
+    elif fallback_enabled:
+        mode = "hybrid"
+    else:
+        mode = "local-only"
+
+    requires_cloud_credentials = mode != "local-only"
+    if not requires_cloud_credentials:
+        return ASRRuntimePolicy(mode=mode, requires_cloud_credentials=False)
+
+    env_map = env if env is not None else os.environ
+    api_key = _clean_optional_env_value(env_map.get("VOICEKEY_OPENAI_API_KEY"))
+    cloud_api_base = _clean_optional_env_value(config.engine.cloud_api_base)
+
+    missing_fields: list[str] = []
+    if cloud_api_base is None:
+        missing_fields.append("engine.cloud_api_base")
+    if api_key is None:
+        missing_fields.append("VOICEKEY_OPENAI_API_KEY")
+
+    if missing_fields:
+        mode_details = (
+            "engine.asr_backend=openai-api-compatible"
+            if mode == "cloud-primary"
+            else "engine.network_fallback_enabled=true with engine.asr_backend=faster-whisper"
+        )
+
+        remediation_steps = []
+        if "engine.cloud_api_base" in missing_fields:
+            remediation_steps.append(
+                "Set a cloud endpoint, for example: "
+                "voicekey config --set engine.cloud_api_base=https://api.openai.com/v1."
+            )
+        if "VOICEKEY_OPENAI_API_KEY" in missing_fields:
+            remediation_steps.append(
+                "Set VOICEKEY_OPENAI_API_KEY in your environment before running `voicekey start`."
+            )
+
+        missing_text = ", ".join(missing_fields)
+        remediation_text = " ".join(remediation_steps)
+        message = (
+            "Cloud ASR mode is enabled ("
+            f"{mode_details}) but required credentials are missing: {missing_text}. "
+            f"{remediation_text}"
+        )
+
+        # Cloud-primary cannot operate safely without credentials: fail closed.
+        if mode == "cloud-primary":
+            raise ConfigError(message)
+
+        # Hybrid mode falls back to local-only with warning.
+        return ASRRuntimePolicy(
+            mode="local-only",
+            requires_cloud_credentials=False,
+            warning=message,
+        )
+
+    return ASRRuntimePolicy(mode=mode, requires_cloud_credentials=True)
+
+
 def evaluate_reload_decision(changed_keys: Iterable[str]) -> ReloadDecision:
     """Classify changed config keys into hot-reload-safe vs restart-required buckets."""
     safe_to_apply: set[str] = set()
@@ -435,6 +513,7 @@ def _parse_bool_env_value(*, variable_name: str, raw_value: str) -> bool:
 
 
 __all__ = [
+    "ASRRuntimePolicy",
     "ConfigError",
     "ConfigLoadResult",
     "ReloadDecision",
@@ -444,6 +523,7 @@ __all__ = [
     "evaluate_reload_decision",
     "load_config",
     "parse_startup_env_overrides",
+    "resolve_asr_runtime_policy",
     "resolve_config_path",
     "resolve_runtime_paths",
     "save_config",
