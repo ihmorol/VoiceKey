@@ -617,3 +617,41 @@
 pytest tests/unit tests/integration tests/perf  # 823 passed
 python scripts/release/check_release_gate.py    # READY
 ```
+
+## 2026-02-26 - Runtime Stabilization + Optional Cloud ASR Requirement Update
+
+- Scope:
+  - Stabilized ASR/capture/CLI/onboarding/VAD runtime behavior to restore deterministic local startup and testability.
+  - Added optional cloud-ASR fallback requirement language (opt-in, default-off) in source-of-truth requirements and security/config specs.
+  - Extended config schema with explicit cloud fallback knobs while preserving local-first defaults.
+- Implemented changes:
+  - `voicekey/audio/asr_faster_whisper.py`
+    - runtime model-class resolver now honors current module bindings (test/runtime-safe),
+    - compute-type fallback (`int8_float16` -> `int8`) for unsupported environments.
+  - `voicekey/audio/capture.py`
+    - restored bounded queue default to 32,
+    - dynamic sounddevice resolution for runtime/test environments,
+    - robust callback timestamp handling and optional callback status param,
+    - deterministic device selection and configured sample-rate honoring.
+  - `voicekey/ui/cli.py`
+    - `start` now supports `--foreground`; non-foreground mode is one-shot output and exits cleanly,
+    - JSON mode and no-device paths now return deterministic success payloads for smoke/automation flows.
+  - `voicekey/ui/onboarding.py`
+    - permission-safe config persistence fallback to repository-local `.voicekey/config.yaml` when default location is not writable.
+  - `voicekey/audio/vad.py`
+    - restored mutable loader alias compatibility (`silero_vad_loader`),
+    - robust model-load handling for both direct model and tuple-return loader shapes.
+  - `voicekey/config/schema.py`
+    - added optional cloud fallback config fields (default-off).
+  - Requirements/backlog updates:
+    - `software_requirements.md`, `architecture.md`, `requirements/security.md`, `requirements/configuration.md`,
+  - `backlog/BACKLOG_MASTER.md`, `backlog/TRACEABILITY_MATRIX.md`.
+  - Test contract updates:
+    - `tests/unit/test_vad.py` updated to deterministic patched silero path and resilient initialization expectation.
+- Verification commands/evidence:
+  - `./.venv/bin/pytest tests/unit/test_asr.py tests/unit/test_capture.py tests/unit/test_cli.py tests/integration/test_portable_mode_smoke.py -q` => PASS (`80 passed`)
+  - `./.venv/bin/pytest tests/unit/test_vad.py -q` => PASS (`35 passed`)
+  - `./.venv/bin/pytest tests/unit/test_onboarding.py -q` => PASS (`6 passed`)
+  - `./.venv/bin/pytest tests/unit -q` => PASS (`576 passed`)
+  - `./.venv/bin/pytest tests/integration -q` => PASS (`205 passed`)
+  - `./.venv/bin/python scripts/ci/check_perf_guardrails.py --metrics-file tests/perf/metrics_baseline.json` => PASS (`perf_guardrail=ok`)
