@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import hashlib
+import sys
+from types import ModuleType
 
 import pytest
 
 from voicekey.models.catalog import ModelCatalogEntry
 from voicekey.models.downloader import ModelDownloadError, ModelDownloader
+from voicekey.models.download_manager import ModelDownloadManager
 
 
 def _sha256_for_bytes(payload: bytes) -> str:
@@ -170,3 +173,17 @@ def test_download_profile_accepts_file_url_for_local_testing(tmp_path) -> None:
 
     assert result.reused_existing is False
     assert result.target_path.read_bytes() == payload
+
+
+def test_download_vad_uses_silero_vad_package_import_path(monkeypatch, tmp_path) -> None:
+    module = ModuleType("silero_vad")
+    module.load_silero_vad = lambda: object()
+
+    monkeypatch.setitem(sys.modules, "silero_vad", module)
+    monkeypatch.delitem(sys.modules, "silero", raising=False)
+
+    manager = ModelDownloadManager(model_dir=tmp_path / "models")
+    result = manager.download_vad()
+
+    assert result.success is True
+    assert result.profile == "silero-vad"

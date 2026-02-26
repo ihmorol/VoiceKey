@@ -18,7 +18,7 @@ Priority legend:
 - E01-S02: complete (VAD unit verification passed)
 - E01-S03: complete (ASR unit verification passed)
 - E01-S04: complete (final-transcript confidence filtering verified)
-- E01-S05: pending (hybrid ASR routing requirement updated: local primary + realtime API fallback; runtime adapter/integration tests not yet implemented)
+- E01-S05: complete (hybrid ASR router implemented with local-primary fallback/cloud-primary modes, fail-closed credential policy, and unit/integration verification)
 - E02-S01: complete (wake detector bound to FSM wake_word transitions; timeout/reset coordinator verified)
 - E02-S02: complete (parser command-suffix + unknown-literal fallback + alias matching verified)
 - E02-S03: complete (optional fuzzy matcher added with default-off behavior and threshold-bounded command resolution)
