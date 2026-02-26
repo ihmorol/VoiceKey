@@ -54,7 +54,7 @@ This folder contains the implementation-ready specification set for VoiceKey.
 
 ## 4. Finalized Product Decisions
 
-- ASR engine: faster-whisper
+- ASR architecture: hybrid-capable (faster-whisper local primary + opt-in realtime API fallback)
 - pause/resume phrases work without wake phrase
 - continuous mode kept with inactivity auto-pause safety
 - tray + autostart + onboarding included in core baseline
@@ -63,4 +63,4 @@ This folder contains the implementation-ready specification set for VoiceKey.
 
 ---
 
-*Last Updated: 2026-02-19*
+*Last Updated: 2026-02-26*

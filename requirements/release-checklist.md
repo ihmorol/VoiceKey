@@ -1,7 +1,7 @@
 # VoiceKey Release Checklist
 
-> Version: 1.1
-> Date: 2026-02-19
+> Version: 1.2
+> Date: 2026-02-26
 
 ---
 
@@ -22,6 +22,7 @@
 - [ ] SBOM generated (CycloneDX JSON)
 - [ ] provenance attestation attached
 - [ ] install smoke tests passed (Linux + Windows)
+- [ ] hybrid ASR smoke tests passed (local-only, hybrid fallback, cloud-primary credential validation)
 
 ## Publish
 
@@ -39,5 +40,5 @@
 
 ---
 
-*Document Version: 1.1*  
-*Last Updated: 2026-02-19*
+*Document Version: 1.2*  
+*Last Updated: 2026-02-26*
