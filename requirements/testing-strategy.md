@@ -1,7 +1,7 @@
 # VoiceKey Testing Strategy
 
-> Version: 1.0
-> Date: 2026-02-19
+> Version: 1.1
+> Date: 2026-02-26
 
 ---
 
@@ -16,6 +16,7 @@
 ### Integration
 
 - mic -> VAD -> ASR -> parser -> keyboard route
+- local ASR failure/timeout -> cloud fallback route (hybrid mode)
 - tray state synchronization
 - autostart adapters
 
@@ -54,6 +55,7 @@ Minimum CI matrix requirement:
 - rapid mode switching
 - repeated hotkey registration changes
 - model reload failure and recovery
+- cloud API timeout/auth failure and local fallback recovery
 
 ---
 
@@ -63,6 +65,7 @@ Minimum CI matrix requirement:
 - inactivity auto-pause trigger
 - pause phrase immediate output suppression
 - paused-state `resume voice key` phrase path (when enabled) and hotkey path
+- cloud mode requested without API key fails closed with actionable error
 
 ---
 
@@ -76,5 +79,5 @@ Minimum CI matrix requirement:
 
 ---
 
-*Document Version: 1.0*  
-*Last Updated: 2026-02-19*
+*Document Version: 1.1*  
+*Last Updated: 2026-02-26*

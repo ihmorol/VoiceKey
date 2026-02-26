@@ -1,7 +1,7 @@
 # VoiceKey Troubleshooting Guide
 
-> Version: 1.0
-> Date: 2026-02-19
+> Version: 1.1
+> Date: 2026-02-26
 
 ---
 
@@ -100,6 +100,8 @@ voicekey status
 
 Ensure enough disk space and no proxy/firewall corruption during download.
 
+If hybrid mode is enabled, VoiceKey should continue by falling back to configured cloud ASR.
+
 ---
 
 ## 8. Linux Wayland Limitations
@@ -115,7 +117,24 @@ Mitigation:
 
 ---
 
-## 9. Export Debug Bundle
+## 9. Cloud API Fallback Not Working
+
+Checks:
+
+```bash
+voicekey config --get engine.network_fallback_enabled
+voicekey config --get engine.cloud_api_base
+```
+
+Fixes:
+
+- ensure `VOICEKEY_OPENAI_API_KEY` is set in the runtime environment
+- verify cloud endpoint URL is reachable
+- keep local backend enabled so hybrid fallback can recover when cloud is down
+
+---
+
+## 10. Export Debug Bundle
 
 ```bash
 voicekey diagnostics --export ./voicekey-debug.zip
@@ -125,5 +144,5 @@ Debug export should redact transcript by default.
 
 ---
 
-*Document Version: 1.0*  
-*Last Updated: 2026-02-19*
+*Document Version: 1.1*  
+*Last Updated: 2026-02-26*
