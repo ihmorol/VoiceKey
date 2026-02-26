@@ -1,6 +1,6 @@
 # VoiceKey Configuration Specification
 
-> Version: 2.1 (Aligned)
+> Version: 2.2 (Hybrid ASR Routing)
 > Date: 2026-02-26
 
 ---
@@ -29,9 +29,9 @@ engine:
   model_profile: "base"          # tiny | base | small
   compute_type: "int8"           # int8 | int16 | float16 (platform dependent)
   language: "en"
-  network_fallback_enabled: false
+  network_fallback_enabled: false # when true with faster-whisper, run hybrid mode (local primary, cloud fallback)
   cloud_model: "gpt-4o-mini-transcribe"
-  cloud_api_base: null
+  cloud_api_base: null            # OpenAI-compatible base URL when fallback/cloud backend is enabled
   cloud_timeout_seconds: 30
 
 audio:
@@ -98,6 +98,23 @@ snippets:
 
 ---
 
+## 2.1 Hybrid and Cloud Backend Semantics
+
+- `asr_backend=faster-whisper` and `engine.network_fallback_enabled=false` -> local-only mode.
+- `asr_backend=faster-whisper` and `engine.network_fallback_enabled=true` -> hybrid mode (local primary, cloud fallback on local failure/timeout).
+- `asr_backend=openai-api-compatible` -> cloud-primary mode.
+- Cloud fallback/cloud-primary modes require `VOICEKEY_OPENAI_API_KEY` and a reachable API endpoint.
+
+Example hybrid enablement:
+
+```bash
+voicekey config --set engine.asr_backend=faster-whisper
+voicekey config --set engine.network_fallback_enabled=true
+voicekey config --set engine.cloud_api_base=https://api.openai.com/v1
+```
+
+---
+
 ## 3. Config Command Contract
 
 ```bash
@@ -118,6 +135,8 @@ voicekey config --edit
 | `audio.sample_rate_hz` | must be one of `8000, 16000, 32000, 44100, 48000` |
 | `engine.asr_backend` | `faster-whisper` or `openai-api-compatible` |
 | `engine.network_fallback_enabled` | boolean |
+| `engine.cloud_api_base` | null or valid `https://` URL |
+| `engine.cloud_timeout_seconds` | integer `5..120` |
 | `audio.chunk_ms` | `80..300` |
 | `wake_word.sensitivity` | `0.0..1.0` |
 | `modes.inactivity_auto_pause_seconds` | `5..300` |
@@ -130,6 +149,12 @@ Invalid config values must:
 1. emit warning,
 2. fallback to safe default,
 3. preserve user file with migration note.
+
+Conditional validation rules:
+
+1. if `engine.asr_backend=openai-api-compatible`, `engine.cloud_api_base` and `VOICEKEY_OPENAI_API_KEY` must be present.
+2. if `engine.network_fallback_enabled=true`, cloud endpoint and API key must be available before fallback path is activated.
+3. if cloud validation fails, runtime must stay in local-only mode and emit actionable warning.
 
 ---
 
@@ -149,9 +174,9 @@ Invalid config values must:
 | `VOICEKEY_MODEL_DIR` | model storage path override |
 | `VOICEKEY_LOG_LEVEL` | runtime log level |
 | `VOICEKEY_DISABLE_TRAY` | force tray off |
-| `VOICEKEY_OPENAI_API_KEY` | API key for optional cloud transcription fallback |
+| `VOICEKEY_OPENAI_API_KEY` | API key for hybrid fallback/cloud backend |
 
 ---
 
-*Document Version: 2.1*  
+*Document Version: 2.2*  
 *Last Updated: 2026-02-26*

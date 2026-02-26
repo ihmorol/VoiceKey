@@ -1,6 +1,6 @@
 # VoiceKey Security and Privacy Specification
 
-> Version: 1.2
+> Version: 1.3
 > Date: 2026-02-26
 
 ---
@@ -20,7 +20,8 @@
 - recognized text must not be logged by default
 - debug mode must redact transcript unless user explicitly disables redaction
 - no runtime cloud transmission by default after model download
-- cloud transcription may run only when explicitly enabled by user configuration
+- cloud transcription may run only when explicitly enabled by user configuration (hybrid fallback or cloud-primary mode)
+- cloud traffic must be limited to configured allowlisted ASR endpoints
 
 ---
 
@@ -32,6 +33,7 @@
 | injected malicious phrases nearby | pause mode + visible state indicators |
 | tampered model files | checksum verification |
 | config poisoning | schema validation + fallback defaults |
+| cloud api key leakage | env-var based secret injection + diagnostics redaction |
 
 ---
 
@@ -41,6 +43,8 @@
 - checksum file for model and package releases
 - local process lock to prevent duplicate service conflicts
 - bounded retry loops to prevent runaway states
+- explicit cloud endpoint allowlist validation before outbound requests
+- API key presence checks with fail-closed behavior when cloud mode is requested
 
 ---
 
@@ -70,5 +74,5 @@ If unexpected typing is observed:
 
 ---
 
-*Document Version: 1.2*  
+*Document Version: 1.3*  
 *Last Updated: 2026-02-26*
