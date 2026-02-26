@@ -9,7 +9,17 @@ from pathlib import Path
 import yaml
 
 from voicekey.config.migration import MigrationRegistry
-from voicekey.config.manager import backup_config, load_config, resolve_config_path, save_config
+import pytest
+
+from voicekey.config.manager import (
+    ConfigError,
+    backup_config,
+    load_config,
+    resolve_asr_runtime_policy,
+    resolve_config_path,
+    save_config,
+)
+from voicekey.config.schema import default_config
 
 
 def test_resolve_config_path_uses_explicit_then_env_then_platform_defaults(tmp_path: Path) -> None:
@@ -196,3 +206,38 @@ def test_load_config_creates_file_with_restricted_permissions(tmp_path: Path) ->
         mode = config_path.stat().st_mode
         permissions = stat.S_IMODE(mode)
         assert permissions == 0o600, f"Expected 0o600, got {oct(permissions)}"
+
+
+def test_resolve_asr_runtime_policy_defaults_to_local_only_without_cloud_requirements() -> None:
+    config = default_config()
+
+    policy = resolve_asr_runtime_policy(config, env={})
+
+    assert policy.mode == "local-only"
+    assert policy.requires_cloud_credentials is False
+
+
+def test_resolve_asr_runtime_policy_downgrades_hybrid_mode_without_api_key() -> None:
+    config = default_config()
+    config.engine.network_fallback_enabled = True
+    config.engine.cloud_api_base = "https://api.openai.com/v1"
+
+    policy = resolve_asr_runtime_policy(config, env={})
+
+    assert policy.mode == "local-only"
+    assert policy.requires_cloud_credentials is False
+    assert policy.warning is not None
+    assert "VOICEKEY_OPENAI_API_KEY" in policy.warning
+    assert "engine.network_fallback_enabled=true" in policy.warning
+
+
+def test_resolve_asr_runtime_policy_rejects_cloud_primary_without_api_base() -> None:
+    config = default_config()
+    config.engine.asr_backend = "openai-api-compatible"
+
+    with pytest.raises(ConfigError) as exc_info:
+        resolve_asr_runtime_policy(config, env={"VOICEKEY_OPENAI_API_KEY": "sk-test"})
+
+    message = str(exc_info.value)
+    assert "engine.cloud_api_base" in message
+    assert "voicekey config --set engine.cloud_api_base=https://api.openai.com/v1" in message

@@ -177,10 +177,10 @@ class ModelDownloadManager:
             DownloadResult with operation outcome.
         """
         try:
-            from silero import vad as silero_vad_loader
+            from silero_vad import load_silero_vad
 
             # This triggers auto-download if needed
-            silero_vad_loader()
+            load_silero_vad()
             return DownloadResult(
                 name="vad",
                 success=True,
