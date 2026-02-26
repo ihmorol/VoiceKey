@@ -1,7 +1,7 @@
 # VoiceKey Installation Guide
 
-> Version: 1.0
-> Date: 2026-02-19
+> Version: 1.1
+> Date: 2026-02-26
 
 ---
 
@@ -9,7 +9,7 @@
 
 - Python 3.11+
 - microphone input device
-- internet connection for first model download only
+- internet connection for first model download and/or cloud ASR endpoint access
 
 Optional:
 
@@ -79,13 +79,29 @@ voicekey start
 
 Expected:
 
-1. model download prompt (first run)
+1. model download prompt (local/hybrid mode) or cloud endpoint validation (cloud-primary mode)
 2. onboarding wizard
 3. tray icon appears
 
 ---
 
-## 5. Autostart Setup
+## 5. Enable Hybrid ASR (Optional)
+
+```bash
+voicekey config --set engine.asr_backend=faster-whisper
+voicekey config --set engine.network_fallback_enabled=true
+voicekey config --set engine.cloud_api_base=https://api.openai.com/v1
+```
+
+Set API key in environment before launch:
+
+```bash
+export VOICEKEY_OPENAI_API_KEY="<your-key>"
+```
+
+---
+
+## 6. Autostart Setup
 
 Use onboarding or:
 
@@ -95,7 +111,7 @@ voicekey config --set system.autostart_enabled=true
 
 ---
 
-## 6. Verify Installation
+## 7. Verify Installation
 
 ```bash
 voicekey devices
@@ -105,7 +121,7 @@ voicekey commands
 
 ---
 
-## 7. Verify Artifact Integrity
+## 8. Verify Artifact Integrity
 
 1. Download release checksum file (`SHA256SUMS`).
 2. Verify local artifact hash matches published hash.
@@ -113,5 +129,5 @@ voicekey commands
 
 ---
 
-*Document Version: 1.0*  
-*Last Updated: 2026-02-19*
+*Document Version: 1.1*  
+*Last Updated: 2026-02-26*

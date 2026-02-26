@@ -1,7 +1,7 @@
 # VoiceKey Distribution Specification
 
-> Version: 1.1
-> Date: 2026-02-19
+> Version: 1.2
+> Date: 2026-02-26
 
 ---
 
@@ -52,10 +52,11 @@ Each release must include:
 ## 5. Model Distribution Policy
 
 - Models are not bundled in core app installers.
-- First run downloads required model profile.
-- `voicekey download` supports prefetch/offline preparation.
+- First run either downloads required local model profile or validates configured cloud endpoint (for cloud-primary mode).
+- `voicekey download` supports prefetch/offline preparation for local and hybrid modes.
 - Every model archive must pass checksum before activation.
 - At least one fallback model mirror must be supported.
+- Cloud backend onboarding must validate API key and endpoint reachability before runtime start.
 
 ---
 
@@ -76,8 +77,9 @@ Each release must include:
 | channel drift | single release pipeline and manifest |
 | missing runtime deps | post-build install smoke matrix |
 | model host outage | mirrored model source + retry strategy |
+| cloud api outage/rate-limit | hybrid fallback to local path + bounded retry and user warning |
 
 ---
 
-*Document Version: 1.1*  
-*Last Updated: 2026-02-19*
+*Document Version: 1.2*  
+*Last Updated: 2026-02-26*
