@@ -1,7 +1,7 @@
 # VoiceKey Implementation and Release Plan
 
-> Version: 2.1 (Backlog-aligned)
-> Date: 2026-02-19
+> Version: 2.2 (Hybrid ASR-aligned)
+> Date: 2026-02-26
 
 ---
 
@@ -30,7 +30,7 @@ Exit criteria:
 
 Backlog alignment: E01, E02, E03, E04, E05, E06 (P0 stories only)
 
-1. Implement audio capture + VAD + faster-whisper transcript flow.
+1. Implement audio capture + VAD + hybrid ASR flow (faster-whisper primary + realtime API fallback/cloud-primary path).
 2. Implement wake detection and parser contracts, including unknown-command literal fallback.
 3. Implement runtime state machine, inactivity watchdog, paused control plane, and shutdown safety.
 4. Implement platform adapters for keyboard/hotkey/session compatibility behavior.
@@ -42,7 +42,7 @@ Exit criteria:
 
 - core acceptance behavior from software requirements is test-covered.
 - pause/resume and unknown-command safety rules are verified.
-- core runtime works on Linux/Windows baseline paths.
+- core runtime works on Linux/Windows baseline paths with deterministic local-only and hybrid fallback behavior.
 
 ---
 
@@ -57,7 +57,7 @@ Backlog alignment: E07, E08, E09
 3. Implement tag-triggered release workflow and post-publish smoke matrix.
 4. Enforce CI governance controls:
    - branch protection/CODEOWNERS checks, security scans, CI observability metrics.
-5. Enforce runtime privacy/security defaults and egress guardrails.
+5. Enforce runtime privacy/security defaults and egress guardrails, including allowlisted cloud-ASR endpoints for hybrid mode.
 
 Exit criteria:
 
@@ -127,5 +127,5 @@ Exit criteria:
 
 ---
 
-*Document Version: 2.1*  
-*Last Updated: 2026-02-19*
+*Document Version: 2.2*  
+*Last Updated: 2026-02-26*

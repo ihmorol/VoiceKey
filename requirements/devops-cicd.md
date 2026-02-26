@@ -1,7 +1,7 @@
 # VoiceKey DevOps and CI/CD Specification
 
-> Version: 1.1
-> Date: 2026-02-19
+> Version: 1.2
+> Date: 2026-02-26
 
 ---
 
@@ -20,6 +20,7 @@ Required jobs:
 - lint and formatting checks
 - unit tests
 - integration smoke tests
+- hybrid ASR smoke tests (local-only + hybrid fallback paths)
 - Linux + Windows matrix execution
 - dependency vulnerability scan
 - secret scan and license compliance scan
@@ -93,5 +94,5 @@ Publishing and provenance rules:
 
 ---
 
-*Document Version: 1.1*  
-*Last Updated: 2026-02-19*
+*Document Version: 1.2*  
+*Last Updated: 2026-02-26*
