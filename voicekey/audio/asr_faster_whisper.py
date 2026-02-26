@@ -15,6 +15,7 @@ Requirements: FR-A03, FR-A04, FR-A06
 from __future__ import annotations
 
 import logging
+import sys
 import threading
 from dataclasses import dataclass
 from queue import Queue
@@ -274,27 +275,42 @@ class ASREngine:
                 "Install with: pip install faster-whisper"
             )
 
+        # Determine actual device
+        actual_device = self._get_device()
+
+        logger.info(
+            f"Loading Faster Whisper model: {self._model_size} "
+            f"on {actual_device} with {self._compute_type}"
+        )
+
         try:
-            # Determine actual device
-            actual_device = self._get_device()
-
-            logger.info(
-                f"Loading Faster Whisper model: {self._model_size} "
-                f"on {actual_device} with {self._compute_type}"
-            )
-
             self._model = model_cls(
                 self._model_size,
                 device=actual_device,
                 compute_type=self._compute_type,
             )
-
-            self._model_loaded = True
-            logger.info(f"Model {self._model_size} loaded successfully")
-
         except Exception as e:
-            logger.error(f"Failed to load model: {e}")
-            raise ModelLoadError(f"Failed to load model {self._model_size}: {e}")
+            # CPU-only environments may not support int8_float16 efficiently.
+            if self._compute_type == "int8_float16" and "int8_float16" in str(e):
+                fallback_compute_type = "int8"
+                logger.warning(
+                    "Compute type %s unsupported on %s; retrying with %s",
+                    self._compute_type,
+                    actual_device,
+                    fallback_compute_type,
+                )
+                self._compute_type = fallback_compute_type
+                self._model = model_cls(
+                    self._model_size,
+                    device=actual_device,
+                    compute_type=self._compute_type,
+                )
+            else:
+                logger.error(f"Failed to load model: {e}")
+                raise ModelLoadError(f"Failed to load model {self._model_size}: {e}")
+
+        self._model_loaded = True
+        logger.info(f"Model {self._model_size} loaded successfully")
 
     def _resolve_model_class(self):
         """Resolve faster-whisper model class at runtime.
@@ -303,6 +319,16 @@ class ASREngine:
             Whisper model class when available, otherwise None.
         """
         global WhisperModel, FASTER_WHISPER_AVAILABLE
+
+        runtime_module = sys.modules.get("faster_whisper")
+        runtime_model_class = None
+        if runtime_module is not None:
+            runtime_model_class = getattr(runtime_module, "WhisperModel", None)
+
+        if runtime_model_class is not None:
+            WhisperModel = runtime_model_class
+            FASTER_WHISPER_AVAILABLE = True
+            return runtime_model_class
 
         if WhisperModel is not None:
             return WhisperModel

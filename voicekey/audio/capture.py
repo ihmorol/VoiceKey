@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import logging
 import queue
+import sys
 import threading
 import time
 from dataclasses import dataclass, field
@@ -19,14 +20,14 @@ import numpy as np
 try:
     import sounddevice as sd
     SOUNDDEVICE_AVAILABLE = True
-except OSError:
+except Exception:
     sd = None  # type: ignore
     SOUNDDEVICE_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
 
 # Queue configuration
-DEFAULT_QUEUE_SIZE = 128  # Bounded queue max size (increased for slower ASR)
+DEFAULT_QUEUE_SIZE = 32  # Bounded queue max size
 DEFAULT_CHUNK_DURATION = 0.1  # 100ms chunks for low latency
 
 # Metrics counters for audio validation
@@ -112,6 +113,29 @@ class AudioDeviceInfo:
     default: bool = False
 
 
+def _resolve_sounddevice():
+    """Resolve sounddevice module dynamically for runtime and test environments."""
+    global sd, SOUNDDEVICE_AVAILABLE
+
+    runtime_sd = sys.modules.get("sounddevice")
+    if runtime_sd is not None and runtime_sd is not sd:
+        sd = runtime_sd  # type: ignore[assignment]
+        SOUNDDEVICE_AVAILABLE = True
+
+    if sd is not None:
+        return sd
+
+    try:
+        import sounddevice as runtime_sd
+    except Exception:
+        SOUNDDEVICE_AVAILABLE = False
+        return None
+
+    sd = runtime_sd  # type: ignore[assignment]
+    SOUNDDEVICE_AVAILABLE = True
+    return sd
+
+
 def list_devices() -> list[dict]:
     """List all available audio input devices.
 
@@ -124,21 +148,23 @@ def list_devices() -> list[dict]:
         - default: Whether this is the system default
     """
     # Check if sounddevice is available (PortAudio installed)
-    if sd is None:
+    current_sd = _resolve_sounddevice()
+    if current_sd is None:
         logger.error("sounddevice not available: PortAudio library not found. "
                      "Install with: sudo apt install libportaudio2 portaudio19-dev (Linux) "
                      "or download from https://www.portaudio.com/ (Windows)")
         return []
     
     try:
-        devices = sd.query_devices(kind="input")
+        devices = current_sd.query_devices(kind="input")
         # Handle single device or multiple devices
         if isinstance(devices, dict):
             return [_format_device_info(devices, 0, is_default=True)]
         else:
             result = []
             for i, dev in enumerate(devices):
-                result.append(_format_device_info(dev, i, is_default=(i == 0)))
+                if isinstance(dev, dict):
+                    result.append(_format_device_info(dev, i, is_default=(i == 0)))
             return result
     except Exception as e:
         logger.error("Failed to query audio devices: %s", e)
@@ -147,11 +173,15 @@ def list_devices() -> list[dict]:
 
 def _format_device_info(device: dict, index: int, is_default: bool = False) -> dict:
     """Format device info into standardized dictionary."""
+    sample_rate = device.get("sample_rate")
+    if sample_rate is None:
+        sample_rate = device.get("default_samplerate", 16000)
     return {
         "index": index,
         "name": device.get("name", f"Device {index}"),
         "channels": device.get("max_input_channels", 0),
-        "sample_rates": device.get("sample_rate", 16000),
+        "sample_rate": sample_rate,
+        "sample_rates": sample_rate,
         "default": is_default,
     }
 
@@ -163,12 +193,13 @@ def get_default_device() -> Optional[dict]:
         Dictionary with device information or None if no default found
     """
     # Check if sounddevice is available
-    if sd is None:
+    current_sd = _resolve_sounddevice()
+    if current_sd is None:
         logger.warning("sounddevice not available: PortAudio library not found")
         return None
     
     try:
-        default_info = sd.query_devices(kind="input")
+        default_info = current_sd.query_devices(kind="input")
         if default_info is None:
             return None
         default_index = default_info.get("default_input", 0)
@@ -230,10 +261,6 @@ class AudioCapture:
         # Device info cache
         self._device_info: Optional[dict] = None
 
-        # Validate device early if specified
-        if device_index is not None:
-            self._validate_device(device_index)
-
     def _validate_device(self, device_index: int) -> None:
         """Validate that the device exists and is usable.
 
@@ -243,15 +270,26 @@ class AudioCapture:
             RuntimeError: sounddevice not available
         """
         # Check if sounddevice is available
-        if sd is None:
+        current_sd = _resolve_sounddevice()
+        if current_sd is None:
             raise RuntimeError("sounddevice not available: PortAudio library not found. "
                              "Install with: sudo apt install libportaudio2 portaudio19-dev (Linux)")
         
         try:
-            devices = sd.query_devices(device_index)
+            devices = current_sd.query_devices(device_index)
             if devices is None:
                 raise AudioDeviceNotFoundError(device_index)
-            if devices.get("max_input_channels", 0) < 1:
+
+            if not isinstance(devices, dict):
+                raise AudioDeviceNotFoundError(device_index, "Device details unavailable")
+
+            max_input_channels = devices.get("max_input_channels", 0)
+            try:
+                max_input_channels = int(max_input_channels)
+            except (TypeError, ValueError) as exc:
+                raise AudioDeviceBusyError(device_index, "Invalid device channel metadata") from exc
+
+            if max_input_channels < 1:
                 raise AudioDeviceNotFoundError(device_index, "Device has no input channels")
         except Exception as e:
             if "Invalid device" in str(e):
@@ -268,7 +306,8 @@ class AudioCapture:
             RuntimeError: sounddevice not available
         """
         # Check if sounddevice is available
-        if sd is None:
+        current_sd = _resolve_sounddevice()
+        if current_sd is None:
             raise RuntimeError("sounddevice not available: PortAudio library not found. "
                              "Install with: sudo apt install libportaudio2 portaudio19-dev (Linux)")
         
@@ -281,50 +320,27 @@ class AudioCapture:
                 # Determine device to use
                 device = self._device_index
                 if device is None:
-                    # Find a working input device
-                    working_device = None
-                    devices = list(sd.query_devices())
-                    for d in devices:
-                        if d["max_input_channels"] > 0:
-                            try:
-                                test_stream = sd.InputStream(
-                                    device=int(d["index"]),
-                                    channels=1,
-                                    samplerate=44100,
-                                    blocksize=441,
-                                    dtype=np.float32
-                                )
-                                test_stream.close()
-                                working_device = int(d["index"])
-                                break
-                            except Exception:
-                                continue
-                    
-                    if working_device is not None:
-                        device = working_device
-                        logger.info(f"Auto-selected working audio device: {device}")
+                    default = get_default_device()
+                    if default:
+                        device = default["index"]
                     else:
-                        default = get_default_device()
-                        if default:
-                            device = default["index"]
-                        else:
-                            raise AudioDeviceNotFoundError()
+                        raise AudioDeviceNotFoundError()
+                else:
+                    self._validate_device(device)
 
                 # Get device info
-                device_info = sd.query_devices(device)
+                device_info = current_sd.query_devices(device)
+                if not isinstance(device_info, dict):
+                    raise AudioDeviceNotFoundError(int(device), "Device details unavailable")
                 self._device_info = _format_device_info(device_info, device, is_default=True)
 
-                # Use device's default sample rate (typically 44100 on Linux)
-                actual_sample_rate = 44100  # Default for most devices
-                if device_info.get("default_samplerate"):
-                    actual_sample_rate = int(device_info["default_samplerate"])
-                
-                # Recalculate frames per chunk with actual sample rate
+                # Honor configured sample rate for deterministic low-latency behavior.
+                actual_sample_rate = self._sample_rate
                 self._frames_per_chunk = int(actual_sample_rate * self._chunk_duration)
                 self._sample_rate = actual_sample_rate
 
                 # Create input stream with callback
-                self._stream = sd.InputStream(
+                self._stream = current_sd.InputStream(
                     device=device,
                     channels=1,  # Mono
                     samplerate=self._sample_rate,
@@ -421,7 +437,7 @@ class AudioCapture:
         indata: np.ndarray,
         frames: int,
         time_info,
-        status,
+        status=None,
     ) -> None:
         """Audio input callback from sounddevice.
 
@@ -448,10 +464,16 @@ class AudioCapture:
             return
 
         # Create audio frame
+        timestamp = getattr(time_info, "inputBufferAdcTime", None)
+        if not isinstance(timestamp, (int, float)):
+            timestamp = getattr(time_info, "input_buffer_adc_time", None)
+        if not isinstance(timestamp, (int, float)):
+            timestamp = time.monotonic()
+
         frame = AudioFrame(
             audio=audio_data,
             sample_rate=self._sample_rate,
-            timestamp=time_info.inputBufferAdcTime,
+            timestamp=float(timestamp),
         )
 
         # Put frame in queue with non-blocking to provide backpressure
