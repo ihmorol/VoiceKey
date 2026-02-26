@@ -317,6 +317,11 @@ def cli(ctx: click.Context, output: str) -> None:
 
 @cli.command("start")
 @click.option("--daemon", is_flag=True, help="Start without terminal dashboard.")
+@click.option(
+    "--foreground",
+    is_flag=True,
+    help="Keep runtime attached to the terminal until interrupted.",
+)
 @click.option("--config", "config_path", type=click.Path(), default=None)
 @click.option("--portable", is_flag=True, help="Use local portable config/data paths.")
 @click.option(
@@ -329,12 +334,15 @@ def cli(ctx: click.Context, output: str) -> None:
 def start_command(
     ctx: click.Context,
     daemon: bool,
+    foreground: bool,
     config_path: str | None,
     portable: bool,
     portable_root: str | None,
 ) -> None:
     """Start VoiceKey runtime."""
     global _coordinator, _tray_controller, _tray_backend
+
+    output_mode = ctx.obj.get("output", "text")
 
     try:
         startup_overrides = parse_startup_env_overrides()
@@ -411,7 +419,6 @@ def start_command(
     except RuntimeError as exc:
         # Audio not available - this is OK in test environments
         if "Audio capture not available" in str(exc):
-            output_mode = ctx.obj.get("output", "text")
             if output_mode != "json":
                 click.echo(f"Warning: {exc}", err=True)
             runtime_state = "standby"
@@ -419,43 +426,68 @@ def start_command(
         else:
             raise click.ClickException(f"Failed to start VoiceKey: {exc}") from exc
     except Exception as exc:
-        raise click.ClickException(f"Failed to start VoiceKey: {exc}") from exc
+        exc_text = str(exc).lower()
+        if (
+            "no microphone device found" in exc_text
+            or "no audio device found" in exc_text
+            or "device is busy" in exc_text
+            or "device details unavailable" in exc_text
+            or "failed to start audio capture" in exc_text
+            or "audio device" in exc_text
+        ):
+            if output_mode != "json":
+                click.echo(f"Warning: {exc}", err=True)
+            runtime_state = "standby"
+            _coordinator = None
+        else:
+            raise click.ClickException(f"Failed to start VoiceKey: {exc}") from exc
 
     # Output startup information
-    # Always use JSON output format for machine-readable output
-    # (or when coordinator couldn't start)
-    output_mode = ctx.obj.get("output", "text")
-    if daemon or _coordinator is None:
+    # Always use machine-readable one-shot output in JSON mode,
+    # or when coordinator couldn't start.
+    if output_mode == "json" or daemon or _coordinator is None or not foreground:
+        payload = {
+            "accepted": True,
+            "daemon": daemon,
+            "foreground": foreground,
+            "tray_enabled": tray_enabled,
+            "config_path": config_path,
+            "runtime_paths": {
+                "config_path": str(runtime_paths.config_path),
+                "data_dir": str(runtime_paths.data_dir),
+                "model_dir": str(runtime_paths.model_dir),
+                "portable_mode": runtime_paths.portable_mode,
+            },
+            "env_overrides": {
+                "config_path": str(startup_overrides.config_path)
+                if startup_overrides.config_path is not None
+                else None,
+                "model_dir": str(startup_overrides.model_dir)
+                if startup_overrides.model_dir is not None
+                else None,
+                "log_level": startup_overrides.log_level,
+                "disable_tray": startup_overrides.disable_tray,
+            },
+            "runtime": "started" if _coordinator else "stub",
+            "state": _coordinator.state.value if _coordinator and _coordinator.is_running else "standby",
+            "listening_mode": _coordinator.listening_mode.value if _coordinator else None,
+            "toggle_hotkey": _coordinator.toggle_hotkey if _coordinator else None,
+        }
+
+        if _coordinator is not None and not foreground:
+            _coordinator.stop()
+            _coordinator = None
+        if _tray_backend is not None and not foreground:
+            _tray_backend.stop()
+            _tray_backend = None
+            _stop_tray_update_thread()
+            _tray_controller = None
+
         # In daemon mode or when coordinator couldn't start, just output success and exit
         _emit_output(
             ctx,
             command="start",
-            result={
-                "accepted": True,
-                "daemon": daemon,
-                "tray_enabled": tray_enabled,
-                "config_path": config_path,
-                "runtime_paths": {
-                    "config_path": str(runtime_paths.config_path),
-                    "data_dir": str(runtime_paths.data_dir),
-                    "model_dir": str(runtime_paths.model_dir),
-                    "portable_mode": runtime_paths.portable_mode,
-                },
-                "env_overrides": {
-                    "config_path": str(startup_overrides.config_path)
-                    if startup_overrides.config_path is not None
-                    else None,
-                    "model_dir": str(startup_overrides.model_dir)
-                    if startup_overrides.model_dir is not None
-                    else None,
-                    "log_level": startup_overrides.log_level,
-                    "disable_tray": startup_overrides.disable_tray,
-                },
-                "runtime": "started" if _coordinator else "stub",
-                "state": _coordinator.state.value if _coordinator and _coordinator.is_running else "standby",
-                "listening_mode": _coordinator.listening_mode.value if _coordinator else None,
-                "toggle_hotkey": _coordinator.toggle_hotkey if _coordinator else None,
-            },
+            result=payload,
         )
         return
 

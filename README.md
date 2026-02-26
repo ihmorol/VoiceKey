@@ -12,8 +12,10 @@ pip install voicekey
 
 ```bash
 voicekey --help
-voicekey start
+voicekey start --foreground
 ```
+
+Optional cloud transcription fallback is available as an explicit opt-in in config. Local ASR remains the default.
 
 ## Documentation
 
