@@ -1,7 +1,7 @@
 # VoiceKey Strategic Recommendations
 
-> Version: 2.0 (Finalized)
-> Date: 2026-02-19
+> Version: 2.1 (Hybrid ASR Direction)
+> Date: 2026-02-26
 
 ---
 
@@ -10,7 +10,7 @@
 VoiceKey should position itself as:
 
 - free and open
-- private and offline
+- private and local-first with explicit hybrid cloud fallback
 - practical for daily work on Linux and Windows
 - low-friction for non-technical users
 
@@ -18,7 +18,7 @@ VoiceKey should position itself as:
 
 ## 2. Highest-Impact Must-haves (P0)
 
-1. faster-whisper default stack with model profile tuning
+1. hybrid ASR stack: faster-whisper primary + realtime API fallback option
 2. tray-first operation and daemon mode
 3. autostart integration
 4. first-run wizard
@@ -67,9 +67,9 @@ VoiceKey should position itself as:
 
 - users can install and type first sentence in under 5 minutes
 - p50 latency <= 200ms on recommended hardware
-- no cloud dependency after initial model download
+- local typing remains available without cloud dependency; hybrid/cloud modes are optional and explicit
 
 ---
 
-*Document Version: 2.0*  
-*Last Updated: 2026-02-19*
+*Document Version: 2.1*  
+*Last Updated: 2026-02-26*

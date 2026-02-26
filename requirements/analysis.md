@@ -1,7 +1,7 @@
 # VoiceKey Consistency and Gap-Closure Analysis
 
-> Version: 3.1 (Post-clarification)
-> Date: 2026-02-19
+> Version: 3.2 (Hybrid ASR Clarification)
+> Date: 2026-02-26
 
 ---
 
@@ -9,7 +9,7 @@
 
 | Topic | Previous Conflict | Final Decision |
 |-------|-------------------|----------------|
-| ASR engine | Vosk vs faster-whisper | faster-whisper selected |
+| ASR architecture | local-only vs realtime API | hybrid selected: faster-whisper primary with opt-in realtime API fallback |
 | Pause/Resume semantics | wake needed vs not needed | `pause voice key` / `resume voice key` work directly |
 | Continuous mode safety | unclear | keep mode + enforce inactivity auto-pause |
 | Missing integration | tray/autostart absent | now required in core spec |
@@ -42,6 +42,7 @@ The following items from earlier analysis are now integrated into requirements/a
 | Some apps block synthetic input | OS/app policy limitations | fallback backends + user guidance |
 | release supply-chain | unsigned or unverifiable artifacts | signed release, checksums, SBOM |
 | channel drift | behavior differences by package channel | single tag-driven release pipeline |
+| cloud api outage or auth errors | transcript path degradation in hybrid/cloud modes | failover to local when possible + actionable error when not |
 
 ---
 
@@ -49,7 +50,7 @@ The following items from earlier analysis are now integrated into requirements/a
 
 ### Phase A (Core baseline)
 
-- faster-whisper migration
+- hybrid ASR router (local primary + realtime fallback)
 - robust state machine with inactivity watchdog
 - tray + autostart adapters
 - first-run wizard
@@ -90,5 +91,5 @@ The biggest remaining success factor is implementation quality across platform a
 
 ---
 
-*Document Version: 3.1*  
-*Last Updated: 2026-02-19*
+*Document Version: 3.2*  
+*Last Updated: 2026-02-26*
