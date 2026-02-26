@@ -655,3 +655,40 @@ python scripts/release/check_release_gate.py    # READY
   - `./.venv/bin/pytest tests/unit -q` => PASS (`576 passed`)
   - `./.venv/bin/pytest tests/integration -q` => PASS (`205 passed`)
   - `./.venv/bin/python scripts/ci/check_perf_guardrails.py --metrics-file tests/perf/metrics_baseline.json` => PASS (`perf_guardrail=ok`)
+
+## 2026-02-26 - Hybrid ASR Requirements and Architecture Realignment
+
+- Scope:
+  - Re-aligned requirements and architecture to treat hybrid ASR as the target truth: local faster-whisper primary with opt-in realtime API fallback/cloud-primary mode.
+  - Propagated the hybrid contract across product, security, configuration, installation, testing, troubleshooting, risk, distribution, and implementation-plan documents.
+  - Reconciled backlog/traceability status to reflect that hybrid runtime routing remains pending implementation.
+- Updated documents:
+  - Source of truth:
+    - `software_requirements.md`
+    - `architecture.md`
+  - Supporting requirements:
+    - `requirements/configuration.md`
+    - `requirements/security.md`
+    - `requirements/distribution.md`
+    - `requirements/recommendations.md`
+    - `requirements/installation.md`
+    - `requirements/implementation-plan.md`
+    - `requirements/testing-strategy.md`
+    - `requirements/troubleshooting.md`
+    - `requirements/analysis.md`
+    - `requirements/risk-assessment.md`
+    - `requirements/onboarding.md`
+    - `requirements/devops-cicd.md`
+    - `requirements/release-checklist.md`
+    - `requirements/README.md`
+    - `README.md`
+  - Backlog/traceability:
+    - `backlog/BACKLOG_MASTER.md`
+    - `backlog/TRACEABILITY_MATRIX.md`
+- Backlog status change:
+  - `E01-S05` moved from complete -> pending to match the updated hybrid requirement scope.
+- Verification commands/evidence:
+  - `./.venv/bin/python scripts/release/validate_traceability.py` => PASS (`Coverage: 100.0% (89/89)`)
+  - `./.venv/bin/python scripts/release/check_release_gate.py` => BLOCKED as expected (`E01-S05 (pending)`)
+  - `./.venv/bin/python scripts/docs/validate_user_docs.py` => PASS (with non-blocking existing warnings)
+  - `./.venv/bin/python scripts/docs/validate_developer_docs.py` => PASS
