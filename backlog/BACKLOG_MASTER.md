@@ -18,7 +18,7 @@ Priority legend:
 - E01-S02: complete (VAD unit verification passed)
 - E01-S03: complete (ASR unit verification passed)
 - E01-S04: complete (final-transcript confidence filtering verified)
-- E01-S05: complete (optional cloud ASR fallback requirement introduced with explicit opt-in policy, default-off config schema controls, and security/config documentation updates)
+- E01-S05: pending (hybrid ASR routing requirement updated: local primary + realtime API fallback; runtime adapter/integration tests not yet implemented)
 - E02-S01: complete (wake detector bound to FSM wake_word transitions; timeout/reset coordinator verified)
 - E02-S02: complete (parser command-suffix + unknown-literal fallback + alias matching verified)
 - E02-S03: complete (optional fuzzy matcher added with default-off behavior and threshold-bounded command resolution)
@@ -116,7 +116,7 @@ Priority legend:
 
 ## Epic E01 - Audio, VAD, and ASR Core Pipeline (P0)
 
-- Objective: implement low-latency local speech pipeline with robust model/runtime controls.
+- Objective: implement low-latency hybrid-capable speech pipeline with robust model/runtime controls.
 - Requirement IDs: FR-A01, FR-A02, FR-A03, FR-A04, FR-A05, FR-A06, FR-A07, FR-W04
 - Dependencies: E00
 
@@ -168,17 +168,19 @@ Priority legend:
   - E01-S04-T01 Apply threshold in transcript-to-action boundary.
   - E01-S04-T02 Add metrics/log counters for dropped transcripts.
 
-### Story E01-S05 - Optional cloud ASR fallback (opt-in)
+### Story E01-S05 - Hybrid ASR routing (local primary + realtime API fallback)
 
 - Requirement IDs: FR-A07
 - Acceptance criteria:
   - local ASR remains default path.
-  - cloud ASR fallback is disabled by default and requires explicit configuration.
-  - security/privacy docs and runtime config schema clearly expose opt-in behavior.
+  - when hybrid fallback is enabled, local ASR timeout/failure routes to realtime API path.
+  - cloud fallback/cloud-primary modes are disabled by default and require explicit configuration + credentials.
+  - security/privacy docs, runtime config schema, and integration tests cover fallback behavior.
 - Tasks:
-  - E01-S05-T01 Define cloud fallback policy and security constraints in requirements/spec docs.
-  - E01-S05-T02 Extend config schema/defaults for cloud fallback toggles and provider settings.
-  - E01-S05-T03 Validate local-first behavior remains default in unit/integration startup and CLI contract tests.
+  - E01-S05-T01 Define hybrid fallback policy and security constraints in requirements/spec docs.
+  - E01-S05-T02 Implement OpenAI-compatible ASR adapter and ASR router fallback policy.
+  - E01-S05-T03 Extend config/defaults for hybrid controls and provider settings.
+  - E01-S05-T04 Add unit/integration tests for local-only, hybrid fallback, and cloud-primary failure handling.
 
 ---
 

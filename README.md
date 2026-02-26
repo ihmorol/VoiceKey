@@ -1,12 +1,12 @@
 # VoiceKey
 
-VoiceKey is a privacy-first, offline-first voice-to-keyboard tool for Linux and Windows.
+VoiceKey is a privacy-first, local-first voice-to-keyboard tool for Linux and Windows with optional hybrid realtime API fallback.
 
 ## Prerequisites
 
 - Python `3.11+`
 - A working microphone
-- Internet access for initial model download (local/offline mode remains default after download)
+- Internet access for initial model download and/or cloud ASR endpoint access (hybrid/cloud modes)
 
 Linux packages commonly required for microphone support:
 
@@ -65,6 +65,15 @@ voicekey start --daemon
 ```
 
 Optional cloud transcription fallback is explicit opt-in in config. Local ASR remains default.
+
+Enable hybrid mode (local primary + cloud fallback):
+
+```bash
+voicekey config --set engine.asr_backend=faster-whisper
+voicekey config --set engine.network_fallback_enabled=true
+voicekey config --set engine.cloud_api_base=https://api.openai.com/v1
+export VOICEKEY_OPENAI_API_KEY="<your-key>"
+```
 
 ## Documentation
 
