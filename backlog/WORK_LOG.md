@@ -731,3 +731,17 @@ python scripts/release/check_release_gate.py    # READY
   - `./.venv/bin/pytest tests/unit/test_asr_router.py tests/unit/test_cli.py tests/unit/test_config_manager.py tests/unit/test_runtime_coordinator.py tests/unit/test_model_catalog.py tests/unit/test_model_downloader.py -q` => PASS (`71 passed`)
   - `./.venv/bin/pytest tests/unit tests/integration -q` => PASS (`795 passed`)
   - `./.venv/bin/python scripts/ci/check_perf_guardrails.py --metrics-file tests/perf/metrics_baseline.json` => PASS (`perf_guardrail=ok`)
+
+## 2026-02-26 - Hybrid ASR Integration Test Expansion
+
+- Scope:
+  - Added dedicated integration coverage for hybrid ASR runtime behavior in live frame-processing path.
+- Implemented changes:
+  - `tests/integration/test_hybrid_asr.py` (new)
+    - verifies local backend failure triggers cloud fallback in `RuntimeCoordinator` processing loop,
+    - verifies cloud-primary mode routes only through cloud backend.
+- Traceability update:
+  - `backlog/TRACEABILITY_MATRIX.md` FR-A07 row now explicitly references `tests/integration/test_hybrid_asr.py`.
+- Verification commands/evidence:
+  - `./.venv/bin/pytest tests/integration/test_hybrid_asr.py -q` => PASS (`2 passed`)
+  - `./.venv/bin/pytest tests/unit tests/integration -q` => PASS (`797 passed`)
