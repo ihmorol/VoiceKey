@@ -14,7 +14,7 @@ This matrix maps requirements to backlog and verification status, including pend
 | FR-A04 | E01-S03 | transcript event contract tests |
 | FR-A05 | E01-S04 | threshold behavior tests |
 | FR-A06 | E01-S03 | model profile switch tests |
-| FR-A07 | E01-S05 | hybrid routing tests (`tests/unit/test_asr_router.py`, `tests/unit/test_cli.py`, `tests/unit/test_config_manager.py`) + runtime integration regression suite |
+| FR-A07 | E01-S05 | hybrid routing tests (`tests/unit/test_asr_router.py`, `tests/unit/test_cli.py`, `tests/unit/test_config_manager.py`, `tests/integration/test_hybrid_asr.py`) + runtime integration regression suite |
 | FR-W01 | E02-S01 | wake phrase config tests |
 | FR-W02 | E02-S01 | wake-no-type safety tests |
 | FR-W03 | E02-S01, E03-S02 | wake timeout timer tests |
