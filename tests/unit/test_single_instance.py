@@ -45,6 +45,18 @@ def test_releasing_lock_allows_next_startup() -> None:
     second.release()
 
 
+def test_try_acquire_returns_false_when_lock_already_held() -> None:
+    backend = DeterministicLockBackend()
+    first = SingleInstanceGuard(lock_id="voicekey", backend=backend)
+    second = SingleInstanceGuard(lock_id="voicekey", backend=backend)
+
+    first.acquire()
+    try:
+        assert second.try_acquire() is False
+    finally:
+        first.release()
+
+
 def test_unknown_platform_uses_deterministic_fallback_backend() -> None:
     backend = default_lock_backend(Path("/tmp/voicekey.lock"), platform="unknown")
 

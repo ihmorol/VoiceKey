@@ -178,6 +178,15 @@ class SingleInstanceGuard:
             )
         self._acquired = True
 
+    def try_acquire(self) -> bool:
+        """Try acquiring process lock without raising on duplicate instance."""
+        if self._acquired:
+            return True
+        acquired = self._backend.acquire(self._lock_id)
+        if acquired:
+            self._acquired = True
+        return acquired
+
     def release(self) -> None:
         """Release process lock if currently acquired by this guard."""
 
