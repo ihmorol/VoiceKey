@@ -61,8 +61,10 @@ class _GuardLocalBackend:
         raise AssertionError("Local backend should not be called in cloud-primary mode")
 
 
-def _feed_frames(coordinator: RuntimeCoordinator, count: int = 10) -> None:
+def _feed_frames(coordinator: RuntimeCoordinator, count: int | None = None) -> None:
     """Feed enough frames to trigger runtime transcription flush."""
+    if count is None:
+        count = max(1, int(getattr(coordinator, "_transcribe_batch_frames", 5)))
     frame_audio = np.full(1600, 0.1, dtype=np.float32)
     for i in range(count):
         coordinator._process_frame(  # noqa: SLF001 - intentional integration path
