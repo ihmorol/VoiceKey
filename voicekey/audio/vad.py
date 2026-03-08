@@ -17,6 +17,7 @@ import torch
 from scipy import signal as scipy_signal
 
 logger = logging.getLogger(__name__)
+SILERO_FRAME_SIZE = 512
 
 # Try to import silero-vad, provide graceful fallback.
 # Keep the loader in a mutable name so tests/runtime can patch availability.
@@ -32,6 +33,21 @@ except ImportError:
 
 # Backward-compatible loader alias for tests and runtime patching.
 silero_vad_loader = load_silero_vad
+
+
+def _prepare_silero_chunks(audio: np.ndarray, frame_size: int = SILERO_FRAME_SIZE) -> list[np.ndarray]:
+    """Split audio into contiguous Silero frames and zero-pad only final partial frame."""
+    chunks: list[np.ndarray] = []
+
+    for start in range(0, len(audio), frame_size):
+        chunk = audio[start : start + frame_size].astype(np.float32, copy=False)
+        if len(chunk) < frame_size:
+            padded = np.zeros(frame_size, dtype=np.float32)
+            padded[: len(chunk)] = chunk
+            chunk = padded
+        chunks.append(chunk)
+
+    return chunks
 
 
 @dataclass
@@ -188,21 +204,21 @@ class VADProcessor:
                 target_length = int(original_length * 16000 / sample_rate)
                 audio = scipy_signal.resample_poly(audio, target_length, original_length).astype(np.float32)
             
-            # Silero VAD expects torch tensor at 16kHz with exactly 512 samples
-            if len(audio) != 512:
-                audio = np.resize(audio, 512)
-            
-            audio_tensor = torch.tensor(audio, dtype=torch.float32)
-            
-            # Get speech timestamps using the utility function
-            speech_timestamps = get_speech_timestamps(
-                audio_tensor, 
-                self._model, 
-                sampling_rate=16000
-            )
-            
-            # If we have any speech timestamps, speech is detected
-            return bool(len(speech_timestamps) > 0)
+            for chunk in _prepare_silero_chunks(audio):
+                audio_tensor = torch.tensor(chunk, dtype=torch.float32)
+
+                # Get speech timestamps using the utility function
+                speech_timestamps = get_speech_timestamps(
+                    audio_tensor,
+                    self._model,
+                    sampling_rate=16000,
+                )
+
+                # If we have any speech timestamps, speech is detected
+                if speech_timestamps:
+                    return True
+
+            return False
 
         except Exception as e:
             logger.warning(f"Silero VAD processing error: {e}, using fallback")
@@ -347,31 +363,25 @@ class StreamingVAD:
     def _process_chunk_silero(self, audio: np.ndarray) -> VADResult:
         """Process chunk using Silero VAD."""
         try:
-            # Silero VAD expects torch tensor with shape [1, num_samples]
-            # At 16kHz, expects exactly 512 samples
-            if len(audio) != 512:
-                audio = np.resize(audio, 512)
-            
-            audio_tensor = torch.tensor(audio, dtype=torch.float32)
-            
-            # Get speech timestamps using utility function
-            speech_timestamps = get_speech_timestamps(
-                audio_tensor,
-                self._model,
-                sampling_rate=self._sample_rate
-            )
+            total_samples = len(audio)
+            total_speech_samples = 0
 
-            if speech_timestamps:
-                # Calculate confidence based on proportion of speech
-                total_samples = len(audio)
-                speech_samples = sum(
-                    seg["end"] - seg["start"]
-                    for seg in speech_timestamps
+            for chunk in _prepare_silero_chunks(audio):
+                audio_tensor = torch.tensor(chunk, dtype=torch.float32)
+
+                # Get speech timestamps using utility function
+                speech_timestamps = get_speech_timestamps(
+                    audio_tensor,
+                    self._model,
+                    sampling_rate=self._sample_rate,
                 )
-                confidence = min(1.0, speech_samples / total_samples)
+                total_speech_samples += sum(seg["end"] - seg["start"] for seg in speech_timestamps)
+
+            if total_speech_samples > 0:
+                confidence = min(1.0, total_speech_samples / total_samples)
                 return VADResult(is_speech=True, confidence=confidence)
-            else:
-                return VADResult(is_speech=False, confidence=0.0)
+
+            return VADResult(is_speech=False, confidence=0.0)
 
         except Exception as e:
             logger.warning(f"Silero streaming VAD error: {e}")

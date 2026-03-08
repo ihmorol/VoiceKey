@@ -167,6 +167,51 @@ class TestVADProcessorSilero:
         # Should return False since no speech detected
         assert result is False
 
+    @patch("voicekey.audio.vad.get_speech_timestamps")
+    @patch("voicekey.audio.vad.silero_vad_loader")
+    @patch("voicekey.audio.vad.SILERO_VAD_AVAILABLE", True)
+    def test_process_silero_short_audio_zero_pads_without_repeat(
+        self, mock_loader, mock_get_speech_timestamps
+    ):
+        """Test short audio is zero-padded for Silero without wrapping samples."""
+        mock_loader.return_value = MagicMock()
+        mock_get_speech_timestamps.return_value = []
+
+        processor = VADProcessor(threshold=0.5)
+        audio = np.array([0.1, -0.2, 0.3], dtype=np.float32)
+
+        processor.process(audio)
+
+        assert mock_get_speech_timestamps.call_count == 1
+        passed_audio = (
+            mock_get_speech_timestamps.call_args.args[0].detach().cpu().numpy()
+        )
+        np.testing.assert_allclose(passed_audio[: len(audio)], audio)
+        assert np.all(passed_audio[len(audio) :] == 0.0)
+
+    @patch("voicekey.audio.vad.get_speech_timestamps")
+    @patch("voicekey.audio.vad.silero_vad_loader")
+    @patch("voicekey.audio.vad.SILERO_VAD_AVAILABLE", True)
+    def test_process_silero_long_audio_uses_contiguous_chunks(
+        self, mock_loader, mock_get_speech_timestamps
+    ):
+        """Test long audio is processed as contiguous 512-sample chunks."""
+        mock_loader.return_value = MagicMock()
+        mock_get_speech_timestamps.return_value = []
+
+        processor = VADProcessor(threshold=0.5)
+        audio = np.arange(700, dtype=np.float32)
+
+        processor.process(audio)
+
+        assert mock_get_speech_timestamps.call_count == 2
+        first_chunk = mock_get_speech_timestamps.call_args_list[0].args[0].detach().cpu().numpy()
+        second_chunk = mock_get_speech_timestamps.call_args_list[1].args[0].detach().cpu().numpy()
+
+        np.testing.assert_allclose(first_chunk, audio[:512])
+        np.testing.assert_allclose(second_chunk[:188], audio[512:])
+        assert np.all(second_chunk[188:] == 0.0)
+
 
 class TestStreamingVAD:
     """Tests for StreamingVAD class."""
@@ -218,6 +263,51 @@ class TestStreamingVAD:
 
         assert isinstance(result, VADResult)
         assert 0.0 <= result.confidence <= 1.0
+
+    @patch("voicekey.audio.vad.get_speech_timestamps")
+    @patch("voicekey.audio.vad.silero_vad_loader")
+    @patch("voicekey.audio.vad.SILERO_VAD_AVAILABLE", True)
+    def test_process_chunk_silero_short_audio_zero_pads_without_repeat(
+        self, mock_loader, mock_get_speech_timestamps
+    ):
+        """Test short streaming audio is zero-padded for Silero without wrapping."""
+        mock_loader.return_value = MagicMock()
+        mock_get_speech_timestamps.return_value = []
+
+        vad = StreamingVAD(threshold=0.5)
+        audio = np.array([0.25, -0.5, 0.75], dtype=np.float32)
+
+        vad.process_chunk(audio)
+
+        assert mock_get_speech_timestamps.call_count == 1
+        passed_audio = (
+            mock_get_speech_timestamps.call_args.args[0].detach().cpu().numpy()
+        )
+        np.testing.assert_allclose(passed_audio[: len(audio)], audio)
+        assert np.all(passed_audio[len(audio) :] == 0.0)
+
+    @patch("voicekey.audio.vad.get_speech_timestamps")
+    @patch("voicekey.audio.vad.silero_vad_loader")
+    @patch("voicekey.audio.vad.SILERO_VAD_AVAILABLE", True)
+    def test_process_chunk_silero_long_audio_uses_contiguous_chunks(
+        self, mock_loader, mock_get_speech_timestamps
+    ):
+        """Test long streaming audio is processed as contiguous 512-sample chunks."""
+        mock_loader.return_value = MagicMock()
+        mock_get_speech_timestamps.return_value = []
+
+        vad = StreamingVAD(threshold=0.5)
+        audio = np.arange(700, dtype=np.float32)
+
+        vad.process_chunk(audio)
+
+        assert mock_get_speech_timestamps.call_count == 2
+        first_chunk = mock_get_speech_timestamps.call_args_list[0].args[0].detach().cpu().numpy()
+        second_chunk = mock_get_speech_timestamps.call_args_list[1].args[0].detach().cpu().numpy()
+
+        np.testing.assert_allclose(first_chunk, audio[:512])
+        np.testing.assert_allclose(second_chunk[:188], audio[512:])
+        assert np.all(second_chunk[188:] == 0.0)
 
 
 class TestVADCalibrator:
