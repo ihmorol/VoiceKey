@@ -26,6 +26,8 @@ try:
 except ImportError:
     pass
 
+_LISTENER_JOIN_TIMEOUT_SECONDS = 1.0
+
 
 def _convert_hotkey_to_pynput(hotkey: str) -> str:
     """Convert normalized hotkey format to pynput format.
@@ -102,25 +104,16 @@ class LinuxHotkeyBackend(InMemoryHotkeyBackend):
         assert _GlobalHotKeys is not None
         assert _Key is not None
 
-        pynput_hotkey = _convert_hotkey_to_pynput(normalized)
-
         try:
             with self._listener_lock:
                 # Store callback
                 self._os_callbacks[normalized] = callback
 
-                # Stop existing listener if any
-                if self._hotkey_listener is not None:
-                    self._hotkey_listener.stop()
-
-                # Build new hotkey map with all registered hotkeys
-                hotkey_map = {
-                    _convert_hotkey_to_pynput(hk): cb
-                    for hk, cb in self._os_callbacks.items()
-                }
-
-                self._hotkey_listener = _GlobalHotKeys(hotkey_map)
-                self._hotkey_listener.start()
+                restarted = self._restart_listener_locked()
+                if not restarted:
+                    self._os_callbacks.pop(normalized, None)
+                    self._restart_listener_locked()
+                    raise RuntimeError("failed to start Linux hotkey listener")
 
                 # Also store in in-memory for list_registered()
                 self._callbacks[normalized] = callback
@@ -130,7 +123,6 @@ class LinuxHotkeyBackend(InMemoryHotkeyBackend):
 
         except Exception:
             # OS registration failed - fall back to in-memory
-            self._os_callbacks.pop(normalized, None)
             self._os_available = False
 
             # Still register in-memory as fallback
@@ -142,29 +134,11 @@ class LinuxHotkeyBackend(InMemoryHotkeyBackend):
         normalized = normalize_hotkey(hotkey)
 
         # Remove from OS callbacks
-        if normalized in self._os_callbacks:
-            del self._os_callbacks[normalized]
-
-            # Rebuild listener with remaining hotkeys
-            if self._hotkey_listener is not None:
-                try:
-                    self._hotkey_listener.stop()
-                except Exception:
-                    pass
-                self._hotkey_listener = None
-
-                # Restart listener if there are remaining hotkeys
-                if self._os_callbacks and self.is_available():
-                    assert _GlobalHotKeys is not None
-                    hotkey_map = {
-                        _convert_hotkey_to_pynput(hk): cb
-                        for hk, cb in self._os_callbacks.items()
-                    }
-                    try:
-                        self._hotkey_listener = _GlobalHotKeys(hotkey_map)
-                        self._hotkey_listener.start()
-                    except Exception:
-                        pass
+        with self._listener_lock:
+            if normalized in self._os_callbacks:
+                del self._os_callbacks[normalized]
+                if not self._restart_listener_locked():
+                    self._os_available = False
 
         # Remove from in-memory
         super().unregister(normalized)
@@ -172,13 +146,53 @@ class LinuxHotkeyBackend(InMemoryHotkeyBackend):
     def shutdown(self) -> None:
         """Stop the hotkey listener and clean up resources."""
         with self._listener_lock:
-            if self._hotkey_listener is not None:
+            self._stop_listener_locked()
+            self._os_callbacks.clear()
+
+    def _restart_listener_locked(self) -> bool:
+        """Rebuild OS listener from current callback map under lock."""
+        self._stop_listener_locked()
+        if not self._os_callbacks:
+            return True
+
+        if not self.is_available():
+            return False
+
+        assert _GlobalHotKeys is not None
+        hotkey_map = {_convert_hotkey_to_pynput(hk): cb for hk, cb in self._os_callbacks.items()}
+        try:
+            listener = _GlobalHotKeys(hotkey_map)
+            listener.start()
+        except Exception:
+            self._hotkey_listener = None
+            return False
+
+        self._hotkey_listener = listener
+        return True
+
+    def _stop_listener_locked(self) -> None:
+        """Stop and join current listener under lock to avoid thread leaks."""
+        listener = self._hotkey_listener
+        self._hotkey_listener = None
+        if listener is None:
+            return
+
+        try:
+            listener.stop()
+        except Exception:
+            pass
+
+        join = getattr(listener, "join", None)
+        if callable(join):
+            try:
+                join(timeout=_LISTENER_JOIN_TIMEOUT_SECONDS)
+            except TypeError:
                 try:
-                    self._hotkey_listener.stop()
+                    join()
                 except Exception:
                     pass
-                self._hotkey_listener = None
-            self._os_callbacks.clear()
+            except Exception:
+                pass
 
 
 __all__ = ["LinuxHotkeyBackend"]
