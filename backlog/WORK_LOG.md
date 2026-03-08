@@ -1,5 +1,33 @@
 # Backlog Work Log
 
+## 2026-03-09
+
+- Completed cross-module runtime reliability fixes from `analysis/voice_key_analysis.md` with TDD/systematic-debugging workflow and requirement-safe behavior preservation.
+- Updated `voicekey/platform/keyboard_linux.py` + `tests/unit/test_keyboard_backends.py`:
+  - Linux keyboard backend now auto-discovers and uses a real pynput injector by default (safe no-op fallback preserved for unavailable environments/tests).
+  - Injector resolution no longer depends on repeated `self_check()` calls in hot path.
+  - Added/updated regression tests for default injector discovery and deterministic unavailable fallback behavior.
+- Updated `voicekey/platform/hotkey_linux.py` + `tests/unit/test_hotkey_linux_backend.py`:
+  - listener restart lifecycle now uses stop+join semantics, leak-safe restart helper, and robust fallback behavior.
+- Updated `voicekey/audio/vad.py` + `tests/unit/test_vad.py`:
+  - replaced Silero `np.resize` wrapping with contiguous 512-sample chunking and final zero-padding.
+  - applied fix to both `VADProcessor` and `StreamingVAD` paths with dedicated regression coverage.
+- Updated `voicekey/audio/asr_faster_whisper.py` + `tests/unit/test_asr.py`:
+  - removed duplicate resample path by centralizing normalization/preparation once before transcription.
+  - removed dead sync streaming helper and retained compatibility stream wrapper.
+- Updated runtime coordination and control plane:
+  - `voicekey/app/main.py`: unified transcript routing across wake/toggle/continuous listening modes, enabled command parsing in toggle/continuous, added short-buffer flush-on-toggle-sleep, idle flush support, inactivity watchdog enforcement for non-wake modes, and audio-drop callback handling.
+  - `tests/unit/test_runtime_coordinator.py` + `tests/integration/test_pipeline_integration.py`: added regression coverage for toggle routing, timeout transitions, and short-utterance flush behavior.
+  - `tests/integration/test_hybrid_asr.py`: aligned frame-feeding helper with configurable transcription batch size.
+- Updated capture/CLI/single-instance reliability:
+  - `voicekey/audio/capture.py` + `tests/unit/test_capture.py`: added dropped-frame counter and callback notification surface.
+  - `voicekey/app/single_instance.py` + `tests/unit/test_single_instance.py`: added non-raising `try_acquire()` lock probe.
+  - `voicekey/ui/cli.py` + `tests/unit/test_cli.py`: `status` now uses `try_acquire()` semantics, and runtime coordinator wiring now passes configured mode safety controls/timeouts/chunk behavior.
+- Verification commands/evidence:
+  - `.venv/bin/python -m pytest -q tests/unit/test_runtime_coordinator.py tests/unit/test_capture.py tests/unit/test_cli.py tests/unit/test_single_instance.py tests/unit/test_keyboard_backends.py tests/unit/test_hotkey_backends.py tests/unit/test_hotkey_linux_backend.py tests/unit/test_vad.py tests/unit/test_asr.py` => PASS (189 passed)
+  - `.venv/bin/python -m pytest -q tests/integration/test_hybrid_asr.py tests/integration/test_pipeline_integration.py` => PASS (22 passed)
+  - `.venv/bin/python -m pytest -q tests/unit tests/integration` => PASS (819 passed)
+
 ## 2026-02-25
 
 - Debugged hotkey toggle runtime path and fixed configuration/runtime wiring mismatches for baseline feature usability.
