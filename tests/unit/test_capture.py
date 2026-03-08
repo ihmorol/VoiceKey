@@ -298,6 +298,29 @@ class TestAudioCaptureCallback:
         # Queue should still be full
         assert capture._audio_queue.full()
 
+    def test_audio_callback_backpressure_notifies_drop_callback(self):
+        """Test dropped-frame callback is invoked on queue backpressure."""
+        capture = AudioCapture()
+        dropped_counts: list[int] = []
+        capture.set_drop_callback(dropped_counts.append)
+
+        for _ in range(capture._queue_size):
+            capture._audio_queue.put(
+                AudioFrame(
+                    audio=np.zeros(1600, dtype=np.float32),
+                    sample_rate=16000,
+                    timestamp=0.0,
+                )
+            )
+
+        audio_data = np.random.randn(1600).astype(np.float32) * 0.1
+        mock_time_info = MagicMock()
+        mock_time_info.input_buffer_adc_time = 1.0
+        capture._audio_callback(audio_data.reshape(-1, 1), 1600, mock_time_info)
+
+        assert capture.dropped_frame_count == 1
+        assert dropped_counts == [1]
+
 
 class TestErrorMessages:
     """Tests for error message content."""

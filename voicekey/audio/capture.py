@@ -12,7 +12,7 @@ import sys
 import threading
 import time
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import Callable, Optional
 
 import numpy as np
 
@@ -260,6 +260,8 @@ class AudioCapture:
 
         # Device info cache
         self._device_info: Optional[dict] = None
+        self._dropped_frame_count = 0
+        self._drop_callback: Callable[[int], None] | None = None
 
     def _validate_device(self, device_index: int) -> None:
         """Validate that the device exists and is usable.
@@ -317,6 +319,7 @@ class AudioCapture:
                 return
 
             try:
+                self._dropped_frame_count = 0
                 # Determine device to use
                 device = self._device_index
                 if device is None:
@@ -432,6 +435,15 @@ class AudioCapture:
         """
         return self._device_info
 
+    @property
+    def dropped_frame_count(self) -> int:
+        """Total number of frames dropped due to full queue in current session."""
+        return self._dropped_frame_count
+
+    def set_drop_callback(self, callback: Callable[[int], None] | None) -> None:
+        """Register callback for dropped-frame notifications."""
+        self._drop_callback = callback
+
     def _audio_callback(
         self,
         indata: np.ndarray,
@@ -481,6 +493,12 @@ class AudioCapture:
         try:
             self._audio_queue.put_nowait(frame)
         except queue.Full:
+            self._dropped_frame_count += 1
+            if self._drop_callback is not None:
+                try:
+                    self._drop_callback(self._dropped_frame_count)
+                except Exception as callback_exc:
+                    logger.debug("Audio drop callback failed: %s", callback_exc)
             logger.warning(
                 "Audio queue full, dropping frame (backpressure triggered)"
             )
